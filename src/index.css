@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-primary: #2dd4bf; /* Teal-400 */
+  --color-secondary: #f43f5e; /* Rose-500 */
+  --color-accent: #f59e0b; /* Amber-500 */
+  --color-background: #f8fafc; /* Slate-50 */
+  --color-surface: #ffffff;
+  --color-text: #334155; /* Slate-700 */
+
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Merriweather', serif;
+}
+
+body {
+  @apply bg-background text-text antialiased;
+}
