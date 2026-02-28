@@ -16,21 +16,13 @@ export default function Hero() {
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
         </div>
         <div className="px-6 py-8 bg-background -mt-8 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mb-3"
-          >
-            <span className="text-base font-serif text-gray-600">Psychologische Online-Therapie <span className="text-primary">Mut Taucher</span></span>
-          </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
+            transition={{ duration: 0.8 }}
             className="font-serif text-3xl font-bold text-text mb-4 tracking-tight"
           >
-            Tauchen Sie nach Ihrem <span className="text-primary">Mut</span>
+            Psychologische Online-Therapie <span className="text-primary">Mut Taucher</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -38,8 +30,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="text-lg text-gray-700 mb-6 leading-relaxed"
           >
-            Psychotherapie für ein selbstbestimmtes Leben.
-            Gemeinsam finden wir Wege aus der Krise und entdecken Ihre innere Stärke wieder.
+            Ich lade Sie herzlich ein mit meiner Unterstützung mutig in Ihr Inneres zu tauchen — für mehr Resilienz und Lebenszufriedenheit.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -75,22 +66,13 @@ export default function Hero() {
         </div>
 
         <div className="relative z-10 px-12 lg:px-20 max-w-2xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mb-4"
-          >
-            <span className="text-lg font-serif text-gray-600">Psychologische Online-Therapie <span className="text-primary">Mut Taucher</span></span>
-          </motion.div>
-
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
+            transition={{ duration: 0.8 }}
             className="font-serif text-6xl font-bold text-text mb-6 tracking-tight"
           >
-            Tauchen Sie nach Ihrem <span className="text-primary">Mut</span>
+            Psychologische Online-Therapie <span className="text-primary">Mut Taucher</span>
           </motion.h1>
 
           <motion.p
@@ -99,8 +81,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="text-xl text-gray-700 mb-8 leading-relaxed"
           >
-            Psychotherapie für ein selbstbestimmtes Leben.
-            Gemeinsam finden wir Wege aus der Krise und entdecken Ihre innere Stärke wieder.
+            Ich lade Sie herzlich ein mit meiner Unterstützung mutig in Ihr Inneres zu tauchen — für mehr Resilienz und Lebenszufriedenheit.
           </motion.p>
 
           <motion.div
