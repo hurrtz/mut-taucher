@@ -3,6 +3,7 @@ import { usePublicBooking, type PublicSlot } from '../lib/usePublicBooking';
 import { format, startOfMonth, addMonths, isSameDay, isSameMonth, parseISO, startOfWeek, endOfWeek, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { trackBookingDateSelected, trackBookingSlotSelected, trackBookingSubmitted } from '../lib/analytics';
 
 export default function Booking() {
   const { slots, loading, error, booking, fetchSlots, bookSlot } = usePublicBooking();
@@ -39,6 +40,7 @@ export default function Booking() {
     );
 
     if (result) {
+      trackBookingSubmitted(selectedSlot.date, selectedSlot.time);
       setIsSuccess(true);
       setTimeout(() => {
         setIsSuccess(false);
@@ -118,7 +120,12 @@ export default function Booking() {
                   return (
                     <button
                       key={i}
-                      onClick={() => hasSlots && inCurrentMonth && setSelectedDate(day)}
+                      onClick={() => {
+                        if (hasSlots && inCurrentMonth) {
+                          setSelectedDate(day);
+                          trackBookingDateSelected(format(day, 'yyyy-MM-dd'));
+                        }
+                      }}
                       disabled={!hasSlots || !inCurrentMonth}
                       className={`
                         relative p-2 rounded-lg flex flex-col items-center justify-center transition-all duration-200 aspect-square
@@ -187,7 +194,10 @@ export default function Booking() {
                         {daySlots.map(slot => (
                           <button
                             key={slot.id}
-                            onClick={() => setSelectedSlot(slot)}
+                            onClick={() => {
+                              setSelectedSlot(slot);
+                              trackBookingSlotSelected(slot.date, slot.time);
+                            }}
                             className={`
                               px-4 py-2 rounded-md text-sm font-medium border transition-all flex flex-col items-center justify-center gap-0.5
                               ${selectedSlot?.id === slot.id
