@@ -8,7 +8,8 @@ import Articles from '../components/Articles';
 import Booking from '../components/Booking';
 import Contact from '../components/Contact';
 import Footer from '../components/Footer';
-import { useMemo } from 'react';
+import { trackScrollDepth } from '../lib/analytics';
+import { useMemo, useEffect, useRef } from 'react';
 
 export default function Home() {
   useDocumentMeta({
@@ -19,6 +20,38 @@ export default function Home() {
   });
 
   const ldData = useMemo(() => localBusinessData(), []);
+
+  const firedRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    const thresholds: [string, number][] = [
+      ['about', 25],
+      ['services', 50],
+      ['booking', 75],
+      ['contact', 100],
+    ];
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const match = thresholds.find(([id]) => entry.target.id === id);
+          if (match && !firedRef.current.has(match[1])) {
+            firedRef.current.add(match[1]);
+            trackScrollDepth(match[1], '/');
+          }
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    for (const [id] of thresholds) {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <>
