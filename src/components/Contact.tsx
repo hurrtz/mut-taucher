@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CheckCircle, AlertCircle, Send } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import contactImage from '@/assets/contact.jpg';
+import { trackContactSubmitted } from '../lib/analytics';
 
 type FormState = 'idle' | 'submitting' | 'success' | 'error';
 
@@ -26,6 +27,7 @@ export default function Contact() {
         body: JSON.stringify(data),
       });
       setFormState('success');
+      trackContactSubmitted();
       form.reset();
     } catch {
       setFormState('error');

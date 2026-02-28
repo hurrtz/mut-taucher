@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { articles } from '../lib/data';
@@ -7,6 +7,7 @@ import JsonLd, { articleData } from '../components/JsonLd';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ArrowLeft } from 'lucide-react';
+import { trackArticleViewed } from '../lib/analytics';
 
 export default function Article() {
   const { slug } = useParams();
@@ -18,6 +19,12 @@ export default function Article() {
     canonical: article ? `${BASE_URL}/wissen/${article.slug}` : undefined,
     ogType: 'article',
   });
+
+  useEffect(() => {
+    if (article) {
+      trackArticleViewed(article.slug, article.title);
+    }
+  }, [slug]);
 
   const ldData = useMemo(
     () => article ? articleData(article) : null,

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { services } from '../lib/data';
 import type { Service } from '../lib/data';
 import GroupAd from './GroupAd';
+import { trackCtaClicked } from '../lib/analytics';
 
 const iconMap = {
   Video,
@@ -13,7 +14,7 @@ const iconMap = {
 function ServiceCard({ service }: { service: Service }) {
   const Icon = iconMap[service.icon];
   return (
-    <Link to={`/leistungen/${service.slug}`} className="pt-6 group">
+    <Link to={`/leistungen/${service.slug}`} onClick={() => trackCtaClicked(service.title, 'services-grid')} className="pt-6 group">
       <div className="flow-root bg-white rounded-lg px-6 pb-8 h-full group-hover:shadow-lg transition-shadow duration-300">
         <div className="-mt-6">
           <div>

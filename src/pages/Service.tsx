@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { services } from '../lib/data';
@@ -8,6 +8,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ArrowLeft } from 'lucide-react';
 import GroupAd from '../components/GroupAd';
+import { trackServiceViewed } from '../lib/analytics';
 
 export default function Service() {
   const { slug } = useParams();
@@ -18,6 +19,12 @@ export default function Service() {
     description: service?.metaDescription,
     canonical: service ? `${BASE_URL}/leistungen/${service.slug}` : undefined,
   });
+
+  useEffect(() => {
+    if (service) {
+      trackServiceViewed(service.slug, service.title);
+    }
+  }, [slug]);
 
   const ldData = useMemo(
     () => service ? serviceData(service) : null,

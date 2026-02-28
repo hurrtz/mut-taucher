@@ -1010,6 +1010,7 @@ export default function Admin() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Verfügbarkeit verwalten</h1>
           <div className="flex items-center gap-4">
+            <a href="https://app.eu.amplitude.com/analytics/mut-taucher-395196/home" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">Amplitude</a>
             <Link to="/" className="text-primary hover:underline text-sm">Zur Website</Link>
             <button
               onClick={logout}
