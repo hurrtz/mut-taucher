@@ -8,11 +8,14 @@ import Impressum from './pages/Impressum';
 import AGB from './pages/AGB';
 import UeberMich from './pages/UeberMich';
 import Admin from './pages/Admin';
+import ConsentBanner from './components/ConsentBanner';
+import { trackPageView } from './lib/analytics';
 
-// Scroll to top on route change, or to hash target if present
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
   useEffect(() => {
+    trackPageView(pathname, document.title);
+
     if (hash) {
       const el = document.querySelector(hash);
       if (el) {
@@ -39,6 +42,7 @@ function App() {
         <Route path="/agb" element={<AGB />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
+      <ConsentBanner />
     </Router>
   );
 }
