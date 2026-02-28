@@ -16,10 +16,19 @@ export default function Hero() {
       </div>
 
       <div className="relative z-10 px-6 sm:px-12 lg:px-20 max-w-2xl">
-        <motion.h1
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
+          className="mb-4"
+        >
+          <span className="text-base md:text-lg font-serif text-gray-600 border-l-2 border-primary/40 pl-3">Praxis für Online-Psychotherapie (Heilpraktikergesetz)</span>
+        </motion.div>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.1 }}
           className="font-serif text-4xl md:text-6xl font-bold text-text mb-6 tracking-tight"
         >
           Tauchen Sie nach Ihrem <span className="text-primary">Mut</span>
@@ -28,7 +37,7 @@ export default function Hero() {
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
           className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed"
         >
           Psychotherapie für ein selbstbestimmtes Leben.
@@ -38,7 +47,7 @@ export default function Hero() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
           className="flex flex-col sm:flex-row gap-4"
         >
           <a
