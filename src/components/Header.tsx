@@ -20,7 +20,7 @@ export default function Header() {
           <div className="flex-shrink-0">
             <Link to="/" className="flex items-center gap-2 font-serif text-2xl text-primary font-bold">
               <img src={favicon} alt="Mut-Taucher Logo" className="h-7 w-7" />
-              <span>Mut-Taucher</span>
+              <span>Mut Taucher</span>
             </Link>
           </div>
           <div className="hidden md:block">
