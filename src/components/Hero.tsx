@@ -22,7 +22,7 @@ export default function Hero() {
           transition={{ duration: 0.8 }}
           className="mb-4"
         >
-          <span className="text-base md:text-lg font-serif text-gray-600 border-l-2 border-primary/40 pl-3">Praxis für Online-Psychotherapie (Heilpraktikergesetz)</span>
+          <span className="text-base md:text-lg font-serif text-gray-600">Psychologische Online-Therapie <span className="text-primary">Mut Taucher</span></span>
         </motion.div>
 
         <motion.h1
