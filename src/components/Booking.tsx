@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { useBooking } from '../lib/useBooking';
-import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
+import { format, startOfMonth, addMonths, isSameDay, isSameMonth, parseISO, startOfWeek, endOfWeek, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import type { Slot } from '../lib/data';
 
 export default function Booking() {
   const { slots, bookSlot } = useBooking();
-  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [bookingForm, setBookingForm] = useState({ name: '', email: '' });
@@ -15,10 +15,15 @@ export default function Booking() {
 
   const availableSlots = slots.filter(s => s.available);
 
-  const nextWeek = () => setCurrentWeekStart(addDays(currentWeekStart, 7));
-  const prevWeek = () => setCurrentWeekStart(addDays(currentWeekStart, -7));
+  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+  const prevMonth = () => setCurrentMonth(addMonths(currentMonth, -1));
 
-  const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(currentWeekStart, i));
+  // Build calendar grid: from Monday of the week containing the 1st, to Sunday of the week containing the last day
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
   const handleBook = (e: FormEvent) => {
     e.preventDefault();
@@ -34,40 +39,53 @@ export default function Booking() {
   };
 
   return (
-    <section id="booking" className="py-20 bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-serif font-bold text-text mb-4">Termin vereinbaren</h2>
-          <p className="text-lg text-gray-600">
+    <section id="booking" className="relative py-24 lg:py-32 bg-gradient-to-br from-primary/5 via-teal-50 to-primary/10 overflow-hidden">
+      {/* Decorative blobs */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl translate-x-1/3 translate-y-1/3 animate-pulse [animation-delay:2s]" />
+      <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse [animation-delay:4s]" />
+
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl sm:text-5xl font-serif font-bold text-text mb-4">Termin vereinbaren</h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Der erste Schritt ist oft der mutigste — wir begleiten Sie gerne.
             Finden Sie hier direkt einen passenden Termin für ein unverbindliches Erstgespräch.
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden md:flex">
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden md:flex">
           {/* Calendar Section */}
-          <div className="p-8 md:w-1/2 border-r border-gray-100">
+          <div className="p-10 md:w-1/2 border-r border-gray-100">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-text">
-                {format(currentWeekStart, 'MMMM yyyy', { locale: de })}
+              <h3 className="text-lg font-semibold text-text capitalize">
+                {format(currentMonth, 'MMMM yyyy', { locale: de })}
               </h3>
-              <div className="flex space-x-2">
-                <button onClick={prevWeek} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-primary transition-colors">
+              <div className="flex items-center space-x-2">
+                <button onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-primary transition-colors">
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                <button onClick={nextWeek} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-primary transition-colors">
+                <button
+                  onClick={() => setCurrentMonth(startOfMonth(new Date()))}
+                  className="px-2 py-0.5 text-xs font-medium text-gray-500 hover:text-primary hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  Heute
+                </button>
+                <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-primary transition-colors">
                   <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-7 gap-2 text-center mb-4">
+            <div className="grid grid-cols-7 gap-1 text-center mb-2">
               {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (
                 <div key={d} className="text-xs font-medium text-gray-400 uppercase">{d}</div>
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-2">
-              {weekDays.map((day, i) => {
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map((day, i) => {
+                const inCurrentMonth = isSameMonth(day, currentMonth);
                 const daySlots = availableSlots.filter(s => isSameDay(parseISO(s.date), day));
                 const hasSlots = daySlots.length > 0;
                 const isSelected = selectedDate && isSameDay(day, selectedDate);
@@ -76,22 +94,20 @@ export default function Booking() {
                 return (
                   <button
                     key={i}
-                    onClick={() => hasSlots && setSelectedDate(day)}
-                    disabled={!hasSlots}
+                    onClick={() => hasSlots && inCurrentMonth && setSelectedDate(day)}
+                    disabled={!hasSlots || !inCurrentMonth}
                     className={`
-                      relative p-2 rounded-lg flex flex-col items-center justify-center transition-all duration-200
-                      ${isSelected ? 'bg-primary text-white shadow-md transform scale-105' : ''}
-                      ${!isSelected && hasSlots ? 'hover:bg-teal-50 text-text cursor-pointer' : ''}
-                      ${!hasSlots ? 'text-gray-300 cursor-default' : ''}
-                      ${isToday && !isSelected ? 'ring-1 ring-primary ring-inset' : ''}
+                      relative p-2 rounded-lg flex flex-col items-center justify-center transition-all duration-200 aspect-square
+                      ${!inCurrentMonth ? 'text-gray-200 cursor-default' : ''}
+                      ${inCurrentMonth && isSelected ? 'bg-primary text-white shadow-md transform scale-105 font-bold' : ''}
+                      ${inCurrentMonth && !isSelected && hasSlots ? 'bg-teal-50 text-teal-800 font-semibold hover:bg-teal-100 cursor-pointer ring-1 ring-teal-200' : ''}
+                      ${inCurrentMonth && !hasSlots && !isSelected ? 'text-gray-300 cursor-default' : ''}
+                      ${isToday && !isSelected && inCurrentMonth ? 'ring-1 ring-primary ring-inset' : ''}
                     `}
                   >
-                    <span className={`text-sm ${isSelected ? 'font-bold' : ''}`}>
+                    <span className="text-sm">
                       {format(day, 'd')}
                     </span>
-                    {hasSlots && (
-                      <span className={`absolute bottom-1 w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-primary'}`}></span>
-                    )}
                   </button>
                 );
               })}
@@ -103,7 +119,7 @@ export default function Booking() {
           </div>
 
           {/* Slots & Form Section */}
-          <div className="p-8 md:w-1/2 bg-gray-50/50">
+          <div className="p-10 md:w-1/2 bg-gray-50/50">
             {!selectedDate ? (
               <div className="h-full flex flex-col items-center justify-center text-center space-y-4 text-gray-400">
                 <CalendarIcon className="h-12 w-12 text-gray-300" />
@@ -173,7 +189,7 @@ export default function Booking() {
                     </div>
                     <button
                       type="submit"
-                      className="w-full py-2 px-4 bg-secondary hover:bg-rose-600 text-white font-semibold rounded-md shadow-md transition-colors"
+                      className="w-full py-3 px-6 bg-secondary hover:bg-rose-600 text-white font-semibold text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
                     >
                       Termin jetzt buchen
                     </button>
