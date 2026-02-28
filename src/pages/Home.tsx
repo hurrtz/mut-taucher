@@ -6,6 +6,7 @@ import About from '../components/About';
 import Services from '../components/Services';
 import Articles from '../components/Articles';
 import Booking from '../components/Booking';
+import Contact from '../components/Contact';
 import Footer from '../components/Footer';
 import { useMemo } from 'react';
 
@@ -28,6 +29,7 @@ export default function Home() {
       <Services />
       <Booking />
       <Articles />
+      <Contact />
       <Footer />
     </>
   );
