@@ -6,10 +6,10 @@ export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
   const links = [
-    { name: 'Über mich', href: '#about' },
-    { name: 'Leistungen', href: '#services' },
-    { name: 'Wissen', href: '#articles' },
-    { name: 'Kontakt', href: '#contact' },
+    { name: 'Über mich', href: '/#about' },
+    { name: 'Leistungen', href: '/#services' },
+    { name: 'Wissen', href: '/#articles' },
+    { name: 'Kontakt', href: '/#contact' },
   ];
 
   return (
@@ -34,7 +34,7 @@ export default function Header() {
                 </a>
               ))}
               <a
-                href="#booking"
+                href="/#booking"
                 className="bg-primary hover:bg-teal-500 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors"
               >
                 Termin buchen
@@ -66,7 +66,7 @@ export default function Header() {
               </a>
             ))}
             <a
-              href="#booking"
+              href="/#booking"
               className="bg-primary text-white block px-3 py-2 rounded-md text-base font-medium mt-4 text-center"
               onClick={() => setIsOpen(false)}
             >

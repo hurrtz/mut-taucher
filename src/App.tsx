@@ -8,12 +8,19 @@ import Impressum from './pages/Impressum';
 import AGB from './pages/AGB';
 import Admin from './pages/Admin';
 
-// ScrollToTop component to reset scroll position on route change
+// Scroll to top on route change, or to hash target if present
 function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   useEffect(() => {
+    if (hash) {
+      const el = document.querySelector(hash);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+    }
     window.scrollTo(0, 0);
-  }, [pathname]);
+  }, [pathname, hash]);
   return null;
 }
 
