@@ -20,7 +20,7 @@ export default function GroupAd() {
   return (
     <a
       href="#booking"
-      onClick={() => trackGroupAdClicked(group.name)}
+      onClick={() => trackGroupAdClicked(group.label)}
       className="group my-10 mx-auto block max-w-xl bg-rose-600 rounded-xl px-6 py-6 flex items-center justify-center gap-3 hover:bg-rose-700 transition-colors shadow-lg shadow-rose-600/30"
     >
       <span className="text-white/80 text-sm sm:text-lg font-medium whitespace-nowrap">
