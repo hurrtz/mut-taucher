@@ -1,4 +1,5 @@
 import { Award, Compass, Heart } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import aboutImage from '@/assets/about.jpg';
 
 export default function About() {
@@ -10,13 +11,13 @@ export default function About() {
           <div className="relative mb-12 lg:mb-0">
             <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
             <div className="absolute top-0 -right-4 w-72 h-72 bg-secondary/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 transform rotate-2 hover:rotate-0 transition-all duration-500">
+            <Link to="/ueber-mich" className="block relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 transform rotate-2 hover:rotate-0 hover:scale-105 transition-all duration-500 cursor-pointer">
               <img
                 src={aboutImage}
                 alt="Portrait der Therapeutin"
                 className="w-full h-full object-cover"
               />
-            </div>
+            </Link>
           </div>
 
           <div>
@@ -70,8 +71,17 @@ export default function About() {
                 </div>
               </div>
             </div>
+
+            <div className="mt-8 text-center lg:text-left">
+              <Link
+                to="/ueber-mich"
+                className="inline-block px-6 py-3 bg-primary hover:bg-teal-500 text-white font-semibold rounded-full transition-colors shadow-md"
+              >
+                Mehr erfahren
+              </Link>
+            </div>
           </div>
-          
+
         </div>
       </div>
     </section>
