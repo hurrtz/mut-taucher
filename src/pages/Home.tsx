@@ -4,7 +4,6 @@ import Hero from '../components/Hero';
 import About from '../components/About';
 import Services from '../components/Services';
 import Articles from '../components/Articles';
-import GroupAd from '../components/GroupAd';
 import Booking from '../components/Booking';
 import Footer from '../components/Footer';
 
@@ -20,7 +19,6 @@ export default function Home() {
       <Hero />
       <About />
       <Services />
-      <GroupAd />
       <Booking />
       <Articles />
       <Footer />

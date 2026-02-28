@@ -2,6 +2,7 @@ import { Video, Users, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { services } from '../lib/data';
 import type { Service } from '../lib/data';
+import GroupAd from './GroupAd';
 
 const iconMap = {
   Video,
@@ -49,6 +50,8 @@ export default function Services() {
             Individuelle Lösungen für Ihre persönliche Situation.
           </p>
         </div>
+
+        <GroupAd />
 
         <div className="mt-20 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {services.map((service) => (
