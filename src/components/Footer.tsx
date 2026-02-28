@@ -23,11 +23,11 @@ export default function Footer() {
             <ul className="space-y-3 text-gray-400 text-sm">
               <li className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-gray-500" />
-                <a href="mailto:hallo@mut-taucher.de" className="hover:text-white transition-colors">hallo@mut-taucher.de</a>
+                <a href="mailto:jana@mut-taucher.de" className="hover:text-white transition-colors">jana@mut-taucher.de</a>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-gray-500" />
-                <a href="tel:+491234567890" className="hover:text-white transition-colors">+49 123 456 7890</a>
+                <a href="tel:+4915253432009" className="hover:text-white transition-colors">+49 152 53432009</a>
               </li>
               <li className="flex items-center gap-3">
                 <MapPin className="h-5 w-5 text-gray-500" />

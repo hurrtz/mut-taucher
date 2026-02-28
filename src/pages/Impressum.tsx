@@ -40,7 +40,7 @@ export default function Impressum() {
 
             <h2>Kontakt</h2>
             <p>
-              E-Mail: <a href="mailto:gruppentherapie@mut-taucher.de">gruppentherapie@mut-taucher.de</a><br />
+              E-Mail: <a href="mailto:jana@mut-taucher.de">jana@mut-taucher.de</a><br />
               Telefon: <a href="tel:+4915253432009">+49 152 53432009</a>
             </p>
 
