@@ -40,16 +40,16 @@ export default function Article() {
             Zurück zur Übersicht
           </Link>
           
-          <img 
-            src={article.image} 
-            alt={article.title} 
+          <img
+            src={article.image}
+            alt={article.title}
             className="w-full h-64 md:h-96 object-cover rounded-2xl shadow-lg mb-8"
           />
-          
+
           <h1 className="text-3xl md:text-5xl font-serif font-bold text-text mb-6">{article.title}</h1>
-          
+
           <div className="prose prose-lg prose-slate max-w-none prose-headings:font-serif prose-headings:text-text prose-a:text-primary hover:prose-a:text-teal-600">
-            <ReactMarkdown>{article.content}</ReactMarkdown>
+            <ReactMarkdown>{article.content.replace(/^\s*#\s+.+\n+/, '')}</ReactMarkdown>
           </div>
           
           <div className="mt-12 pt-8 border-t border-gray-200">

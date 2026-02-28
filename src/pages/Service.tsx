@@ -40,8 +40,10 @@ export default function Service() {
             Zurück zur Übersicht
           </Link>
 
+          <h1 className="text-3xl md:text-5xl font-serif font-bold text-text mb-6">{service.title}</h1>
+
           <div className="prose prose-lg prose-slate max-w-none prose-headings:font-serif prose-headings:text-text prose-a:text-primary hover:prose-a:text-teal-600">
-            <ReactMarkdown>{service.content}</ReactMarkdown>
+            <ReactMarkdown>{service.content.replace(/^\s*#\s+.+\n+/, '')}</ReactMarkdown>
           </div>
 
           <div className="mt-12 pt-8 border-t border-gray-200">
