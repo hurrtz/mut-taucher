@@ -1,4 +1,5 @@
 import * as amplitude from '@amplitude/analytics-browser';
+import { sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
 import { getConsent } from './consent';
 
 let initialized = false;
@@ -10,6 +11,15 @@ export function initAnalytics(): void {
   const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
   if (!apiKey) return;
 
+  const sessionReplay = sessionReplayPlugin({
+    sampleRate: 1,
+    privacyConfig: {
+      maskSelector: ['.amp-mask', '[type="email"]', '[type="tel"]'],
+      blockSelector: ['.amp-block'],
+    },
+  });
+
+  amplitude.add(sessionReplay);
   amplitude.init(apiKey, {
     serverZone: 'EU',
     defaultTracking: false,
