@@ -1,4 +1,5 @@
 import { Award, Compass, Heart } from 'lucide-react';
+import aboutImage from '@/assets/about.jpg';
 
 export default function About() {
   return (
@@ -10,9 +11,9 @@ export default function About() {
             <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
             <div className="absolute top-0 -right-4 w-72 h-72 bg-secondary/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
             <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 transform rotate-2 hover:rotate-0 transition-all duration-500">
-              <img 
-                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=1200" 
-                alt="Portrait der Therapeutin" 
+              <img
+                src={aboutImage}
+                alt="Portrait der Therapeutin"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -35,7 +36,7 @@ export default function About() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="flex items-start space-x-4 p-4 bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
                 <div className="flex-shrink-0">
-                  <Heart className="h-6 w-6 text-secondary" />
+                  <Heart className="h-6 w-6 text-red-500" />
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-text">Empathisch</h3>
