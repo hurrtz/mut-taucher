@@ -17,7 +17,7 @@ function ServiceCard({ service }: { service: Service }) {
       <div className="flow-root bg-white rounded-lg px-6 pb-8 h-full group-hover:shadow-lg transition-shadow duration-300">
         <div className="-mt-6">
           <div>
-            <span className={`inline-flex items-center justify-center p-3 bg-${service.color} rounded-md shadow-lg`}>
+            <span className="inline-flex items-center justify-center p-3 bg-primary rounded-md shadow-lg">
               <Icon className="h-6 w-6 text-white" aria-hidden="true" />
             </span>
           </div>
