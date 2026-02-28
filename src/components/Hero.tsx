@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import heroImage from '@/assets/hero.jpg';
+import { trackCtaClicked } from '../lib/analytics';
 
 export default function Hero() {
   return (
@@ -40,12 +41,14 @@ export default function Hero() {
           >
             <a
               href="#booking"
+              onClick={() => trackCtaClicked('Erstgespräch vereinbaren', 'hero-mobile')}
               className="px-8 py-3 bg-primary hover:bg-teal-500 text-white font-semibold rounded-full shadow-lg transition-all text-center"
             >
               Erstgespräch vereinbaren
             </a>
             <a
               href="#about"
+              onClick={() => trackCtaClicked('Mehr erfahren', 'hero-mobile')}
               className="px-8 py-3 bg-white hover:bg-gray-50 text-text font-semibold rounded-full shadow-lg transition-all border border-gray-200 text-center"
             >
               Mehr erfahren
@@ -92,12 +95,14 @@ export default function Hero() {
           >
             <a
               href="#booking"
+              onClick={() => trackCtaClicked('Erstgespräch vereinbaren', 'hero-desktop')}
               className="px-8 py-3 bg-primary hover:bg-teal-500 text-white font-semibold rounded-full shadow-lg transition-all transform hover:scale-105"
             >
               Erstgespräch vereinbaren
             </a>
             <a
               href="#about"
+              onClick={() => trackCtaClicked('Mehr erfahren', 'hero-desktop')}
               className="px-8 py-3 bg-white/80 hover:bg-white text-text font-semibold rounded-full shadow-lg backdrop-blur-sm transition-all border border-gray-200"
             >
               Mehr erfahren
