@@ -11,7 +11,7 @@ export default function About() {
           <div className="relative mb-12 lg:mb-0">
             <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
             <div className="absolute top-0 -right-4 w-72 h-72 bg-secondary/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-            <Link to="/ueber-mich" className="block relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 transform rotate-2 hover:rotate-0 hover:scale-105 transition-all duration-500 cursor-pointer">
+            <Link to="/ueber-mich" className="block relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 transform md:rotate-2 md:hover:rotate-0 hover:scale-105 transition-all duration-500 cursor-pointer">
               <img
                 src={aboutImage}
                 alt="Portrait der Therapeutin"
