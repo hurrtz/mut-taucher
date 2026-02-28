@@ -1,14 +1,15 @@
 import { Link } from 'react-router-dom';
-import { useDocumentMeta } from '../lib/useDocumentMeta';
+import { useDocumentMeta, BASE_URL } from '../lib/useDocumentMeta';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ArrowLeft } from 'lucide-react';
 
 export default function Datenschutz() {
-  useDocumentMeta(
-    'Datenschutzerklärung — Mut-Taucher',
-    'Datenschutzerklärung der Online-Psychotherapie-Praxis Mut-Taucher.',
-  );
+  useDocumentMeta({
+    title: 'Datenschutzerklärung — Mut-Taucher',
+    description: 'Datenschutzerklärung der Online-Psychotherapie-Praxis Mut-Taucher.',
+    canonical: BASE_URL + '/datenschutz',
+  });
 
   return (
     <>

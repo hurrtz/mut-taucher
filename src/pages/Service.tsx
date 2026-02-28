@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { services } from '../lib/data';
-import { useDocumentMeta } from '../lib/useDocumentMeta';
+import { useDocumentMeta, BASE_URL } from '../lib/useDocumentMeta';
+import JsonLd, { serviceData } from '../components/JsonLd';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ArrowLeft } from 'lucide-react';
@@ -11,9 +13,15 @@ export default function Service() {
   const { slug } = useParams();
   const service = services.find((s) => s.slug === slug);
 
-  useDocumentMeta(
-    service ? `${service.title} — Mut-Taucher` : 'Nicht gefunden — Mut-Taucher',
-    service?.metaDescription,
+  useDocumentMeta({
+    title: service ? `${service.title} — Mut-Taucher` : 'Nicht gefunden — Mut-Taucher',
+    description: service?.metaDescription,
+    canonical: service ? `${BASE_URL}/leistungen/${service.slug}` : undefined,
+  });
+
+  const ldData = useMemo(
+    () => service ? serviceData(service) : null,
+    [service],
   );
 
   if (!service) {
@@ -33,6 +41,7 @@ export default function Service() {
 
   return (
     <>
+      {ldData && <JsonLd data={ldData} />}
       <Header />
       <div className="pt-24 pb-20 bg-background min-h-screen">
         <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useDocumentMeta } from '../lib/useDocumentMeta';
+import { useDocumentMeta, BASE_URL } from '../lib/useDocumentMeta';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ueberMich1 from '@/assets/ueber-mich-1.jpg';
@@ -9,10 +9,11 @@ import ueberMich4 from '@/assets/ueber-mich-4.jpg';
 import { ArrowLeft } from 'lucide-react';
 
 export default function UeberMich() {
-  useDocumentMeta(
-    'Über mich — Mut-Taucher',
-    'Erfahren Sie mehr über mich, meinen Werdegang und meinen therapeutischen Ansatz.',
-  );
+  useDocumentMeta({
+    title: 'Über mich — Mut-Taucher',
+    description: 'Erfahren Sie mehr über mich, meinen Werdegang und meinen therapeutischen Ansatz.',
+    canonical: BASE_URL + '/ueber-mich',
+  });
 
   return (
     <>

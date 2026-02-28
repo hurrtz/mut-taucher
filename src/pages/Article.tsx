@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { articles } from '../lib/data';
-import { useDocumentMeta } from '../lib/useDocumentMeta';
+import { useDocumentMeta, BASE_URL } from '../lib/useDocumentMeta';
+import JsonLd, { articleData } from '../components/JsonLd';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ArrowLeft } from 'lucide-react';
@@ -10,9 +12,16 @@ export default function Article() {
   const { slug } = useParams();
   const article = articles.find((a) => a.slug === slug);
 
-  useDocumentMeta(
-    article ? `${article.title} — Mut-Taucher` : 'Nicht gefunden — Mut-Taucher',
-    article?.metaDescription,
+  useDocumentMeta({
+    title: article ? `${article.title} — Mut-Taucher` : 'Nicht gefunden — Mut-Taucher',
+    description: article?.metaDescription,
+    canonical: article ? `${BASE_URL}/wissen/${article.slug}` : undefined,
+    ogType: 'article',
+  });
+
+  const ldData = useMemo(
+    () => article ? articleData(article) : null,
+    [article],
   );
 
   if (!article) {
@@ -32,6 +41,7 @@ export default function Article() {
 
   return (
     <>
+      {ldData && <JsonLd data={ldData} />}
       <Header />
       <div className="pt-24 pb-20 bg-background min-h-screen">
         <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,7 +49,7 @@ export default function Article() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Zurück zur Übersicht
           </Link>
-          
+
           <img
             src={article.image}
             alt={article.title}

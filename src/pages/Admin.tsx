@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type FormEvent, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, useLayoutEffect, type FormEvent, type ReactNode } from 'react';
 import { useAdminBooking, type AdminBooking } from '../lib/useAdminBooking';
 import { generateSlots } from '../lib/useBooking';
 import type { RecurringRule, DayConfig, Event, TherapyGroup } from '../lib/data';
@@ -921,6 +921,18 @@ function GroupManager({ groups, editingGroupId, onAdd, onUpdate, onDelete, onTog
 // ─── Main Admin Page ─────────────────────────────────────────────
 
 export default function Admin() {
+  // Block indexing of admin page
+  useLayoutEffect(() => {
+    let meta = document.querySelector('meta[name="robots"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'robots');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', 'noindex, nofollow');
+    return () => { meta.remove(); };
+  }, []);
+
   const {
     authenticated, rules, events, bookings, groups, loading, error,
     login, logout, fetchRules, addRule, updateRule, removeRule,

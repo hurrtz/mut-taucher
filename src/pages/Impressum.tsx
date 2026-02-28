@@ -1,14 +1,15 @@
 import { Link } from 'react-router-dom';
-import { useDocumentMeta } from '../lib/useDocumentMeta';
+import { useDocumentMeta, BASE_URL } from '../lib/useDocumentMeta';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ArrowLeft } from 'lucide-react';
 
 export default function Impressum() {
-  useDocumentMeta(
-    'Impressum — Mut-Taucher',
-    'Impressum der Online-Psychotherapie-Praxis Mut-Taucher.',
-  );
+  useDocumentMeta({
+    title: 'Impressum — Mut-Taucher',
+    description: 'Impressum der Online-Psychotherapie-Praxis Mut-Taucher.',
+    canonical: BASE_URL + '/impressum',
+  });
 
   return (
     <>
