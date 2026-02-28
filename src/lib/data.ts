@@ -1,3 +1,12 @@
+import topicNervensystem from '@/assets/topic-nervensystem.jpeg';
+import topicAdhs from '@/assets/topic-adhs.jpeg';
+import topicAlkohol from '@/assets/topic-alkohol.jpeg';
+import topicAngst from '@/assets/topic-angst.jpeg';
+import topicDepression from '@/assets/topic-depression.jpeg';
+import topicEmotionsregulation from '@/assets/topic-emotionsregulation.jpeg';
+import topicSelbstwert from '@/assets/topic-selbstwert.jpeg';
+import topicTrauma from '@/assets/topic-trauma.jpeg';
+
 export interface Slot {
   id: string;
   date: string; // ISO string
@@ -137,25 +146,53 @@ export const articles: Article[] = [
     slug: 'unser-nervensystem',
     excerpt: 'Wie unser autonomes Nervensystem unsere Reaktionen steuert und was das für die Therapie bedeutet.',
     metaDescription: 'Verstehen Sie, wie das autonome Nervensystem Stress, Angst und Entspannung steuert — und wie Therapie daran ansetzen kann.',
-    image: 'https://images.unsplash.com/photo-1559757175-5700dde675bc?auto=format&fit=crop&q=80&w=2000',
-    content: `
-# Unser Nervensystem
+    image: topicNervensystem,
+    content: `# Unser Nervensystem
 
-Das autonome Nervensystem ist die Schaltzentrale unserer Stressreaktionen. Es entscheidet in Sekundenbruchteilen, ob wir uns sicher fühlen oder in den Kampf-oder-Flucht-Modus wechseln.
+Unser Nervensystem ist das zentrale Steuerungs- und Kommunikationssystem unseres Körpers. Es beeinflusst, wie wir denken, fühlen, handeln und Beziehungen gestalten. Gleichzeitig reguliert es viele lebenswichtige Prozesse unbewusst, etwa Atmung, Herzschlag, Verdauung und Schlaf. Das Nervensystem entscheidet fortlaufend, ob wir uns sicher oder bedroht fühlen – und passt unseren Körper entsprechend an.
 
-## Sympathikus und Parasympathikus
+## Wie ist das Nervensystem aufgebaut?
 
-Unser Nervensystem besteht aus zwei Hauptakteuren:
-- **Sympathikus**: Aktiviert den Körper bei Gefahr — Herzschlag steigt, Muskeln spannen sich an, wir sind in Alarmbereitschaft.
-- **Parasympathikus**: Sorgt für Entspannung und Regeneration — Verdauung, Ruhe, soziale Verbundenheit.
+Vereinfacht lässt sich das Nervensystem in mehrere Bereiche einteilen.
 
-## Die Polyvagal-Theorie
+Das **zentrale Nervensystem** umfasst Gehirn und Rückenmark. Hier werden Informationen verarbeitet, Erfahrungen eingeordnet und Reaktionen vorbereitet.
 
-Die Polyvagal-Theorie von Stephen Porges erweitert dieses Bild um einen dritten Zustand: den **dorsalen Vagus**, der bei extremer Überforderung zu Erstarrung und Rückzug führt.
+Das **periphere Nervensystem** verbindet das zentrale Nervensystem mit dem restlichen Körper und leitet Sinneseindrücke sowie Steuerimpulse weiter.
 
-**Was bedeutet das für die Therapie?**
-In der Therapie lernen wir, die Signale des Nervensystems zu erkennen und bewusst zu regulieren. Denn viele psychische Beschwerden — von Angst über Depression bis zu Traumafolgen — hängen eng mit der Regulation unseres Nervensystems zusammen.
-    `,
+Eine besondere Rolle spielt das **vegetative (autonome) Nervensystem**, das weitgehend unbewusst arbeitet. Es gliedert sich hauptsächlich in zwei Anteile:
+
+- das **sympathische Nervensystem**, das den Körper aktiviert und auf Leistung, Stress oder Gefahr vorbereitet
+- das **parasympathische Nervensystem**, das für Ruhe, Erholung, Regeneration und Verdauung zuständig ist
+
+Beide Systeme sind keine Gegenspieler, sondern ergänzen sich. Gesundheitlich günstig ist ein flexibles Wechselspiel zwischen Aktivierung und Entspannung.
+
+## Sicherheit, Stress und körperliche Reaktionen
+
+Unser Nervensystem prüft ständig, ob eine Situation als sicher oder bedrohlich erlebt wird. Bei wahrgenommener Gefahr schaltet der Körper in einen Alarmzustand: Puls und Atmung beschleunigen sich, Muskeln spannen sich an, die Aufmerksamkeit richtet sich nach außen. Diese Reaktionen sind evolutionär sinnvoll und dienen dem Schutz.
+
+Hält dieser Zustand jedoch über längere Zeit an, kann das Nervensystem aus dem Gleichgewicht geraten. Chronischer Stress, Überforderung, belastende Lebensereignisse oder traumatische Erfahrungen können dazu führen, dass Entspannung und Erholung kaum noch möglich sind. Der Körper bleibt dann gewissermaßen „in Alarmbereitschaft".
+
+## Nervensystem und psychische Belastungen
+
+Ein gut reguliertes Nervensystem hilft uns, Gefühle wahrzunehmen, zu steuern und in Kontakt mit anderen zu bleiben. Ist diese Regulation eingeschränkt, können unterschiedliche Beschwerden auftreten, zum Beispiel innere Unruhe, Erschöpfung, Angst, depressive Verstimmung, Schlafprobleme oder ein erhöhtes Bedürfnis nach Betäubung durch Substanzen.
+
+Viele dieser Reaktionen sind keine bewussten Entscheidungen, sondern automatische Schutzmechanismen des Körpers. Sie entstehen nicht aus Schwäche, sondern aus Anpassung an Belastung.
+
+## Was kann unterstützend wirken?
+
+Veränderung beginnt häufig mit Verständnis. Zu wissen, wie das eigene Nervensystem funktioniert, kann entlasten und Selbstmitgefühl fördern. Hilfreich sind oft:
+
+- regelmäßige Pausen und ausreichend Schlaf
+- Bewegung und rhythmische Aktivitäten
+- bewusste Atemübungen oder Entspannungsverfahren
+- klare Strukturen und verlässliche Routinen
+- soziale Verbindung und das Gefühl von Sicherheit
+
+Diese Faktoren unterstützen das Nervensystem dabei, wieder flexibler zwischen Anspannung und Entspannung wechseln zu können.
+
+## Wie kann Online-Gruppentherapie unterstützen?
+
+In der Gruppentherapie lernen Teilnehmende, die Signale ihres Nervensystems besser zu verstehen und einzuordnen. Durch Psychoedukation, Austausch und praktische Übungen können neue Wege der Selbstregulation entwickelt werden. Der Kontakt mit anderen wirkt häufig stabilisierend und entlastend – besonders, wenn ähnliche Erfahrungen geteilt werden.`,
   },
   {
     id: '2',
@@ -163,55 +200,106 @@ In der Therapie lernen wir, die Signale des Nervensystems zu erkennen und bewuss
     slug: 'adhs',
     excerpt: 'ADHS bei Erwachsenen: mehr als nur Unaufmerksamkeit. Was dahintersteckt und wie Therapie helfen kann.',
     metaDescription: 'ADHS bei Erwachsenen verstehen — Symptome, Herausforderungen und therapeutische Unterstützung für ein erfülltes Leben.',
-    image: 'https://images.unsplash.com/photo-1516534775068-ba3e7458af70?auto=format&fit=crop&q=80&w=2000',
-    content: `
-# ADHS
+    image: topicAdhs,
+    content: `# ADHS
 
-ADHS (Aufmerksamkeitsdefizit-Hyperaktivitätsstörung) ist weit mehr als "nicht stillsitzen können". Gerade bei Erwachsenen zeigt sich ADHS oft anders als erwartet — und bleibt häufig lange unerkannt.
+ADHS (Aufmerksamkeitsdefizit-/Hyperaktivitätsstörung) ist mehr als „zappelig sein". Viele Betroffene erleben vor allem Aufmerksamkeitsprobleme, innere Unruhe und Schwierigkeiten mit Organisation und Impulskontrolle. ADHS kann sich bei Kindern, Jugendlichen und Erwachsenen unterschiedlich zeigen – und wird bei Erwachsenen oft erst spät erkannt, weil sich Strategien zur Kompensation entwickelt haben.
 
-## Wie zeigt sich ADHS bei Erwachsenen?
+## Typische Anzeichen
 
-- **Schwierigkeiten mit der Selbstorganisation** — Termine vergessen, Projekte nicht abschließen
-- **Emotionale Dysregulation** — intensive Gefühle, schnelle Stimmungswechsel
-- **Innere Unruhe** — das Gefühl, ständig unter Strom zu stehen
-- **Hyperfokus** — tiefes Eintauchen in interessante Aufgaben, Schwierigkeiten beim Wechsel
+- **Unaufmerksamkeit**: Abschweifen, Dinge verlegen, Fehler aus Flüchtigkeit, Probleme, Aufgaben zu Ende zu bringen
+- **Hyperaktivität/innere Unruhe**: „Getrieben sein", schwer entspannen, ständiger Bewegungsdrang (bei Erwachsenen oft eher innerlich)
+- **Impulsivität**: Unterbrechen, vorschnelle Entscheidungen, Reizbarkeit, riskantes Verhalten
+- **Exekutive Funktionen**: Zeitmanagement, Priorisieren, Planen, Arbeitsgedächtnis und „Dranbleiben" fallen schwer
 
-## ADHS und Selbstwert
+ADHS tritt häufig gemeinsam mit Angst, Depression, Schlafproblemen oder problematischem Substanzkonsum auf – manchmal als Folge jahrelanger Überforderung oder Selbstkritik.
 
-Viele Betroffene haben jahrelang gehört, sie seien "faul", "undiszipliniert" oder "zu empfindlich". Diese Erfahrungen hinterlassen Spuren im Selbstbild.
+## Wie entsteht ADHS?
 
-**In der Therapie** geht es darum, ADHS zu verstehen, individuelle Strategien zu entwickeln und ein realistisches, wertschätzendes Selbstbild aufzubauen — jenseits von Defizitzuschreibungen.
-    `,
+ADHS gilt als neurobiologisch mitbedingt. Das heißt nicht, dass „nichts zu machen" ist – aber es erklärt, warum reines „Zusammenreißen" selten hilft. Umfeldfaktoren (Stress, Schlaf, Belastungen) können Symptome verstärken oder abmildern.
+
+## Was kann im Alltag helfen?
+
+- **Struktur sichtbar machen**: Wochenplan, Checklisten, feste Ablageorte, Kalender mit Erinnerungen
+- **Aufgaben in Mini-Schritte teilen**: Startbarrieren senken („2-Minuten-Regel")
+- **Reizreduktion**: Fokus-Zeitfenster, Benachrichtigungen aus, klarer Arbeitsplatz
+- **Selbstfreundlichkeit statt Selbstabwertung**: ADHS ist keine Charakterschwäche
+- **Schlaf, Bewegung, Pausen**: oft unterschätzt, aber sehr wirksam als „Basis"
+
+## Diagnostik & Behandlung
+
+Eine ADHS-Diagnose erfolgt über fachliche Diagnostik (Anamnese, Fragebögen, ggf. Fremdberichte). In der Behandlung kommen häufig Psychoedukation, verhaltenstherapeutische Strategien/Coaching und – je nach Fall – Medikation zum Einsatz.
+
+## Wie kann Online-Gruppentherapie unterstützen?
+
+In einer Gruppe können Teilnehmende
+
+- alltagsnahe Strategien zu Organisation, Prokrastination, Reizmanagement üben,
+- an Scham und Selbstwert arbeiten („Ich bin nicht faul"),
+- sich gegenseitig motivieren und dranzubleiben – ohne Leistungsdruck.`,
   },
   {
     id: '3',
-    title: 'Alkohol und Drogen',
+    title: 'Alkohol & Drogen',
     slug: 'alkohol-und-drogen',
     excerpt: 'Wege aus der Abhängigkeit und wie man erste Schritte in ein neues Leben wagt.',
     metaDescription: 'Alkohol- und Drogenabhängigkeit verstehen — Anzeichen erkennen, Auslöser verstehen und therapeutische Wege aus der Sucht.',
-    image: 'https://images.unsplash.com/photo-1516575334481-f85287c2c81d?auto=format&fit=crop&q=80&w=2000',
-    content: `
-# Alkohol und Drogen
+    image: topicAlkohol,
+    content: `# Alkohol & Drogen
 
-Sucht ist eine Erkrankung, die nicht nur den Körper, sondern auch die Seele und das soziale Umfeld betrifft. Oft beginnt es schleichend — ein Glas zur Entspannung, ein Joint nach der Arbeit — und entwickelt sich zu einem Muster, das schwer zu durchbrechen ist.
+Alkohol und andere psychoaktive Substanzen können sich zunächst wie eine Lösung anfühlen. Sie dämpfen Anspannung, machen Gefühle erträglicher oder helfen beim Abschalten. Kurzfristig kann das entlastend wirken. Langfristig verstärken Substanzen jedoch häufig genau die Probleme, die sie eigentlich lindern sollen: Stimmungsschwankungen, Angst, Schlafstörungen, innere Unruhe, Konflikte im sozialen Umfeld, Leistungsabfall und körperliche Folgen.
 
-## Anzeichen einer Abhängigkeit
+Wichtig ist dabei: Konsum ist kein Entweder-oder. Zwischen riskantem Konsum, schädlichem Gebrauch und Abhängigkeit gibt es fließende Übergänge. Unterstützung kann und darf in jeder Phase sinnvoll sein – nicht erst dann, wenn „nichts mehr geht".
 
-- Der Gedanke an die Substanz bestimmt den Tagesablauf
-- Heimlicher Konsum oder Bagatellisierung
-- Vernachlässigung von Pflichten und Beziehungen
-- Entzugserscheinungen bei Reduktion
-- Kontrollverlust über die Menge
+## Woran merke ich, dass Konsum problematisch wird?
 
-## Therapeutische Unterstützung
+Problematischer Konsum zeigt sich oft nicht plötzlich, sondern schleichend. Mögliche Anzeichen sind:
 
-In der Therapie biete ich Ihnen einen geschützten, wertfreien Raum. Gemeinsam erarbeiten wir:
-- Was sind die **Auslöser** für Ihren Konsum?
-- Welche **Funktion** erfüllt die Substanz in Ihrem Leben?
-- Welche **Alternativen** können Sie entwickeln?
+- häufige Gedanken an die Substanz oder starkes Verlangen (Craving)
+- Kontrollverlust: mehr oder häufiger konsumieren als geplant
+- steigende Toleranz oder Konsum, um sich „normal" zu fühlen
+- Vernachlässigung von Freizeit, Beziehungen, Arbeit oder Studium
+- Weiterkonsum trotz negativer körperlicher, psychischer oder sozialer Folgen
+- Entzugssymptome wie Zittern, Schwitzen, Unruhe oder Schlaflosigkeit
 
-Der erste Schritt ist die Erkenntnis. Es ist keine Schande, Hilfe zu suchen.
-    `,
+Nicht jedes dieser Anzeichen muss vorhanden sein. Schon einzelne Punkte können darauf hinweisen, dass ein genaueres Hinschauen hilfreich wäre.
+
+## Warum greifen Menschen zu Substanzen?
+
+Hinter Konsum steht häufig der Versuch, mit innerem Druck umzugehen. Stress, Einsamkeit, Angst, depressive Stimmung, Überforderung oder innere Leere lassen sich durch Substanzen kurzfristig regulieren. Genau darin liegt ihr Risiko: Das Gehirn lernt sehr schnell, dass Konsum Erleichterung bringt – und speichert diese Erfahrung ab.
+
+Dieses Lernen geschieht nicht aus Schwäche, sondern folgt neurobiologischen Prinzipien. Das Belohnungssystem reagiert zuverlässig, auch wenn die langfristigen Folgen ungünstig sind.
+
+## Der Teufelskreis des Konsums
+
+Viele Menschen erleben einen ähnlichen Kreislauf:
+
+Belastung → Konsum → kurzfristige Entlastung → körperlicher und emotionaler Rebound (z. B. schlechter Schlaf, Angst, Stimmungstief) → neue Belastung → erneuter Konsum.
+
+Dieser Kreislauf ist keine Frage von mangelnder Willenskraft. Er ist ein erlernter Mechanismus – und damit grundsätzlich auch veränderbar.
+
+## Erste Schritte, die vielen Menschen helfen
+
+Veränderung beginnt oft klein. Hilfreich können zum Beispiel sein:
+
+- ein Konsumtagebuch (Menge, Situation, Gefühl, Anlass)
+- das Erkennen persönlicher Trigger wie bestimmte Orte, Zeiten, Menschen oder Emotionen
+- alternative Strategien zur Stress- und Emotionsregulation, etwa Bewegung, Atemübungen, soziale Kontakte oder kurze Skills
+- ein realistischer Umgang mit Rückfällen: Ein Ausrutscher ist kein Scheitern, sondern eine Lerngelegenheit
+- das Einbinden sicherer Unterstützung, zum Beispiel durch vertraute Personen, Ärzt:innen oder Beratungsstellen
+
+**Wichtig:** Bei einigen Substanzen – insbesondere Alkohol und Benzodiazepinen – kann ein plötzlicher Entzug medizinisch gefährlich sein und sollte immer fachlich begleitet werden.
+
+## Wie Online-Gruppentherapie unterstützen kann
+
+Gruppentherapie kann entlasten, weil Erfahrungen geteilt werden und Scham abnimmt. Sie bietet alltagsnahe Werkzeuge im Umgang mit Craving, Stress und Rückfallmustern und stärkt Motivation, Selbstwirksamkeit und soziale Unterstützung. Der Austausch mit anderen hilft, sich selbst besser zu verstehen und neue Perspektiven zu entwickeln.
+
+## Hilfsangebote
+
+Wenn Sie akut Unterstützung benötigen oder anonym sprechen möchten, können folgende Angebote hilfreich sein:
+
+- **TelefonSeelsorge**: 116 123 (kostenfrei, rund um die Uhr)
+- **Sucht & Drogen Hotline**: 01806 313031 (kostenpflichtig)`,
   },
   {
     id: '4',
@@ -219,27 +307,48 @@ Der erste Schritt ist die Erkenntnis. Es ist keine Schande, Hilfe zu suchen.
     slug: 'angst',
     excerpt: 'Wenn Angst den Alltag bestimmt: Strategien für mehr Sicherheit und innere Ruhe.',
     metaDescription: 'Angststörungen verstehen und bewältigen — von Panikattacken bis sozialer Phobie. Therapeutische Strategien für mehr innere Ruhe.',
-    image: 'https://images.unsplash.com/photo-1501556424050-d4816356b73e?auto=format&fit=crop&q=80&w=2000',
-    content: `
-# Angst
+    image: topicAngst,
+    content: `# Angst
 
-Angst ist eigentlich ein Schutzmechanismus — sie warnt uns vor Gefahren und macht uns wachsam. Doch wenn sie außer Kontrolle gerät, wird sie zur Last. Panikattacken, soziale Phobien oder generalisierte Ängste können das Leben massiv einschränken.
+Angst ist eine natürliche Schutzreaktion unseres Körpers. Sie hilft uns, Gefahren zu erkennen und uns darauf vorzubereiten. Problematisch wird Angst dann, wenn sie sehr häufig oder besonders intensiv auftritt – oder wenn sie dazu führt, dass Situationen dauerhaft vermieden werden. Bei sozialer Angst (auch soziale Phobie genannt) steht oft die Sorge im Mittelpunkt, negativ bewertet zu werden: peinlich aufzufallen, zu erröten, zu stottern oder „komisch" zu wirken.
 
-## Formen der Angst
+## Typische Anzeichen von Angst
 
-- **Panikstörung**: Plötzliche, intensive Angstanfälle mit körperlichen Symptomen
-- **Soziale Phobie**: Angst vor Bewertung und sozialen Situationen
-- **Generalisierte Angststörung**: Ständiges Sich-Sorgen-Machen über verschiedene Lebensbereiche
-- **Spezifische Phobien**: Angst vor bestimmten Objekten oder Situationen
+Angst zeigt sich auf unterschiedlichen Ebenen und kann sehr belastend erlebt werden:
 
-## Umgang mit Angst
+- **Körperlich**: Herzrasen, Zittern, Schwitzen, Atemnot, Engegefühl, Magen-Darm-Beschwerden
+- **Gedanklich**: Katastrophisierende Gedanken wie „Alle merken, wie nervös ich bin" oder „Das halte ich nicht aus"
+- **Verhalten**: Vermeidung (z. B. Treffen absagen), Rückzug oder sogenanntes Sicherheitsverhalten, etwa übermäßige Vorbereitung, Blickkontakt meiden oder der Einsatz von Alkohol zur Beruhigung
 
-- **Atmen**: Bewusste Atmung signalisiert dem Körper Sicherheit
-- **Konfrontation**: Vermeidung verstärkt die Angst oft langfristig
-- **Verstehen**: Woher kommt die Angst? Was will sie mir sagen?
+Nicht jede Angst zeigt sich gleich. Viele Betroffene entwickeln individuelle Strategien, um mit ihr umzugehen – auch wenn diese langfristig oft neue Probleme schaffen.
 
-In unseren Sitzungen lernen Sie, der Angst nicht mehr hilflos ausgeliefert zu sein. Wir üben Techniken zur Beruhigung und erarbeiten Wege, sich den angstauslösenden Situationen wieder anzunähern.
-    `,
+## Warum hält sich Angst so hartnäckig?
+
+Angst wird durch Vermeidung kurzfristig geringer. Genau dadurch verstärkt sie sich jedoch langfristig. Das Gehirn lernt: „Gut, dass ich ausgewichen bin – sonst wäre etwas Schlimmes passiert." Die Angst wird nicht überprüft, sondern bestätigt.
+
+Auch Sicherheitsstrategien tragen dazu bei, dass Angst bestehen bleibt. Sie vermitteln das Gefühl, ohne diese Hilfen nicht zurechtzukommen. So entsteht ein Kreislauf, in dem Angst immer mehr Raum einnimmt, obwohl objektiv keine Gefahr besteht.
+
+## Was hilft häufig im Umgang mit Angst?
+
+Ein zentraler Schritt ist das Verständnis dafür, wie Angst funktioniert. Angst ist unangenehm, aber nicht gefährlich. Viele Menschen profitieren von:
+
+- **Psychoedukation**: Wissen über Angst reduziert Ohnmachtsgefühle
+- **Schrittweiser Exposition**: gefürchtete Situationen in kleinen, machbaren Schritten aufsuchen
+- **Umgang mit Gedanken**: Wahrscheinlichkeiten realistischer einschätzen statt Katastrophen erwarten
+- **Körperregulation**: Atemübungen, Muskelentspannung oder achtsame Wahrnehmung
+- **Selbstmitgefühl**: Angst ist kein Charakterfehler, sondern eine erlernte Schutzreaktion
+
+Veränderung bedeutet dabei nicht, Angst sofort loszuwerden, sondern einen neuen Umgang mit ihr zu entwickeln.
+
+## Wie kann Online-Gruppentherapie unterstützen?
+
+Gerade bei Angst – insbesondere sozialer Angst – kann Gruppentherapie sehr wirksam sein. Die Gruppe bietet einen geschützten Rahmen, um:
+
+- in Anwesenheit anderer zu sprechen und Rückmeldungen zu erhalten
+- soziale Situationen dosiert zu erleben und zu erfahren, dass Angst abklingt
+- Zugehörigkeit statt Isolation zu erleben – ein wichtiger Schutzfaktor für psychische Gesundheit
+
+Der Austausch mit anderen wirkt oft entlastend und hilft, eigene Ängste besser einzuordnen. Schritt für Schritt kann so Sicherheit wachsen – im eigenen Tempo und mit fachlicher Begleitung.`,
   },
   {
     id: '5',
@@ -247,30 +356,51 @@ In unseren Sitzungen lernen Sie, der Angst nicht mehr hilflos ausgeliefert zu se
     slug: 'depression',
     excerpt: 'Warum Depression mehr ist als nur Traurigkeit und wie Therapie helfen kann.',
     metaDescription: 'Depression erkennen und behandeln — Symptome, Therapieansätze und der Weg zurück zu Energie und Lebensfreude.',
-    image: 'https://images.unsplash.com/photo-1474418397713-7ede21d49118?auto=format&fit=crop&q=80&w=2000',
-    content: `
-# Depression
+    image: topicDepression,
+    content: `# Depression
 
-Depression ist wie eine graue Wolke, die sich über das Leben legt und die Farben verschluckt. Es ist nicht einfach "schlechte Laune", sondern eine ernste Erkrankung, die das Denken, Fühlen und Handeln beeinflusst.
+Depressionen sind mehr als Traurigkeit oder ein vorübergehendes Stimmungstief. Sie beeinflussen Denken, Fühlen, Körper und Verhalten – oft über Wochen oder länger. Viele Betroffene beschreiben eine tiefe Erschöpfung, innere Leere oder das Gefühl, im Alltag nur noch „funktionieren" zu müssen, obwohl selbst kleine Dinge große Anstrengung kosten.
 
-## Symptome
+## Häufige Anzeichen
 
-- Antriebslosigkeit und bleierne Müdigkeit
-- Verlust von Interesse und Freude
-- Schuldgefühle und Gefühle der Wertlosigkeit
-- Schlafstörungen — zu viel oder zu wenig
-- Konzentrationsschwierigkeiten
-- Rückzug aus sozialen Kontakten
+Depressive Symptome können sich unterschiedlich zeigen. Häufig berichten Betroffene über:
 
-## Therapieansatz
+- anhaltend gedrückte Stimmung oder deutlichen Interessen- und Freudverlust
+- Antriebsmangel und schnelle Ermüdung
+- Schlaf- und Konzentrationsprobleme
+- Grübeln, Schuldgefühle und starke Selbstabwertung
+- Veränderungen von Appetit oder Gewicht
+- sozialen Rückzug und verminderte Kontaktfreude
 
-In der Therapie geht es darum, diese graue Wolke Schritt für Schritt aufzulösen. Wir schauen uns an:
-- Was **erhält** die Depression aufrecht?
-- Welche **Denkmuster** spielen eine Rolle?
-- Wie finden Sie wieder Zugang zu Ihren **Ressourcen**?
+Nicht alle Anzeichen müssen gleichzeitig auftreten. Auch die Intensität kann schwanken.
 
-Kleine Schritte sind hier oft der Schlüssel zum Erfolg. Gemeinsam erarbeiten wir einen Weg, der zu Ihnen passt.
-    `,
+## Der depressive Kreislauf
+
+Depressionen halten sich oft durch einen sich selbst verstärkenden Kreislauf aufrecht:
+
+Wenig Energie führt zu weniger Aktivität. Dadurch entstehen kaum positive Erlebnisse, was Grübeln und Selbstkritik verstärkt. Diese wiederum rauben zusätzliche Kraft – und der Antrieb sinkt weiter.
+
+Hinzu kommt, dass Depression den Blick verengt. Negative Informationen wirken besonders laut und überzeugend, während positive Erfahrungen kaum wahrgenommen oder abgewertet werden.
+
+## Was hilft häufig im Alltag?
+
+Veränderung beginnt meist nicht mit großen Schritten, sondern mit kleinen, realistischen Ansätzen. Viele Menschen profitieren von:
+
+- **Sanfter Aktivierung**: sehr kleine, machbare Schritte, zum Beispiel zehn Minuten an die frische Luft gehen
+- **Tagesstruktur**: feste Zeiten für Schlaf, Mahlzeiten und kurze Routinen
+- **Gedanken überprüfen**: sich fragen, welche Belege es für belastende Gedanken gibt und ob es mildere Sichtweisen gibt
+- **Dosiertem Sozialkontakt**: kurze Nachrichten, ein Spaziergang zu zweit statt großer Treffen
+- **Körperlicher Unterstützung**: Licht, Bewegung, ausgewogene Ernährung und gegebenenfalls medizinische Abklärung
+
+Ziel ist nicht, sich „zusammenzureißen", sondern dem System langsam wieder mehr Halt zu geben.
+
+## Wann ist schnelle Hilfe wichtig?
+
+Wenn Hoffnungslosigkeit sehr stark wird, Suizidgedanken auftreten oder der Alltag kaum noch zu bewältigen ist, ist es wichtig, zeitnah Unterstützung zu suchen – zum Beispiel über den ärztlichen Bereitschaftsdienst, den Notruf oder die TelefonSeelsorge (116 123).
+
+## Wie kann Online-Gruppentherapie unterstützen?
+
+In der Gruppentherapie erleben viele Menschen Entlastung durch Normalisierung: „Ich bin nicht allein mit dem, was ich erlebe." Gemeinsame Aktivierungspläne, ein sanfter Rahmen von Verbindlichkeit und der Austausch über Grübeln, Selbstkritik, Schlaf und Stress können stabilisierend wirken. Gleichzeitig werden Ressourcen gestärkt und ein selbstmitfühlenderer Umgang mit sich selbst gefördert.`,
   },
   {
     id: '6',
@@ -278,31 +408,51 @@ Kleine Schritte sind hier oft der Schlüssel zum Erfolg. Gemeinsam erarbeiten wi
     slug: 'emotionsregulation',
     excerpt: 'Gefühle verstehen, annehmen und steuern lernen — ein Schlüssel zu psychischer Gesundheit.',
     metaDescription: 'Emotionsregulation lernen — Gefühle besser verstehen, annehmen und steuern. Ein zentraler Baustein der Psychotherapie.',
-    image: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&q=80&w=2000',
-    content: `
-# Emotionsregulation
+    image: topicEmotionsregulation,
+    content: `# Emotionsregulation
 
-Gefühle sind wie Wellen — sie kommen und gehen. Doch manchmal fühlt es sich an, als würden die Wellen über einem zusammenschlagen. Emotionsregulation bedeutet nicht, Gefühle zu unterdrücken, sondern einen gesunden Umgang mit ihnen zu finden.
+Emotionen sind keine Störung, sondern wichtige Signale. Sie zeigen uns Bedürfnisse, Grenzen und Werte an und helfen bei Orientierung und Beziehung. Schwierigkeiten entstehen dann, wenn Gefühle sehr stark, sehr schnell oder scheinbar „aus dem Nichts" auftreten – oder wenn sie nur noch durch Rückzug, Wut, Selbstabwertung oder Substanzen regulierbar erscheinen.
 
-## Was ist Emotionsregulation?
+## Was bedeutet Emotionsregulation?
 
-Emotionsregulation umfasst die Fähigkeiten:
-- Eigene **Gefühle wahrzunehmen** und zu benennen
-- Die **Intensität** von Emotionen zu beeinflussen
-- **Impulse zu steuern**, auch unter Stress
-- Unangenehme Gefühle **auszuhalten**, ohne sofort zu reagieren
+Emotionsregulation heißt nicht, Gefühle zu unterdrücken oder „wegzumachen". Es geht vielmehr darum,
 
-## Warum fällt es manchen schwerer?
+- Emotionen **wahrzunehmen** und benennen zu können,
+- ihre **Intensität** zu beeinflussen,
+- **handlungsfähig** zu bleiben, auch wenn Gefühle stark sind.
 
-Schwierigkeiten mit der Emotionsregulation können verschiedene Ursachen haben:
-- Kindheitserfahrungen, in denen Gefühle nicht gesehen oder bestraft wurden
-- Traumatische Erlebnisse
-- Neurologische Besonderheiten (z.B. ADHS)
+Ziel ist es, zwischen Reiz und Reaktion wieder mehr Spielraum zu gewinnen – statt impulsiv zu reagieren oder innerlich zu erstarren.
 
-## Therapeutische Ansätze
+## Häufige Schwierigkeiten im Umgang mit Gefühlen
 
-In der Therapie arbeiten wir daran, Ihren emotionalen Werkzeugkasten zu erweitern. Dazu gehören Achtsamkeitsübungen, Stresstoleranz-Strategien und das Verstehen der eigenen emotionalen Muster.
-    `,
+Viele Menschen erleben wiederkehrende Muster, zum Beispiel:
+
+- Überwältigung durch Angst, Wut oder Scham
+- Abschalten in Form von innerer Leere, Taubheit oder Dissoziation
+- Grübeln statt Fühlen, um Emotionen zu kontrollieren
+- Konflikte, impulsive Entscheidungen oder sozialer Rückzug
+
+Diese Muster sind meist erlernte Schutzstrategien. Sie entstehen oft in Situationen, in denen Gefühle früher zu viel oder zu wenig Raum hatten.
+
+## Praktische Strategien zur Emotionsregulation
+
+Emotionsregulation lässt sich üben. Hilfreich können unter anderem sein:
+
+- **Stopp & Boden**: die Füße bewusst spüren, fünf Dinge sehen, hören oder fühlen (Grounding)
+- **Atem & Rhythmus**: länger aus- als einatmen, Bewegungen verlangsamen
+- **Gefühlsampel**: grün, gelb, rot – erkennen, in welchem Bereich man sich befindet und was dort hilft
+- **Bedürfnis-Check**: Habe ich Hunger, bin ich müde, überfordert oder brauche Nähe oder Abstand?
+- **Selbstberuhigung**: Musik, Wärme, eine Dusche, Bewegung oder Natur
+
+Nicht jede Strategie wirkt für jede Person gleich. Entscheidend ist, eigene hilfreiche Werkzeuge kennenzulernen.
+
+## Warum Emotionsregulation entlastet
+
+Wenn Gefühle besser reguliert werden können, verlieren sie ihren überwältigenden Charakter. Emotionen werden verständlicher, Beziehungen stabiler und Entscheidungen klarer. Viele erleben mehr Selbstkontrolle – nicht durch Härte, sondern durch Verständnis für sich selbst.
+
+## Wie kann Online-Gruppentherapie unterstützen?
+
+In der Gruppentherapie können Strategien zur Emotionsregulation gemeinsam erlernt und zwischen den Sitzungen erprobt werden. Der Austausch darüber, was in welcher Situation geholfen hat, wirkt oft klärend und entlastend. Gleichzeitig entsteht Verständnis für emotionale Reaktionen – und damit weniger Scham über das Gefühl, „zu viel" zu sein.`,
   },
   {
     id: '7',
@@ -310,30 +460,44 @@ In der Therapie arbeiten wir daran, Ihren emotionalen Werkzeugkasten zu erweiter
     slug: 'selbstwert',
     excerpt: 'Den eigenen Wert erkennen und stärken — warum ein gesunder Selbstwert die Basis für Veränderung ist.',
     metaDescription: 'Selbstwert stärken — verstehen, woher negative Selbstbilder kommen und wie Therapie zu einem gesunden Selbstwertgefühl beiträgt.',
-    image: 'https://images.unsplash.com/photo-1508558936510-0af1e3cccbab?auto=format&fit=crop&q=80&w=2000',
-    content: `
-# Selbstwert
+    image: topicSelbstwert,
+    content: `# Selbstwert
 
-"Ich bin nicht gut genug." "Andere können das besser." "Ich habe es nicht verdient." — Solche Gedanken kennen viele Menschen. Ein niedriger Selbstwert ist oft die stille Kraft hinter vielen psychischen Belastungen.
+Selbstwert beschreibt die innere Überzeugung: „Ich bin in Ordnung – auch wenn ich Fehler mache." Ein stabiler Selbstwert ist nicht gleichbedeutend mit Selbstüberschätzung, sondern mit einer grundlegenden Akzeptanz der eigenen Person. Ist der Selbstwert fragil, hängt er häufig stark von Leistung, Anerkennung oder Kontrolle ab. Kritik, Rückschläge oder Konflikte werden dann schnell als Beweis erlebt, „nicht gut genug" zu sein.
 
-## Woher kommt ein niedriger Selbstwert?
+## Woran zeigt sich ein angeschlagener Selbstwert?
 
-Unser Selbstbild entsteht nicht im Vakuum. Es wird geprägt durch:
-- **Frühe Beziehungserfahrungen** — Wurden wir gesehen, gehört, wertgeschätzt?
-- **Leistungsdruck** — Das Gefühl, nur durch Leistung wertvoll zu sein
-- **Kritische innere Stimmen** — Oft die internalisierten Stimmen wichtiger Bezugspersonen
-- **Vergleiche** — besonders verstärkt durch soziale Medien
+Ein niedriger oder instabiler Selbstwert kann sich auf unterschiedliche Weise äußern, zum Beispiel durch:
 
-## Der Weg zu einem gesunden Selbstwert
+- einen starken inneren Kritiker und ausgeprägten Perfektionismus
+- das Bedürfnis, es allen recht zu machen (People-Pleasing) und Schwierigkeiten, Nein zu sagen
+- Angst vor Ablehnung und hohen Vergleichsdruck
+- Schamgefühle und Rückzug nach Fehlern
+- das Gefühl, sich Anerkennung oder Zugehörigkeit „verdienen" zu müssen
 
-Selbstwertarbeit in der Therapie bedeutet:
-- Die eigenen **Glaubenssätze** zu erkennen und zu hinterfragen
-- Einen **mitfühlenden inneren Dialog** zu entwickeln
-- Eigene **Stärken und Grenzen** realistisch wahrzunehmen
-- Sich von fremden **Bewertungsmaßstäben** zu lösen
+Diese Muster sind oft sehr belastend und beeinflussen Beziehungen, Arbeit und das eigene Wohlbefinden.
 
-Ein gesunder Selbstwert ist nicht Überheblichkeit — er ist die Basis für authentische Beziehungen und ein erfülltes Leben.
-    `,
+## Woher kommen Selbstwertprobleme?
+
+Selbstwert entwickelt sich nicht isoliert, sondern in Beziehung. Häufig spielen frühe Lernerfahrungen eine Rolle, etwa wiederholte Kritik, wenig emotionale Sicherheit, Mobbing, unklare Grenzen oder überhöhte Erwartungen. Auch psychische Belastungen wie Depressionen, Angststörungen oder ADHS können Selbstwertprobleme verstärken oder aufrechterhalten.
+
+Wichtig ist dabei: Selbstwertprobleme sind kein persönliches Versagen, sondern verständliche Anpassungen an frühere Erfahrungen.
+
+## Was stärkt Selbstwert langfristig?
+
+Ein stabilerer Selbstwert entsteht nicht durch ständige Selbstoptimierung, sondern durch eine veränderte innere Haltung. Hilfreich sind häufig:
+
+- **realistische Selbstzuschreibungen**, die Stärken und Schwächen gleichzeitig anerkennen
+- **Selbstmitgefühl**, also ein freundlicherer innerer Umgang, ähnlich dem mit einem guten Freund
+- **Werteorientierung**: sich an dem zu orientieren, was wirklich wichtig ist – statt daran, wie man wirkt
+- **Grenzen üben**, etwa durch kleine, klare Neins und das Formulieren eigener Bedürfnisse
+- **Kompetenzerfahrungen** mit machbaren Zielen, die zur eigenen Person passen
+
+Diese Schritte wirken oft langsam, aber nachhaltig.
+
+## Wie kann Online-Gruppentherapie unterstützen?
+
+In der Gruppentherapie können korrigierende Beziehungserfahrungen entstehen: akzeptiert zu sein, ohne perfekt funktionieren zu müssen. Wertschätzendes Feedback stärkt den Blick auf eigene Ressourcen, ohne zu bewerten. Übungen zu Scham, innerem Kritiker, Grenzen und Selbstmitgefühl helfen dabei, neue innere Muster zu entwickeln und zu festigen.`,
   },
   {
     id: '8',
@@ -341,29 +505,57 @@ Ein gesunder Selbstwert ist nicht Überheblichkeit — er ist die Basis für aut
     slug: 'trauma',
     excerpt: 'Was Trauma mit uns macht und wie die Seele heilen kann — behutsam und in Ihrem Tempo.',
     metaDescription: 'Trauma verstehen und verarbeiten — behutsame therapeutische Begleitung für Menschen mit traumatischen Erfahrungen.',
-    image: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&q=80&w=2000',
-    content: `
-# Trauma
+    image: topicTrauma,
+    content: `# Trauma
 
-Ein Trauma entsteht, wenn wir Erfahrungen machen, die unsere Verarbeitungsfähigkeit übersteigen. Das können einmalige Ereignisse sein — ein Unfall, ein Überfall — oder wiederholte Erfahrungen wie Vernachlässigung oder Missbrauch in der Kindheit.
+Trauma beschreibt eine Erfahrung, die für das Nervensystem zu viel, zu schnell oder zu plötzlich war – und bei der sich ein Mensch hilflos, ausgeliefert oder existenziell bedroht fühlte. Traumatische Erfahrungen können nach Unfällen, Gewalt, Übergriffen, Vernachlässigung, schweren Verlusten oder auch durch anhaltend belastende Beziehungen entstehen.
 
-## Wie zeigt sich Trauma?
+Wichtig ist: Nicht jede schwere oder schmerzhafte Erfahrung führt zu einer Traumafolgestörung. Wenn jedoch körperliche oder seelische Symptome anhalten und den Alltag beeinträchtigen, ist Unterstützung sinnvoll und wichtig.
 
-Traumafolgen können vielfältig sein:
-- **Wiedererleben**: Flashbacks, Albträume, intrusive Erinnerungen
-- **Vermeidung**: Orte, Menschen oder Situationen werden gemieden
-- **Übererregung**: Schreckhaftigkeit, Schlafstörungen, Reizbarkeit
-- **Emotionale Taubheit**: Das Gefühl, von sich selbst oder der Welt abgetrennt zu sein
+## Mögliche Folgen traumatischer Erfahrungen
 
-## Traumatherapie
+Traumafolgen können sich sehr unterschiedlich zeigen. Häufig berichten Betroffene über:
 
-Traumatherapie ist keine Konfrontationstherapie im herkömmlichen Sinne. Sie folgt dem Prinzip der **Stabilisierung vor Verarbeitung**:
+- **Wiedererleben**: Flashbacks, Albträume oder sich aufdrängende Erinnerungen
+- **Übererregung**: erhöhte Schreckhaftigkeit, innere Unruhe, Schlafprobleme oder Reizbarkeit
+- **Vermeidung**: Meiden bestimmter Orte, Menschen oder Gespräche, emotionales „Abschalten"
+- **Negative Selbst- und Weltbilder**: Schuldgefühle, Scham, Misstrauen oder ein Gefühl ständiger Bedrohung
+- **Dissoziation**: sich unwirklich fühlen, „neben sich stehen", innerlich weg sein
 
-1. **Stabilisierung**: Sicherheit herstellen, Ressourcen aufbauen, Symptome managen
-2. **Verarbeitung**: Behutsames Bearbeiten der traumatischen Erfahrungen
-3. **Integration**: Das Erlebte einordnen und in die Lebensgeschichte integrieren
+Diese Reaktionen sind keine Schwäche, sondern Schutzmechanismen des Nervensystems, die ursprünglich dem Überleben dienten.
 
-Jeder Mensch hat sein eigenes Tempo. In der Therapie bestimmen Sie, wie schnell oder langsam wir vorgehen.
-    `,
+## Warum Stabilisierung an erster Stelle steht
+
+In der traumasensiblen Arbeit wird häufig in Phasen vorgegangen. An erster Stelle steht dabei fast immer Sicherheit und Stabilisierung. Erst wenn ausreichend innere und äußere Stabilität vorhanden ist, kann eine behutsame Verarbeitung traumatischer Erfahrungen sinnvoll sein.
+
+Typische Phasen sind:
+
+1. **Sicherheit und Stabilisierung**: Ressourcenaufbau, Grenzen stärken, Körper- und Emotionsregulation
+2. **Verarbeitung**: Auseinandersetzung mit traumatischen Erinnerungen – nur bei ausreichender Stabilität
+3. **Integration und Neubeginn**: den Alltag, Beziehungen und Lebenssinn neu gestalten
+
+Dieser Prozess ist individuell und verläuft nicht linear.
+
+## Was kann im Alltag unterstützend wirken?
+
+Auch außerhalb von Therapie können sanfte Schritte helfen, das Nervensystem zu entlasten:
+
+- Grounding und bewusste Orientierung im Hier und Jetzt
+- das eigene „Fenster der Toleranz" kennenlernen: Über- und Untererregung erkennen
+- verlässliche Routinen, ausreichend Schlaf und Erholungszeiten
+- Unterstützung durch vertrauenswürdige Personen und gegebenenfalls Fachstellen
+
+Wichtig ist dabei, sich nicht zu überfordern. Stabilisierung braucht Zeit.
+
+## Wie kann Online-Gruppentherapie unterstützen?
+
+In einer traumasensiblen Gruppentherapie steht meist die Stabilisierung im Vordergrund. Ziel ist nicht das Erzählen belastender Details, sondern:
+
+- der Aufbau von Ressourcen sowie Körper- und Emotionsregulation
+- das Erlernen eines sicheren Umgangs mit Triggern
+- das Erleben von Grenzen, Schutz und Verlässlichkeit
+- Austausch auf Augenhöhe, ohne andere zu überfordern – getragen von klaren Gruppenregeln
+
+Viele Betroffene erleben es als entlastend, mit ihren Reaktionen nicht allein zu sein und Verständnis ohne Druck zu erfahren.`,
   },
 ];
