@@ -102,7 +102,7 @@ export default function Booking() {
                       ${inCurrentMonth && isSelected ? 'bg-primary text-white shadow-md transform scale-105 font-bold' : ''}
                       ${inCurrentMonth && !isSelected && hasSlots ? 'bg-teal-50 text-teal-800 font-semibold hover:bg-teal-100 cursor-pointer ring-1 ring-teal-200' : ''}
                       ${inCurrentMonth && !hasSlots && !isSelected ? 'text-gray-300 cursor-default' : ''}
-                      ${isToday && !isSelected && inCurrentMonth ? 'ring-1 ring-primary ring-inset' : ''}
+                      ${isToday && !isSelected ? 'ring-1 ring-gray-400 ring-inset' : ''}
                     `}
                   >
                     <span className="text-sm">
