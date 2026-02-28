@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function Impressum() {
   useDocumentMeta({
-    title: 'Impressum — Mut-Taucher',
+    title: 'Impressum',
     description: 'Impressum der Online-Psychotherapie-Praxis Mut-Taucher.',
     canonical: BASE_URL + '/impressum',
   });

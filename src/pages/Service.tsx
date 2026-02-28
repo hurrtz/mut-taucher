@@ -14,7 +14,7 @@ export default function Service() {
   const service = services.find((s) => s.slug === slug);
 
   useDocumentMeta({
-    title: service ? `${service.title} — Mut-Taucher` : 'Nicht gefunden — Mut-Taucher',
+    title: service ? service.title : 'Nicht gefunden',
     description: service?.metaDescription,
     canonical: service ? `${BASE_URL}/leistungen/${service.slug}` : undefined,
   });

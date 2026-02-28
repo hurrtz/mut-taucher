@@ -22,7 +22,7 @@ export function localBusinessData() {
   return {
     '@context': 'https://schema.org',
     '@type': 'PsychologicalTreatment',
-    name: 'Mut-Taucher — Online-Psychotherapie',
+    name: 'Psychologische Online-Therapie Mut-Taucher',
     description: 'Professionelle Online-Psychotherapie per Video. Einzeltherapie, Gruppentherapie und kostenloses Erstgespräch.',
     url: 'https://mut-taucher.de',
     telephone: '+4915253432009',

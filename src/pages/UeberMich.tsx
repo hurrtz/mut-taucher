@@ -10,7 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function UeberMich() {
   useDocumentMeta({
-    title: 'Über mich — Mut-Taucher',
+    title: 'Über mich',
     description: 'Erfahren Sie mehr über mich, meinen Werdegang und meinen therapeutischen Ansatz.',
     canonical: BASE_URL + '/ueber-mich',
   });

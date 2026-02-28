@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function AGB() {
   useDocumentMeta({
-    title: 'Allgemeine Geschäftsbedingungen — Mut-Taucher',
+    title: 'Allgemeine Geschäftsbedingungen',
     description: 'Allgemeine Geschäftsbedingungen der Online-Psychotherapie-Praxis Mut-Taucher.',
     canonical: BASE_URL + '/agb',
   });

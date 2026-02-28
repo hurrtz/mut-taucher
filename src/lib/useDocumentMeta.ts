@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 const BASE_URL = 'https://mut-taucher.de';
+const SITE_NAME = 'Psychologische Online-Therapie Mut-Taucher';
 
 interface MetaOptions {
   title: string;
@@ -35,15 +36,20 @@ export function useDocumentMeta(titleOrOptions: string | MetaOptions, descriptio
     ? { title: titleOrOptions, description }
     : titleOrOptions;
 
+  const fullTitle = opts.title === SITE_NAME
+    ? SITE_NAME
+    : `${opts.title} — ${SITE_NAME}`;
+
   useEffect(() => {
-    document.title = opts.title;
+    document.title = fullTitle;
 
     if (opts.description) {
       setMeta('description', opts.description);
     }
 
     // Open Graph
-    setMeta('og:title', opts.title, 'property');
+    setMeta('og:title', fullTitle, 'property');
+    setMeta('og:site_name', SITE_NAME, 'property');
     if (opts.description) setMeta('og:description', opts.description, 'property');
     setMeta('og:type', opts.ogType || 'website', 'property');
     setMeta('og:locale', 'de_DE', 'property');
@@ -56,7 +62,7 @@ export function useDocumentMeta(titleOrOptions: string | MetaOptions, descriptio
 
     // Twitter Card
     setMeta('twitter:card', opts.ogImage ? 'summary_large_image' : 'summary');
-    setMeta('twitter:title', opts.title);
+    setMeta('twitter:title', fullTitle);
     if (opts.description) setMeta('twitter:description', opts.description);
     if (opts.ogImage) setMeta('twitter:image', opts.ogImage);
 
@@ -64,8 +70,8 @@ export function useDocumentMeta(titleOrOptions: string | MetaOptions, descriptio
     if (opts.canonical) {
       setLink('canonical', opts.canonical);
     }
-  }, [opts.title, opts.description, opts.canonical, opts.ogImage, opts.ogType]);
+  }, [fullTitle, opts.description, opts.canonical, opts.ogImage, opts.ogType]);
 }
 
-export { BASE_URL };
+export { BASE_URL, SITE_NAME };
 export type { MetaOptions };

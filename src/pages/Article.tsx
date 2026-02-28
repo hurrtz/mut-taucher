@@ -13,7 +13,7 @@ export default function Article() {
   const article = articles.find((a) => a.slug === slug);
 
   useDocumentMeta({
-    title: article ? `${article.title} — Mut-Taucher` : 'Nicht gefunden — Mut-Taucher',
+    title: article ? article.title : 'Nicht gefunden',
     description: article?.metaDescription,
     canonical: article ? `${BASE_URL}/wissen/${article.slug}` : undefined,
     ogType: 'article',
