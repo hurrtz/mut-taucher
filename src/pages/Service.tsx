@@ -5,6 +5,7 @@ import { useDocumentMeta } from '../lib/useDocumentMeta';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ArrowLeft } from 'lucide-react';
+import GroupAd from '../components/GroupAd';
 
 export default function Service() {
   const { slug } = useParams();
@@ -47,6 +48,8 @@ export default function Service() {
               <img src={service.image} alt={service.title} className="w-full h-80 object-cover" />
             </div>
           )}
+
+          {slug === 'gruppentherapie' && <GroupAd />}
 
           <div className="prose prose-lg prose-slate max-w-none prose-headings:font-serif prose-headings:text-text prose-a:text-primary hover:prose-a:text-teal-600">
             <ReactMarkdown>{service.content.replace(/^\s*#\s+.+\n+/, '')}</ReactMarkdown>

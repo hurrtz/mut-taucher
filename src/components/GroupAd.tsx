@@ -19,7 +19,7 @@ export default function GroupAd() {
   return (
     <a
       href="#booking"
-      className="group mt-10 mx-auto block max-w-xl bg-rose-600 rounded-xl px-6 py-6 flex items-center justify-center gap-3 hover:bg-rose-700 transition-colors shadow-lg shadow-rose-600/30"
+      className="group my-10 mx-auto block max-w-xl bg-rose-600 rounded-xl px-6 py-6 flex items-center justify-center gap-3 hover:bg-rose-700 transition-colors shadow-lg shadow-rose-600/30"
     >
       <span className="text-white/80 text-lg font-medium">
         Noch <span className="text-white font-extrabold text-xl">{spotsLeft}</span> {spotsLeft === 1 ? 'Platz' : 'Plätze'} für die nächste volle Gruppe!
