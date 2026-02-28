@@ -5,6 +5,7 @@ import Article from './pages/Article';
 import Service from './pages/Service';
 import Datenschutz from './pages/Datenschutz';
 import Impressum from './pages/Impressum';
+import AGB from './pages/AGB';
 import Admin from './pages/Admin';
 
 // ScrollToTop component to reset scroll position on route change
@@ -26,6 +27,7 @@ function App() {
         <Route path="/wissen/:slug" element={<Article />} />
         <Route path="/datenschutz" element={<Datenschutz />} />
         <Route path="/impressum" element={<Impressum />} />
+        <Route path="/agb" element={<AGB />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
     </Router>
