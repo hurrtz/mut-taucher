@@ -130,3 +130,26 @@ function handleCreateBooking(): void {
         }
     }
 }
+
+/**
+ * GET /api/groups/active
+ * Returns the group with show_on_homepage = true, or null.
+ */
+function handleGetActiveGroup(): void {
+    $db = getDB();
+    $stmt = $db->query('SELECT * FROM therapy_groups WHERE show_on_homepage = TRUE LIMIT 1');
+    $group = $stmt->fetch();
+
+    if (!$group) {
+        echo json_encode(null);
+        return;
+    }
+
+    echo json_encode([
+        'id'                  => (int)$group['id'],
+        'label'               => $group['label'],
+        'maxParticipants'     => (int)$group['max_participants'],
+        'currentParticipants' => (int)$group['current_participants'],
+        'showOnHomepage'      => true,
+    ]);
+}

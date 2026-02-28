@@ -51,6 +51,14 @@ export interface Article {
   metaDescription: string;
 }
 
+export interface TherapyGroup {
+  id: number;
+  label: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  showOnHomepage: boolean;
+}
+
 export interface Service {
   id: string;
   title: string;

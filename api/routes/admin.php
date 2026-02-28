@@ -427,3 +427,106 @@ function handleSendEmail(int $bookingId): void {
 
     echo json_encode(['message' => 'E-Mail gesendet']);
 }
+
+// ─── Therapy Groups ─────────────────────────────────────────────
+
+/**
+ * GET /api/admin/groups
+ */
+function handleGetGroups(): void {
+    requireAuth();
+    $db = getDB();
+    $groups = $db->query('SELECT * FROM therapy_groups ORDER BY created_at DESC')->fetchAll();
+
+    $result = array_map(fn($g) => [
+        'id'                  => (int)$g['id'],
+        'label'               => $g['label'],
+        'maxParticipants'     => (int)$g['max_participants'],
+        'currentParticipants' => (int)$g['current_participants'],
+        'showOnHomepage'      => (bool)$g['show_on_homepage'],
+    ], $groups);
+
+    echo json_encode(array_values($result));
+}
+
+/**
+ * POST /api/admin/groups
+ * Body: { label, maxParticipants, currentParticipants, showOnHomepage }
+ */
+function handleCreateGroup(): void {
+    requireAuth();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $db = getDB();
+
+    // If show_on_homepage is true, unset all others first
+    if (!empty($input['showOnHomepage'])) {
+        $db->exec('UPDATE therapy_groups SET show_on_homepage = FALSE');
+    }
+
+    $stmt = $db->prepare(
+        'INSERT INTO therapy_groups (label, max_participants, current_participants, show_on_homepage)
+         VALUES (?, ?, ?, ?)'
+    );
+    $stmt->execute([
+        $input['label'] ?? '',
+        $input['maxParticipants'] ?? 7,
+        $input['currentParticipants'] ?? 0,
+        !empty($input['showOnHomepage']) ? 1 : 0,
+    ]);
+
+    echo json_encode(['id' => (int)$db->lastInsertId(), 'message' => 'Gruppe angelegt']);
+}
+
+/**
+ * PUT /api/admin/groups/:id
+ * Body: { label, maxParticipants, currentParticipants, showOnHomepage }
+ */
+function handleUpdateGroup(int $id): void {
+    requireAuth();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $db = getDB();
+
+    // If show_on_homepage is true, unset all others first
+    if (!empty($input['showOnHomepage'])) {
+        $db->prepare('UPDATE therapy_groups SET show_on_homepage = FALSE WHERE id != ?')->execute([$id]);
+    }
+
+    $stmt = $db->prepare(
+        'UPDATE therapy_groups SET label = ?, max_participants = ?, current_participants = ?, show_on_homepage = ?
+         WHERE id = ?'
+    );
+    $stmt->execute([
+        $input['label'] ?? '',
+        $input['maxParticipants'] ?? 7,
+        $input['currentParticipants'] ?? 0,
+        !empty($input['showOnHomepage']) ? 1 : 0,
+        $id,
+    ]);
+
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Gruppe nicht gefunden']);
+        return;
+    }
+
+    echo json_encode(['message' => 'Gruppe aktualisiert']);
+}
+
+/**
+ * DELETE /api/admin/groups/:id
+ */
+function handleDeleteGroup(int $id): void {
+    requireAuth();
+    $db = getDB();
+
+    $stmt = $db->prepare('DELETE FROM therapy_groups WHERE id = ?');
+    $stmt->execute([$id]);
+
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Gruppe nicht gefunden']);
+        return;
+    }
+
+    echo json_encode(['message' => 'Gruppe gelöscht']);
+}

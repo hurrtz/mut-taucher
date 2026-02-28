@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, type FormEvent, type ReactNode } from 'react';
 import { useAdminBooking, type AdminBooking } from '../lib/useAdminBooking';
 import { generateSlots } from '../lib/useBooking';
-import type { RecurringRule, DayConfig, Event } from '../lib/data';
+import type { RecurringRule, DayConfig, Event, TherapyGroup } from '../lib/data';
 import {
   format, startOfMonth, addMonths, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameDay, isSameMonth, parseISO,
@@ -699,21 +699,242 @@ function BookingList({ bookings, onUpdate, onSendEmail }: {
   );
 }
 
+// ─── Group Form ──────────────────────────────────────────────────
+
+interface GroupFormData {
+  label: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  showOnHomepage: boolean;
+}
+
+function GroupForm({ initial, onSave, onCancel }: {
+  initial?: TherapyGroup;
+  onSave: (data: Omit<TherapyGroup, 'id'>) => void;
+  onCancel?: () => void;
+}) {
+  const [form, setForm] = useState<GroupFormData>({
+    label: initial?.label ?? '',
+    maxParticipants: initial?.maxParticipants ?? 7,
+    currentParticipants: initial?.currentParticipants ?? 0,
+    showOnHomepage: initial?.showOnHomepage ?? false,
+  });
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    onSave(form);
+    if (!initial) setForm({ label: '', maxParticipants: 7, currentParticipants: 0, showOnHomepage: false });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Bezeichnung</label>
+        <input
+          type="text"
+          value={form.label}
+          onChange={e => setForm({ ...form, label: e.target.value })}
+          placeholder="z.B. Emotionsregulation Frühjahr 2026"
+          className="w-full border rounded-md px-3 py-2 text-sm"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Max. Teilnehmer</label>
+          <input
+            type="number"
+            min="1"
+            max="50"
+            value={form.maxParticipants}
+            onChange={e => setForm({ ...form, maxParticipants: Number(e.target.value) })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Aktuelle Teilnehmer</label>
+          <input
+            type="number"
+            min="0"
+            max={form.maxParticipants}
+            value={form.currentParticipants}
+            onChange={e => setForm({ ...form, currentParticipants: Number(e.target.value) })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            required
+          />
+        </div>
+      </div>
+
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={form.showOnHomepage}
+          onChange={e => setForm({ ...form, showOnHomepage: e.target.checked })}
+          className="rounded"
+        />
+        <span className="text-sm text-gray-700">Auf Homepage anzeigen</span>
+      </label>
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          className="flex-1 bg-primary text-white py-2 rounded-md hover:bg-teal-600 text-sm font-medium"
+        >
+          {initial ? 'Speichern' : 'Gruppe anlegen'}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 border rounded-md text-sm text-gray-600 hover:bg-gray-50"
+          >
+            Abbrechen
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+// ─── Group Manager ───────────────────────────────────────────────
+
+function GroupManager({ groups, editingGroupId, onAdd, onUpdate, onDelete, onToggleHomepage, onEditStart, onEditCancel }: {
+  groups: TherapyGroup[];
+  editingGroupId: number | null;
+  onAdd: (data: Omit<TherapyGroup, 'id'>) => void;
+  onUpdate: (id: number, data: Partial<TherapyGroup>) => void;
+  onDelete: (id: number) => void;
+  onToggleHomepage: (id: number, current: boolean) => void;
+  onEditStart: (id: number) => void;
+  onEditCancel: () => void;
+}) {
+  const editingGroup = editingGroupId !== null ? groups.find(g => g.id === editingGroupId) : undefined;
+
+  return (
+    <>
+      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          {editingGroup ? (
+            <><Pencil size={20} className="text-primary" /> Gruppe bearbeiten</>
+          ) : (
+            <><Plus size={20} className="text-primary" /> Neue Gruppe</>
+          )}
+        </h2>
+        {editingGroup ? (
+          <GroupForm
+            key={editingGroupId}
+            initial={editingGroup}
+            onSave={data => onUpdate(editingGroupId!, data)}
+            onCancel={onEditCancel}
+          />
+        ) : (
+          <GroupForm onSave={onAdd} />
+        )}
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <Users size={20} className="text-gray-500" />
+          Gruppen ({groups.length})
+        </h2>
+        {groups.length === 0 ? (
+          <p className="text-sm text-gray-400 bg-white rounded-xl border border-gray-200 p-6 text-center">
+            Noch keine Gruppen angelegt.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {groups.map(group => {
+              const pct = group.maxParticipants > 0
+                ? Math.round((group.currentParticipants / group.maxParticipants) * 100)
+                : 0;
+              const spotsLeft = group.maxParticipants - group.currentParticipants;
+
+              return (
+                <div key={group.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-900 truncate">{group.label || 'Ohne Bezeichnung'}</h3>
+                        {group.showOnHomepage && (
+                          <span className="shrink-0 text-[10px] font-medium bg-secondary/10 text-secondary px-1.5 py-0.5 rounded">
+                            Homepage
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
+                          <span>{group.currentParticipants} / {group.maxParticipants} Teilnehmer</span>
+                          <span className="text-xs text-gray-400">{spotsLeft > 0 ? `${spotsLeft} frei` : 'Voll'}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${pct >= 100 ? 'bg-red-400' : pct >= 70 ? 'bg-amber-400' : 'bg-primary'}`}
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        onClick={() => onToggleHomepage(group.id, group.showOnHomepage)}
+                        className={`p-1.5 rounded transition-colors ${
+                          group.showOnHomepage
+                            ? 'text-secondary hover:text-secondary/70 hover:bg-gray-100'
+                            : 'text-gray-400 hover:text-secondary hover:bg-gray-100'
+                        }`}
+                        title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}
+                      >
+                        <CalendarIcon size={16} />
+                      </button>
+                      <button
+                        onClick={() => onEditStart(group.id)}
+                        className="p-1.5 text-gray-400 hover:text-primary rounded hover:bg-gray-100"
+                        title="Bearbeiten"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Gruppe "${group.label || 'Ohne Bezeichnung'}" wirklich löschen?`)) {
+                            onDelete(group.id);
+                          }
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100"
+                        title="Löschen"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ─── Main Admin Page ─────────────────────────────────────────────
 
 export default function Admin() {
   const {
-    authenticated, rules, events, bookings, loading, error,
+    authenticated, rules, events, bookings, groups, loading, error,
     login, logout, fetchRules, addRule, updateRule, removeRule,
     toggleException, fetchEvents, addEvent, removeEvent,
     fetchBookings, updateBooking, sendEmail,
+    fetchGroups, addGroup, updateGroup, removeGroup,
   } = useAdminBooking();
 
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'rules' | 'bookings'>('rules');
+  const [activeTab, setActiveTab] = useState<'rules' | 'bookings' | 'groups'>('rules');
+  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
 
   // Load data on auth
   useEffect(() => {
@@ -721,8 +942,9 @@ export default function Admin() {
       fetchRules();
       fetchEvents();
       fetchBookings();
+      fetchGroups();
     }
-  }, [authenticated, fetchRules, fetchEvents, fetchBookings]);
+  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -814,6 +1036,16 @@ export default function Admin() {
             }`}
           >
             <Users size={16} /> Buchungen ({bookings.filter(b => b.status === 'confirmed').length})
+          </button>
+          <button
+            onClick={() => setActiveTab('groups')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'groups'
+                ? 'bg-primary text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+            }`}
+          >
+            <Users size={16} /> Gruppen ({groups.length})
           </button>
         </div>
 
@@ -915,6 +1147,21 @@ export default function Admin() {
                 onSendEmail={sendEmail}
               />
             </div>
+          </div>
+        )}
+
+        {activeTab === 'groups' && (
+          <div className="max-w-3xl space-y-6">
+            <GroupManager
+              groups={groups}
+              editingGroupId={editingGroupId}
+              onAdd={async (g) => { await addGroup(g); setEditingGroupId(null); }}
+              onUpdate={async (id, g) => { await updateGroup(id, g); setEditingGroupId(null); }}
+              onDelete={removeGroup}
+              onToggleHomepage={(id, current) => updateGroup(id, { showOnHomepage: !current })}
+              onEditStart={setEditingGroupId}
+              onEditCancel={() => setEditingGroupId(null)}
+            />
           </div>
         )}
       </div>

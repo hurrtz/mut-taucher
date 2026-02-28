@@ -45,6 +45,11 @@ if ($method === 'POST' && $uri === '/bookings') {
     exit;
 }
 
+if ($method === 'GET' && $uri === '/groups/active') {
+    handleGetActiveGroup();
+    exit;
+}
+
 // Auth
 if ($method === 'POST' && $uri === '/login') {
     handleLogin();
@@ -106,6 +111,27 @@ if ($method === 'PATCH' && preg_match('#^/admin/bookings/(\d+)$#', $uri, $m)) {
 
 if ($method === 'POST' && preg_match('#^/admin/bookings/(\d+)/email$#', $uri, $m)) {
     handleSendEmail((int)$m[1]);
+    exit;
+}
+
+// Admin: groups
+if ($method === 'GET' && $uri === '/admin/groups') {
+    handleGetGroups();
+    exit;
+}
+
+if ($method === 'POST' && $uri === '/admin/groups') {
+    handleCreateGroup();
+    exit;
+}
+
+if ($method === 'PUT' && preg_match('#^/admin/groups/(\d+)$#', $uri, $m)) {
+    handleUpdateGroup((int)$m[1]);
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/groups/(\d+)$#', $uri, $m)) {
+    handleDeleteGroup((int)$m[1]);
     exit;
 }
 
