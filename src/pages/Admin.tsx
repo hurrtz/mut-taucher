@@ -1,15 +1,15 @@
-import { useState, useEffect, useMemo, type FormEvent } from 'react';
+import { useState, useEffect, useMemo, type FormEvent, type ReactNode } from 'react';
 import { useAdminBooking, type AdminBooking } from '../lib/useAdminBooking';
 import { generateSlots } from '../lib/useBooking';
-import type { RecurringRule, DayConfig } from '../lib/data';
+import type { RecurringRule, DayConfig, Event } from '../lib/data';
 import {
   format, startOfMonth, addMonths, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameDay, isSameMonth, parseISO,
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
-  Plus, Trash2, Pencil, ChevronLeft, ChevronRight, LogOut, Calendar as CalendarIcon,
-  Clock, Repeat, Ban, Loader2, AlertCircle, Mail, MailCheck, X, Users,
+  Plus, Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, LogOut, Calendar as CalendarIcon,
+  Clock, Repeat, Ban, Loader2, AlertCircle, Mail, MailCheck, X, Users, CalendarPlus,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -337,10 +337,172 @@ function RuleCard({ rule, onEdit, onDelete, onToggleException }: {
   );
 }
 
+// ─── Collapsible Section ─────────────────────────────────────────
+
+function CollapsibleSection({ title, icon, children, defaultOpen = false }: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 p-5 text-left hover:bg-gray-50 transition-colors"
+      >
+        {icon}
+        <h2 className="text-lg font-semibold flex-1">{title}</h2>
+        <ChevronDown
+          size={20}
+          className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && <div className="px-5 pb-5 border-t border-gray-100 pt-4">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Event Form ──────────────────────────────────────────────────
+
+function EventForm({ onSave }: { onSave: (data: Omit<Event, 'id'>) => void }) {
+  const [form, setForm] = useState({
+    label: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+    time: '10:00',
+    durationMinutes: 50,
+    customDuration: '',
+  });
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const duration = form.durationMinutes === 0 ? Number(form.customDuration) || 50 : form.durationMinutes;
+    onSave({
+      label: form.label,
+      date: form.date,
+      time: form.time,
+      durationMinutes: duration,
+    });
+    setForm({ label: '', date: format(new Date(), 'yyyy-MM-dd'), time: '10:00', durationMinutes: 50, customDuration: '' });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Bezeichnung (optional)</label>
+        <input
+          type="text"
+          value={form.label}
+          onChange={e => setForm({ ...form, label: e.target.value })}
+          placeholder="z.B. Sondertermin"
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Datum</label>
+        <input
+          type="date"
+          value={form.date}
+          onChange={e => setForm({ ...form, date: e.target.value })}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Uhrzeit</label>
+        <input
+          type="time"
+          value={form.time}
+          onChange={e => setForm({ ...form, time: e.target.value })}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Dauer</label>
+        <div className="flex flex-wrap gap-2">
+          {DURATION_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setForm({ ...form, durationMinutes: opt.value })}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                form.durationMinutes === opt.value
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {form.durationMinutes === 0 && (
+          <input
+            type="number"
+            min="5"
+            max="480"
+            value={form.customDuration}
+            onChange={e => setForm({ ...form, customDuration: e.target.value })}
+            placeholder="Minuten"
+            className="mt-2 w-32 border rounded-md px-3 py-2 text-sm"
+          />
+        )}
+      </div>
+
+      <button
+        type="submit"
+        className="w-full bg-primary text-white py-2 rounded-md hover:bg-teal-600 text-sm font-medium"
+      >
+        Einzeltermin anlegen
+      </button>
+    </form>
+  );
+}
+
+// ─── Event List ──────────────────────────────────────────────────
+
+function EventList({ events, onDelete }: { events: Event[]; onDelete: (id: number) => void }) {
+  if (events.length === 0) return null;
+
+  return (
+    <div className="space-y-2 mt-4">
+      <h3 className="text-sm font-medium text-gray-700">Angelegte Einzeltermine ({events.length})</h3>
+      {events.map(event => (
+        <div key={event.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3 text-sm">
+          <div>
+            <span className="font-medium text-gray-900">{event.label || 'Einzeltermin'}</span>
+            <span className="text-gray-500 ml-2">
+              {format(parseISO(event.date), 'd. MMM yyyy', { locale: de })} · {event.time} Uhr · {event.durationMinutes} Min.
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              if (confirm(`Einzeltermin "${event.label || event.date}" wirklich löschen?`)) {
+                onDelete(event.id);
+              }
+            }}
+            className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100"
+            title="Löschen"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Calendar Preview ────────────────────────────────────────────
 
-function CalendarPreview({ rules, onToggleException }: {
+function CalendarPreview({ rules, events, onToggleException }: {
   rules: RecurringRule[];
+  events: Event[];
   onToggleException: (ruleId: string, date: string) => void;
 }) {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
@@ -353,8 +515,8 @@ function CalendarPreview({ rules, onToggleException }: {
 
   // Client-side slot generation for instant preview
   const allSlots = useMemo(
-    () => generateSlots(rules, calendarStart, calendarEnd, []),
-    [rules, calendarStart.getTime(), calendarEnd.getTime()]
+    () => generateSlots(rules, calendarStart, calendarEnd, [], events),
+    [rules, events, calendarStart.getTime(), calendarEnd.getTime()]
   );
 
   return (
@@ -420,8 +582,12 @@ function CalendarPreview({ rules, onToggleException }: {
                         onToggleException(slot.ruleId, dateStr);
                       }
                     }}
-                    className="w-full px-1 py-0.5 rounded text-[10px] text-left truncate transition-colors bg-teal-100 text-teal-800 hover:bg-teal-200 cursor-pointer"
-                    title="Klicken um als Ausnahme zu markieren"
+                    className={`w-full px-1 py-0.5 rounded text-[10px] text-left truncate transition-colors ${
+                      slot.eventId
+                        ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                        : 'bg-teal-100 text-teal-800 hover:bg-teal-200'
+                    } cursor-pointer`}
+                    title={slot.eventId ? 'Einzeltermin' : 'Klicken um als Ausnahme zu markieren'}
                   >
                     {slot.time}
                   </button>
@@ -443,7 +609,8 @@ function CalendarPreview({ rules, onToggleException }: {
       </div>
 
       <div className="mt-3 flex items-center gap-4 text-[11px] text-gray-500">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-teal-100 border border-teal-200" /> Verfügbar</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-teal-100 border border-teal-200" /> Regel</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-100 border border-amber-200" /> Einzeltermin</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200" /> Ausnahme</span>
       </div>
     </div>
@@ -536,9 +703,10 @@ function BookingList({ bookings, onUpdate, onSendEmail }: {
 
 export default function Admin() {
   const {
-    authenticated, rules, bookings, loading, error,
+    authenticated, rules, events, bookings, loading, error,
     login, logout, fetchRules, addRule, updateRule, removeRule,
-    toggleException, fetchBookings, updateBooking, sendEmail,
+    toggleException, fetchEvents, addEvent, removeEvent,
+    fetchBookings, updateBooking, sendEmail,
   } = useAdminBooking();
 
   const [password, setPassword] = useState('');
@@ -551,9 +719,10 @@ export default function Admin() {
   useEffect(() => {
     if (authenticated) {
       fetchRules();
+      fetchEvents();
       fetchBookings();
     }
-  }, [authenticated, fetchRules, fetchBookings]);
+  }, [authenticated, fetchRules, fetchEvents, fetchBookings]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -656,14 +825,14 @@ export default function Admin() {
 
         {activeTab === 'rules' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Create / Edit Rule */}
-            <div className="lg:col-span-1 space-y-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Plus size={20} className="text-primary" />
-                  {editingRule ? 'Regel bearbeiten' : 'Neue Verfügbarkeit anlegen'}
-                </h2>
-                {editingRule ? (
+            {/* Left: Create / Edit Rule + Events */}
+            <div className="lg:col-span-1 space-y-4">
+              {editingRule ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Pencil size={20} className="text-primary" />
+                    Regel bearbeiten
+                  </h2>
                   <RuleForm
                     key={editingRuleId}
                     initial={editingRule}
@@ -673,10 +842,23 @@ export default function Admin() {
                     }}
                     onCancel={() => setEditingRuleId(null)}
                   />
-                ) : (
+                </div>
+              ) : (
+                <CollapsibleSection
+                  title="Regeltermine anlegen"
+                  icon={<CalendarPlus size={20} className="text-primary" />}
+                >
                   <RuleForm onSave={addRule} />
-                )}
-              </div>
+                </CollapsibleSection>
+              )}
+
+              <CollapsibleSection
+                title="Einzeltermin anlegen"
+                icon={<CalendarPlus size={20} className="text-primary" />}
+              >
+                <EventForm onSave={addEvent} />
+                <EventList events={events} onDelete={removeEvent} />
+              </CollapsibleSection>
 
               {/* Active Rules */}
               <div>
@@ -713,6 +895,7 @@ export default function Admin() {
             <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <CalendarPreview
                 rules={rules}
+                events={events}
                 onToggleException={toggleException}
               />
             </div>

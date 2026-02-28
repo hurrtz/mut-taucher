@@ -31,7 +31,7 @@ export default function Booking() {
     if (!selectedSlot || !bookingForm.name || !bookingForm.email) return;
 
     const result = await bookSlot(
-      selectedSlot.ruleId,
+      { ruleId: selectedSlot.ruleId, eventId: selectedSlot.eventId },
       selectedSlot.date,
       selectedSlot.time,
       bookingForm.name,

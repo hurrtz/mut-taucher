@@ -106,6 +106,38 @@ function generateSlots(PDO $db, string $from, string $to): array {
         }
     }
 
+    // ─── Events (one-off slots) ────────────────────────────────────
+    $eventStmt = $db->prepare(
+        'SELECT * FROM events WHERE event_date BETWEEN ? AND ?'
+    );
+    $eventStmt->execute([$from, $to]);
+    $events = $eventStmt->fetchAll();
+
+    // Check which events are already booked
+    $eventBookedStmt = $db->prepare(
+        'SELECT event_id FROM bookings
+         WHERE status = "confirmed" AND event_id IS NOT NULL AND booking_date BETWEEN ? AND ?'
+    );
+    $eventBookedStmt->execute([$from, $to]);
+    $bookedEventIds = [];
+    foreach ($eventBookedStmt->fetchAll() as $eb) {
+        $bookedEventIds[(int)$eb['event_id']] = true;
+    }
+
+    foreach ($events as $event) {
+        $eventId = (int)$event['id'];
+        if (isset($bookedEventIds[$eventId])) continue;
+
+        $slots[] = [
+            'id'              => 'event-' . $eventId,
+            'ruleId'          => null,
+            'eventId'         => $eventId,
+            'date'            => $event['event_date'],
+            'time'            => $event['time'],
+            'durationMinutes' => (int)$event['duration_minutes'],
+        ];
+    }
+
     // Sort by date, then time
     usort($slots, function ($a, $b) {
         return strcmp($a['date'] . $a['time'], $b['date'] . $b['time']);

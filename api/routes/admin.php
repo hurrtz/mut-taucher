@@ -198,6 +198,77 @@ function handleToggleException(int $ruleId): void {
     }
 }
 
+// ─── Events (one-off slots) ──────────────────────────────────────
+
+/**
+ * GET /api/admin/events
+ */
+function handleGetEvents(): void {
+    requireAuth();
+    $db = getDB();
+    $events = $db->query('SELECT * FROM events ORDER BY event_date ASC, time ASC')->fetchAll();
+
+    $result = array_map(fn($e) => [
+        'id'              => (int)$e['id'],
+        'label'           => $e['label'],
+        'date'            => $e['event_date'],
+        'time'            => $e['time'],
+        'durationMinutes' => (int)$e['duration_minutes'],
+    ], $events);
+
+    echo json_encode(array_values($result));
+}
+
+/**
+ * POST /api/admin/events
+ * Body: { label, date, time, durationMinutes }
+ */
+function handleCreateEvent(): void {
+    requireAuth();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $db = getDB();
+
+    $date = $input['date'] ?? '';
+    $time = $input['time'] ?? '';
+
+    if (!$date || !$time) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Datum und Uhrzeit erforderlich']);
+        return;
+    }
+
+    $stmt = $db->prepare(
+        'INSERT INTO events (label, event_date, time, duration_minutes) VALUES (?, ?, ?, ?)'
+    );
+    $stmt->execute([
+        $input['label'] ?? '',
+        $date,
+        $time,
+        $input['durationMinutes'] ?? 50,
+    ]);
+
+    echo json_encode(['id' => (int)$db->lastInsertId(), 'message' => 'Einzeltermin angelegt']);
+}
+
+/**
+ * DELETE /api/admin/events/:id
+ */
+function handleDeleteEvent(int $id): void {
+    requireAuth();
+    $db = getDB();
+
+    $stmt = $db->prepare('DELETE FROM events WHERE id = ?');
+    $stmt->execute([$id]);
+
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Einzeltermin nicht gefunden']);
+        return;
+    }
+
+    echo json_encode(['message' => 'Einzeltermin gelöscht']);
+}
+
 // ─── Bookings ────────────────────────────────────────────────────
 
 /**
@@ -210,8 +281,9 @@ function handleGetBookings(): void {
 
     $db = getDB();
 
-    $sql = 'SELECT b.*, r.label as rule_label FROM bookings b
-            LEFT JOIN recurring_rules r ON b.rule_id = r.id';
+    $sql = 'SELECT b.*, r.label as rule_label, e.label as event_label FROM bookings b
+            LEFT JOIN recurring_rules r ON b.rule_id = r.id
+            LEFT JOIN events e ON b.event_id = e.id';
     $params = [];
 
     if ($from && $to) {
@@ -227,8 +299,9 @@ function handleGetBookings(): void {
 
     $result = array_map(fn($b) => [
         'id'             => (int)$b['id'],
-        'ruleId'         => (int)$b['rule_id'],
-        'ruleLabel'      => $b['rule_label'] ?? '',
+        'ruleId'         => $b['rule_id'] ? (int)$b['rule_id'] : null,
+        'eventId'        => $b['event_id'] ? (int)$b['event_id'] : null,
+        'ruleLabel'      => $b['rule_label'] ?? $b['event_label'] ?? '',
         'date'           => $b['booking_date'],
         'time'           => $b['booking_time'],
         'durationMinutes' => (int)$b['duration_minutes'],

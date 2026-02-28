@@ -77,6 +77,22 @@ if ($method === 'POST' && preg_match('#^/admin/rules/(\d+)/exceptions$#', $uri, 
     exit;
 }
 
+// Admin: events
+if ($method === 'GET' && $uri === '/admin/events') {
+    handleGetEvents();
+    exit;
+}
+
+if ($method === 'POST' && $uri === '/admin/events') {
+    handleCreateEvent();
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/events/(\d+)$#', $uri, $m)) {
+    handleDeleteEvent((int)$m[1]);
+    exit;
+}
+
 // Admin: bookings
 if ($method === 'GET' && $uri === '/admin/bookings') {
     handleGetBookings();

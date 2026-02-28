@@ -1,10 +1,10 @@
-import { type Slot, type RecurringRule } from './data';
+import { type Slot, type RecurringRule, type Event } from './data';
 import { addDays, addMonths, format, getISODay, parseISO, startOfDay, differenceInCalendarWeeks } from 'date-fns';
 
 const GENERATION_HORIZON_MONTHS = 12;
 
 /**
- * Pure function: generate available slots from recurring rules for a date range.
+ * Pure function: generate available slots from recurring rules (+ optional events) for a date range.
  * Used by Admin CalendarPreview for instant client-side preview.
  */
 export function generateSlots(
@@ -12,6 +12,7 @@ export function generateSlots(
   rangeStart: Date,
   rangeEnd: Date,
   bookedSlots: Slot[],
+  events: Event[] = [],
 ): Slot[] {
   const horizon = addMonths(new Date(), GENERATION_HORIZON_MONTHS);
   const slots: Slot[] = [];
@@ -63,6 +64,22 @@ export function generateSlots(
         }
       }
       current = addDays(current, 1);
+    }
+  }
+
+  // Include one-off events in the range
+  const rangeStartStr = format(rangeStart, 'yyyy-MM-dd');
+  const rangeEndStr = format(rangeEnd, 'yyyy-MM-dd');
+  for (const event of events) {
+    if (event.date >= rangeStartStr && event.date <= rangeEndStr) {
+      slots.push({
+        id: `event-${event.id}`,
+        date: event.date,
+        time: event.time,
+        durationMinutes: event.durationMinutes,
+        available: true,
+        eventId: event.id,
+      });
     }
   }
 

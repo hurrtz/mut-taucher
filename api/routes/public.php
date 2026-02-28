@@ -30,18 +30,20 @@ function handleGetSlots(): void {
 
 /**
  * POST /api/bookings
- * Body: { ruleId, date, time, name, email }
+ * Body: { ruleId?, eventId?, date, time, name, email }
+ * Either ruleId or eventId must be provided.
  */
 function handleCreateBooking(): void {
     $input = json_decode(file_get_contents('php://input'), true);
 
-    $ruleId = $input['ruleId'] ?? null;
-    $date   = $input['date']   ?? '';
-    $time   = $input['time']   ?? '';
-    $name   = trim($input['name']  ?? '');
-    $email  = trim($input['email'] ?? '');
+    $ruleId  = $input['ruleId']  ?? null;
+    $eventId = $input['eventId'] ?? null;
+    $date    = $input['date']    ?? '';
+    $time    = $input['time']    ?? '';
+    $name    = trim($input['name']  ?? '');
+    $email   = trim($input['email'] ?? '');
 
-    if (!$ruleId || !$date || !$time || !$name || !$email) {
+    if ((!$ruleId && !$eventId) || !$date || !$time || !$name || !$email) {
         http_response_code(400);
         echo json_encode(['error' => 'Alle Felder sind erforderlich']);
         return;
@@ -54,25 +56,48 @@ function handleCreateBooking(): void {
     }
 
     $db = getDB();
+    $durationMinutes = 50;
 
-    // Verify rule exists
-    $stmt = $db->prepare('SELECT id, duration_minutes FROM recurring_rules WHERE id = ?');
-    $stmt->execute([$ruleId]);
-    $rule = $stmt->fetch();
+    if ($eventId) {
+        // Verify event exists
+        $stmt = $db->prepare('SELECT id, duration_minutes FROM events WHERE id = ?');
+        $stmt->execute([$eventId]);
+        $event = $stmt->fetch();
 
-    if (!$rule) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Regel nicht gefunden']);
-        return;
+        if (!$event) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Einzeltermin nicht gefunden']);
+            return;
+        }
+        $durationMinutes = (int)$event['duration_minutes'];
+    } else {
+        // Verify rule exists
+        $stmt = $db->prepare('SELECT id, duration_minutes FROM recurring_rules WHERE id = ?');
+        $stmt->execute([$ruleId]);
+        $rule = $stmt->fetch();
+
+        if (!$rule) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Regel nicht gefunden']);
+            return;
+        }
+        $durationMinutes = (int)$rule['duration_minutes'];
     }
 
     // Check slot is actually available by generating slots for that date
     $slots = generateSlots($db, $date, $date);
     $slotAvailable = false;
     foreach ($slots as $slot) {
-        if ($slot['ruleId'] === (int)$ruleId && $slot['date'] === $date && $slot['time'] === $time) {
-            $slotAvailable = true;
-            break;
+        if ($eventId) {
+            if (($slot['eventId'] ?? null) === (int)$eventId && $slot['date'] === $date && $slot['time'] === $time) {
+                $slotAvailable = true;
+                break;
+            }
+        } else {
+            if ($slot['ruleId'] === (int)$ruleId && $slot['date'] === $date && $slot['time'] === $time) {
+                $slotAvailable = true;
+                break;
+            }
         }
     }
 
@@ -85,10 +110,10 @@ function handleCreateBooking(): void {
     // Insert booking
     try {
         $stmt = $db->prepare(
-            'INSERT INTO bookings (rule_id, booking_date, booking_time, duration_minutes, client_name, client_email)
-             VALUES (?, ?, ?, ?, ?, ?)'
+            'INSERT INTO bookings (rule_id, event_id, booking_date, booking_time, duration_minutes, client_name, client_email)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
-        $stmt->execute([$ruleId, $date, $time, $rule['duration_minutes'], $name, $email]);
+        $stmt->execute([$ruleId, $eventId, $date, $time, $durationMinutes, $name, $email]);
 
         $bookingId = $db->lastInsertId();
 
@@ -98,7 +123,6 @@ function handleCreateBooking(): void {
         ]);
     } catch (PDOException $e) {
         if ($e->getCode() == 23000) {
-            // Duplicate key — slot was booked between check and insert
             http_response_code(409);
             echo json_encode(['error' => 'Dieser Termin wurde gerade von jemand anderem gebucht']);
         } else {

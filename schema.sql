@@ -27,9 +27,19 @@ CREATE TABLE IF NOT EXISTS rule_exceptions (
   FOREIGN KEY (rule_id) REFERENCES recurring_rules(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS events (
+  id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  label            VARCHAR(255) DEFAULT '',
+  event_date       DATE         NOT NULL,
+  time             VARCHAR(5)   NOT NULL,       -- "HH:MM"
+  duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 50,
+  created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS bookings (
   id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  rule_id           INT UNSIGNED NOT NULL,
+  rule_id           INT UNSIGNED NULL,
+  event_id          INT UNSIGNED NULL,
   booking_date      DATE         NOT NULL,
   booking_time      VARCHAR(5)   NOT NULL,      -- "HH:MM"
   duration_minutes  SMALLINT UNSIGNED NOT NULL,
@@ -39,6 +49,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   intro_email_sent  BOOLEAN      NOT NULL DEFAULT FALSE,
   reminder_sent     BOOLEAN      NOT NULL DEFAULT FALSE,
   created_at        TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_booking (rule_id, booking_date, booking_time),
-  FOREIGN KEY (rule_id) REFERENCES recurring_rules(id) ON DELETE CASCADE
+  UNIQUE KEY uq_rule_booking (rule_id, booking_date, booking_time),
+  FOREIGN KEY (rule_id) REFERENCES recurring_rules(id) ON DELETE CASCADE,
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

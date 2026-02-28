@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { apiFetch, setToken, clearToken, isAuthenticated as checkAuth, ApiError } from './api';
-import type { RecurringRule, DayConfig } from './data';
+import type { RecurringRule, DayConfig, Event } from './data';
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -49,6 +49,7 @@ function apiRuleToRule(r: ApiRule): RecurringRule {
 export function useAdminBooking() {
   const [authenticated, setAuthenticated] = useState(checkAuth());
   const [rules, setRules] = useState<RecurringRule[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +78,7 @@ export function useAdminBooking() {
     clearToken();
     setAuthenticated(false);
     setRules([]);
+    setEvents([]);
     setBookings([]);
   }, []);
 
@@ -148,6 +150,41 @@ export function useAdminBooking() {
     }
   }, [fetchRules]);
 
+  // ─── Events ─────────────────────────────────────────────────
+
+  const fetchEvents = useCallback(async () => {
+    setError(null);
+    try {
+      const data = await apiFetch<Event[]>('/admin/events');
+      setEvents(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Laden der Einzeltermine');
+    }
+  }, []);
+
+  const addEvent = useCallback(async (event: Omit<Event, 'id'>) => {
+    setError(null);
+    try {
+      await apiFetch('/admin/events', {
+        method: 'POST',
+        body: JSON.stringify(event),
+      });
+      await fetchEvents();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Anlegen');
+    }
+  }, [fetchEvents]);
+
+  const removeEvent = useCallback(async (id: number) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/events/${id}`, { method: 'DELETE' });
+      await fetchEvents();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Löschen');
+    }
+  }, [fetchEvents]);
+
   // ─── Bookings ────────────────────────────────────────────────
 
   const fetchBookings = useCallback(async (from?: string, to?: string) => {
@@ -198,6 +235,7 @@ export function useAdminBooking() {
   return {
     authenticated,
     rules,
+    events,
     bookings,
     loading,
     error,
@@ -208,6 +246,9 @@ export function useAdminBooking() {
     updateRule,
     removeRule,
     toggleException,
+    fetchEvents,
+    addEvent,
+    removeEvent,
     fetchBookings,
     updateBooking,
     sendEmail,

@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 
 export interface PublicSlot {
   id: string;
-  ruleId: number;
+  ruleId: number | null;
+  eventId?: number | null;
   date: string;
   time: string;
   durationMinutes: number;
@@ -37,7 +38,7 @@ export function usePublicBooking() {
   }, []);
 
   const bookSlot = useCallback(async (
-    ruleId: number,
+    slot: { ruleId: number | null; eventId?: number | null },
     date: string,
     time: string,
     name: string,
@@ -46,9 +47,15 @@ export function usePublicBooking() {
     setBooking(true);
     setError(null);
     try {
+      const body: Record<string, unknown> = { date, time, name, email };
+      if (slot.eventId) {
+        body.eventId = slot.eventId;
+      } else {
+        body.ruleId = slot.ruleId;
+      }
       const result = await apiFetch<BookingResult>('/bookings', {
         method: 'POST',
-        body: JSON.stringify({ ruleId, date, time, name, email }),
+        body: JSON.stringify(body),
       });
       return result;
     } catch (e) {

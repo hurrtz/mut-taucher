@@ -23,6 +23,14 @@ export interface RecurringRule {
   exceptions: string[];       // cancelled ISO dates
 }
 
+export interface Event {
+  id: number;
+  label: string;
+  date: string;               // ISO date
+  time: string;               // "HH:MM"
+  durationMinutes: number;
+}
+
 export interface Slot {
   id: string;
   date: string; // ISO string
@@ -30,6 +38,7 @@ export interface Slot {
   durationMinutes: number;
   available: boolean;
   ruleId?: string;            // links back to generating rule
+  eventId?: number;           // links back to one-off event
 }
 
 export interface Article {
