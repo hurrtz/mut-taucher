@@ -13,18 +13,18 @@ export default function Articles() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {articles.map((article) => (
-            <div key={article.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg transition-all duration-300 group">
+            <Link key={article.id} to={`/wissen/${article.slug}`} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg transition-all duration-300 group">
               <div className="relative h-48 overflow-hidden">
-                <img 
-                  src={article.image} 
-                  alt={article.title} 
+                <img
+                  src={article.image}
+                  alt={article.title}
                   className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>
-              
+
               <div className="p-6">
                 <h3 className="text-xl font-bold text-text mb-2 group-hover:text-primary transition-colors">
                   {article.title}
@@ -32,16 +32,13 @@ export default function Articles() {
                 <p className="text-gray-600 mb-4 line-clamp-3">
                   {article.excerpt}
                 </p>
-                
-                <Link 
-                  to={`/wissen/${article.slug}`}
-                  className="inline-flex items-center text-primary font-medium hover:text-teal-600 transition-colors"
-                >
+
+                <span className="inline-flex items-center text-primary font-medium group-hover:text-teal-600 transition-colors">
                   Weiterlesen
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

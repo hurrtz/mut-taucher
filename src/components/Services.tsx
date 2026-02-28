@@ -1,4 +1,41 @@
 import { Video, Users, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { services } from '../lib/data';
+import type { Service } from '../lib/data';
+
+const iconMap = {
+  Video,
+  Users,
+  MessageCircle,
+} as const;
+
+function ServiceCard({ service }: { service: Service }) {
+  const Icon = iconMap[service.icon];
+  return (
+    <Link to={`/leistungen/${service.slug}`} className="pt-6 group">
+      <div className="flow-root bg-white rounded-lg px-6 pb-8 h-full group-hover:shadow-lg transition-shadow duration-300">
+        <div className="-mt-6">
+          <div>
+            <span className={`inline-flex items-center justify-center p-3 bg-${service.color} rounded-md shadow-lg`}>
+              <Icon className="h-6 w-6 text-white" aria-hidden="true" />
+            </span>
+          </div>
+          <h3 className="mt-8 text-lg font-medium text-gray-900 tracking-tight group-hover:text-primary transition-colors">
+            {service.title}
+          </h3>
+          <p className="mt-5 text-base text-gray-500">
+            {service.excerpt}
+          </p>
+          <ul className="mt-4 list-disc list-inside text-sm text-gray-500 space-y-2">
+            {service.bullets.map((bullet) => (
+              <li key={bullet}>{bullet}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 export default function Services() {
   return (
@@ -14,70 +51,9 @@ export default function Services() {
         </div>
 
         <div className="mt-20 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          
-          <div className="pt-6">
-            <div className="flow-root bg-white rounded-lg px-6 pb-8">
-              <div className="-mt-6">
-                <div>
-                  <span className="inline-flex items-center justify-center p-3 bg-primary rounded-md shadow-lg">
-                    <Video className="h-6 w-6 text-white" aria-hidden="true" />
-                  </span>
-                </div>
-                <h3 className="mt-8 text-lg font-medium text-gray-900 tracking-tight">Einzeltherapie per Video</h3>
-                <p className="mt-5 text-base text-gray-500">
-                  Im vertraulichen 1:1 Gespräch widmen wir uns ganz Ihren Themen. Flexibel und ortsunabhängig via sicherem Video-Call.
-                </p>
-                <ul className="mt-4 list-disc list-inside text-sm text-gray-500 space-y-2">
-                  <li>50 Minuten pro Sitzung</li>
-                  <li>Flexible Terminplanung</li>
-                  <li>Bequem von zu Hause</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-6">
-            <div className="flow-root bg-white rounded-lg px-6 pb-8">
-              <div className="-mt-6">
-                <div>
-                  <span className="inline-flex items-center justify-center p-3 bg-secondary rounded-md shadow-lg">
-                    <Users className="h-6 w-6 text-white" aria-hidden="true" />
-                  </span>
-                </div>
-                <h3 className="mt-8 text-lg font-medium text-gray-900 tracking-tight">Gruppentherapie per Video</h3>
-                <p className="mt-5 text-base text-gray-500">
-                  Der Austausch mit anderen Betroffenen kann sehr heilsam sein. Gemeinsam lernen wir voneinander und stärken uns gegenseitig.
-                </p>
-                 <ul className="mt-4 list-disc list-inside text-sm text-gray-500 space-y-2">
-                  <li>Kleingruppen (max. 6 Personen)</li>
-                  <li>Wöchentliche Treffen</li>
-                  <li>Geleiteter Austausch</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-           <div className="pt-6">
-            <div className="flow-root bg-white rounded-lg px-6 pb-8">
-              <div className="-mt-6">
-                <div>
-                  <span className="inline-flex items-center justify-center p-3 bg-accent rounded-md shadow-lg">
-                    <MessageCircle className="h-6 w-6 text-white" aria-hidden="true" />
-                  </span>
-                </div>
-                <h3 className="mt-8 text-lg font-medium text-gray-900 tracking-tight">Erstgespräch</h3>
-                <p className="mt-5 text-base text-gray-500">
-                  Lernen Sie mich und meine Arbeitsweise unverbindlich kennen. Wir besprechen Ihr Anliegen und klären erste Fragen.
-                </p>
-                 <ul className="mt-4 list-disc list-inside text-sm text-gray-500 space-y-2">
-                  <li>Kostenloses Kennenlernen (20 Min.)</li>
-                  <li>Klärung des Bedarfs</li>
-                  <li>Keine Verpflichtung</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
+          {services.map((service) => (
+            <ServiceCard key={service.id} service={service} />
+          ))}
         </div>
       </div>
     </section>
