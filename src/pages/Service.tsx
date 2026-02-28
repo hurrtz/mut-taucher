@@ -42,6 +42,12 @@ export default function Service() {
 
           <h1 className="text-3xl md:text-5xl font-serif font-bold text-text mb-6">{service.title}</h1>
 
+          {service.image && (
+            <div className="rounded-2xl overflow-hidden shadow-xl mb-10">
+              <img src={service.image} alt={service.title} className="w-full h-80 object-cover" />
+            </div>
+          )}
+
           <div className="prose prose-lg prose-slate max-w-none prose-headings:font-serif prose-headings:text-text prose-a:text-primary hover:prose-a:text-teal-600">
             <ReactMarkdown>{service.content.replace(/^\s*#\s+.+\n+/, '')}</ReactMarkdown>
           </div>

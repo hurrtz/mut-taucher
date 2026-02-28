@@ -6,6 +6,9 @@ import topicDepression from '@/assets/topic-depression.jpeg';
 import topicEmotionsregulation from '@/assets/topic-emotionsregulation.jpeg';
 import topicSelbstwert from '@/assets/topic-selbstwert.jpeg';
 import topicTrauma from '@/assets/topic-trauma.jpeg';
+import einzeltherapieImg from '@/assets/einzeltherapie.jpg';
+import gruppentherapieImg from '@/assets/gruppentherapie.jpg';
+import erstgespraechImg from '@/assets/erstgespraech.jpg';
 
 export interface DayConfig {
   dayOfWeek: number;          // 1=Mon ... 7=Sun (ISO)
@@ -69,6 +72,7 @@ export interface Service {
   bullets: string[];
   content: string;
   metaDescription: string;
+  image?: string;
 }
 
 export const services: Service[] = [
@@ -81,6 +85,7 @@ export const services: Service[] = [
     color: 'primary',
     bullets: ['50 Minuten pro Sitzung', 'Flexible Terminplanung', 'Bequem von zu Hause'],
     metaDescription: 'Online-Einzeltherapie per Video — vertraulich, flexibel und ortsunabhängig. 50-minütige Sitzungen mit erfahrener Psychotherapeutin.',
+    image: einzeltherapieImg,
     content: `
 # Einzeltherapie per Video
 
@@ -110,28 +115,53 @@ Einzeltherapie eignet sich für eine Vielzahl von Themen: Depressionen, Angstst�
     color: 'secondary',
     bullets: ['Kleingruppen (max. 6 Personen)', 'Wöchentliche Treffen', 'Geleiteter Austausch'],
     metaDescription: 'Online-Gruppentherapie in Kleingruppen — gemeinsam wachsen, voneinander lernen. Wöchentliche geleitete Sitzungen per Video.',
+    image: gruppentherapieImg,
     content: `
-# Gruppentherapie per Video
+# Warum Gruppentherapie?
 
-Manchmal hilft es enorm zu erfahren, dass man mit seinen Problemen nicht allein ist. In der Gruppentherapie treffen Sie auf andere Menschen, die ähnliche Herausforderungen erleben — und gemeinsam finden wir Wege nach vorn.
+## Ein sicherer Raum mit klarer Struktur
 
-## Das Format
+Gruppentherapie bietet einen geschützten Rahmen, um sich mit persönlichen Themen auseinanderzusetzen, neue Perspektiven zu gewinnen und nachhaltige Veränderungen anzustoßen. Sie verbindet fachliche Begleitung mit der Kraft gemeinsamer Erfahrung — und kann auf besondere Weise entlastend, stärkend und klärend wirken.
 
-- **Kleingruppen** mit maximal 6 Teilnehmenden
-- **Wöchentliche Sitzungen** à 90 Minuten per Video
-- **Geschlossene Gruppen** für Vertrauen und Kontinuität
-- Professionell moderiert und strukturiert
+Die Gruppe bietet Ihnen einen verlässlichen und geschützten Rahmen, in dem Sie sich in Ihrem eigenen Tempo einbringen können. Feste Regeln und eine klare Struktur sorgen für Orientierung, Sicherheit und eine ausgewogene Beteiligung aller Teilnehmenden.
 
-## Warum Gruppentherapie?
+## Gemeinschaft und gegenseitige Unterstützung
 
-Die Gruppe bietet etwas, das Einzeltherapie allein nicht leisten kann: das Erleben von Gemeinschaft, gegenseitigem Verständnis und der Erfahrung, dass Veränderung möglich ist. Sie lernen nicht nur aus Ihren eigenen Prozessen, sondern auch aus den Erfahrungen anderer.
+Sie müssen Ihre Herausforderungen nicht allein bewältigen. In der Gruppe erleben viele Menschen, wie entlastend es ist, verstanden zu werden, Erfahrungen zu teilen und sich gegenseitig zu unterstützen. Gemeinsames Lernen stärkt und verbindet.
 
-**Aktuelle Gruppenangebote:**
-- Emotionsregulation & Achtsamkeit
-- Umgang mit Ängsten
-- Selbstwert stärken
+## Normalisierung von Ängsten und Stärkung der Selbstwahrnehmung
 
-Sprechen Sie mich an — ich berate Sie gerne, welche Gruppe zu Ihnen passt.
+Viele Sorgen, Unsicherheiten und Ängste sind verbreiteter, als es sich im eigenen Erleben oft anfühlt. Der Austausch in der Gruppe hilft dabei, Scham und Selbstzweifel abzubauen. Rückmeldungen von anderen ermöglichen es, eigene Muster besser zu erkennen und neue Sichtweisen zu entwickeln.
+
+## Förderung des emotionalen Ausdrucks
+
+Ihre Gefühle und Bedürfnisse haben Raum. Die therapeutische Begleitung unterstützt Sie dabei, diese bewusster wahrzunehmen und angemessen auszudrücken — behutsam, respektvoll und angepasst an Ihr individuelles Tempo.
+
+## Hilfe zur Selbsthilfe
+
+Durch gezielte Übungen und begleitende Materialien erwerben Sie neue Fertigkeiten, die Sie auch außerhalb der Therapie unterstützen. Ziel ist es, langfristig selbstwirksam zu handeln und Ihr Leben stärker an Ihren eigenen Werten und Zielen auszurichten.
+
+## Übung sozialer Fähigkeiten im geschützten Rahmen
+
+Die Gruppe bietet die Möglichkeit, neue Verhaltensweisen auszuprobieren und unmittelbares, wertschätzendes Feedback zu erhalten. Gruppendynamiken spiegeln häufig reale Beziehungsmuster wider und können gemeinsam reflektiert und weiterentwickelt werden.
+
+## Motivation durch Vorbilder
+
+Der Kontakt zu anderen Teilnehmenden, die bereits Fortschritte gemacht haben, kann Mut machen und motivieren. Veränderung wird erlebbar — und neue Perspektiven werden greifbar.
+
+## Struktur und Verbindlichkeit
+
+Regelmäßige Gruppentermine geben Halt und unterstützen dabei, auch an schwierigen Themen dranzubleiben. Die feste therapeutische Struktur fördert Kontinuität und nachhaltige Entwicklung.
+
+## Kreativität und spielerische Elemente
+
+Therapie darf auch leicht sein. Kreative und spielerische Methoden eröffnen neue Zugänge, fördern Spontanität und erleichtern Lernprozesse — ohne den therapeutischen Rahmen zu verlieren.
+
+## Erweiterte therapeutische Möglichkeiten
+
+Gruppentherapie ermöglicht Methoden, die im Einzelsetting nur eingeschränkt umsetzbar sind, wie Rollenspiele, erlebnisorientierte Übungen oder das gezielte Arbeiten mit gruppendynamischen Prozessen.
+
+Die Gruppe bietet Ihnen einen verlässlichen und geschützten Rahmen, in dem Sie sich in Ihrem eigenen Tempo einbringen können. Feste Regeln und eine klare Struktur sorgen für Orientierung, Sicherheit und eine ausgewogene Beteiligung aller Teilnehmenden.
     `,
   },
   {
@@ -142,26 +172,45 @@ Sprechen Sie mich an — ich berate Sie gerne, welche Gruppe zu Ihnen passt.
     icon: 'MessageCircle',
     color: 'accent',
     bullets: ['Kostenloses Kennenlernen (20 Min.)', 'Klärung des Bedarfs', 'Keine Verpflichtung'],
-    metaDescription: 'Kostenloses Erstgespräch — lernen Sie mich unverbindlich kennen. 20 Minuten für Ihre Fragen und eine erste Einschätzung.',
+    metaDescription: 'Erstgespräch buchen — lernen Sie mich unverbindlich kennen. 90 Minuten für Ihre Fragen und eine erste Einschätzung.',
+    image: erstgespraechImg,
     content: `
-# Erstgespräch
+# Terminbuchung
 
-Der erste Schritt ist oft der schwierigste. Deshalb biete ich Ihnen ein **kostenloses, unverbindliches Erstgespräch** an, in dem wir uns kennenlernen und gemeinsam herausfinden, wie ich Sie am besten unterstützen kann.
+Sie möchten mit mir zusammenarbeiten oder sind noch unschlüssig und wünschen sich zunächst ein persönliches Gespräch? Dann können Sie direkt ein unverbindliches Erstgespräch buchen. Dieses dient dem gegenseitigen Kennenlernen, der Klärung Ihrer Anliegen sowie der Frage, ob und welche Gruppe für Sie passend ist.
 
-## Was erwartet Sie?
+Die Termine der einzelnen Gruppen werden nicht separat online gebucht. Diese legen wir im Erstgespräch gemeinsam fest. Die Gruppensitzungen finden an unterschiedlichen Wochentagen jeweils von 16:30 Uhr bis 18:00 Uhr statt.
 
-Das Erstgespräch dauert ca. **20 Minuten** und findet per Video statt. Es geht darum:
+## Kosten & Abrechnung
 
-- **Ihr Anliegen** kurz zu besprechen
-- Einen ersten Eindruck meiner **Arbeitsweise** zu bekommen
-- Offene **Fragen** zu klären (Ablauf, Kosten, Häufigkeit)
-- Gemeinsam einzuschätzen, ob die **Chemie stimmt**
+Die Angebote richten sich an Selbstzahler:innen. Eine Übernahme der Kosten durch gesetzliche Krankenkassen ist nicht möglich.
 
-## Keine Verpflichtung
+Für privat Versicherte besteht je nach Vertrag die Möglichkeit einer teilweisen Kostenerstattung. Bitte klären Sie dies vorab direkt mit Ihrer Versicherung.
 
-Das Erstgespräch ist völlig unverbindlich. Es geht nicht darum, sich sofort festzulegen, sondern darum, eine informierte Entscheidung treffen zu können. Therapie funktioniert am besten, wenn die Beziehung zwischen Therapeutin und Klient:in stimmt.
+**Erstgespräch (90 Minuten): 95 €**
+Die Zahlung erfolgt im Voraus per Überweisung oder PayPal. Nach der Buchung erhalten Sie eine E-Mail mit allen Informationen zum Ablauf und zur Zahlung.
 
-Buchen Sie einfach einen Termin über den Kalender — ich freue mich auf Sie.
+## Einzeltherapie
+
+Eine Sitzung Einzeltherapie à 60 Minuten kann jederzeit mit mir abgestimmt werden.
+
+**Kosten pro Sitzung: 120 €**
+Die Kosten müssen in Vorkasse geleistet werden.
+
+## Gruppentherapie
+
+Die Gruppentherapie besteht aus 10 verbindlichen Sitzungen à 90 Minuten.
+
+- **Kosten pro Sitzung:** 95 €
+- **Gesamtkosten:** 950 €
+
+Die Buchung erfolgt ausschließlich als Paket mit 10 Terminen. Dies ist notwendig, um eine stabile Gruppenzusammensetzung zu gewährleisten. Ein gleichbleibender Teilnehmerkreis ist eine wichtige Grundlage für Vertrauen, Gruppendynamik und den therapeutischen Prozess.
+
+Eine Ratenzahlung in zwei Teilbeträgen zu je 475 € ist möglich.
+
+Nach Abschluss der 10 Sitzungen entscheidet die Gruppe gemeinsam, ob eine Verlängerung gewünscht ist.
+
+Wenn Sie Fragen haben oder unsicher sind, ob dieses Angebot zu Ihnen passt, nutzen Sie gern das Erstgespräch. Es bietet Raum für Orientierung — ohne Verpflichtung.
     `,
   },
 ];
