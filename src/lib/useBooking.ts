@@ -1,46 +1,70 @@
-import { useState, useEffect } from 'react';
-import { type Slot, initialSlots } from './data';
+import { type Slot, type RecurringRule } from './data';
+import { addDays, addMonths, format, getISODay, parseISO, startOfDay, differenceInCalendarWeeks } from 'date-fns';
 
-export const useBooking = () => {
-  const [slots, setSlots] = useState<Slot[]>([]);
+const GENERATION_HORIZON_MONTHS = 12;
 
-  useEffect(() => {
-    const stored = localStorage.getItem('mut-taucher-slots');
-    if (stored) {
-      setSlots(JSON.parse(stored));
-    } else {
-      setSlots(initialSlots);
+/**
+ * Pure function: generate available slots from recurring rules for a date range.
+ * Used by Admin CalendarPreview for instant client-side preview.
+ */
+export function generateSlots(
+  rules: RecurringRule[],
+  rangeStart: Date,
+  rangeEnd: Date,
+  bookedSlots: Slot[],
+): Slot[] {
+  const horizon = addMonths(new Date(), GENERATION_HORIZON_MONTHS);
+  const slots: Slot[] = [];
+
+  for (const rule of rules) {
+    const ruleStart = parseISO(rule.startDate);
+    const ruleEnd = rule.endDate ? parseISO(rule.endDate) : horizon;
+
+    const effectiveStart = startOfDay(rangeStart > ruleStart ? rangeStart : ruleStart);
+    const effectiveEnd = startOfDay(rangeEnd < ruleEnd ? rangeEnd : ruleEnd);
+
+    if (effectiveStart > effectiveEnd) continue;
+    if (effectiveStart > horizon) continue;
+
+    const finalEnd = effectiveEnd > horizon ? horizon : effectiveEnd;
+
+    let current = effectiveStart;
+    while (current <= finalEnd) {
+      const isoDay = getISODay(current); // 1=Mon ... 7=Sun
+      const dateStr = format(current, 'yyyy-MM-dd');
+
+      const matchingDay = rule.days.find(d => d.dayOfWeek === isoDay);
+      if (matchingDay) {
+        // Check biweekly alignment: count weeks from rule start
+        if (matchingDay.frequency === 'biweekly') {
+          const weeksDiff = differenceInCalendarWeeks(current, ruleStart, { weekStartsOn: 1 });
+          if (weeksDiff % 2 !== 0) {
+            current = addDays(current, 1);
+            continue;
+          }
+        }
+
+        // Skip exceptions
+        if (!rule.exceptions.includes(dateStr)) {
+          // Skip if there's already a booked slot for this rule+date+time
+          const alreadyBooked = bookedSlots.some(
+            s => s.ruleId === rule.id && s.date === dateStr && s.time === rule.time
+          );
+          if (!alreadyBooked) {
+            slots.push({
+              id: `gen-${rule.id}-${dateStr}`,
+              date: dateStr,
+              time: rule.time,
+              durationMinutes: rule.durationMinutes,
+              available: true,
+              ruleId: rule.id,
+            });
+          }
+        }
+      }
+      current = addDays(current, 1);
     }
-  }, []);
+  }
 
-  const saveSlots = (newSlots: Slot[]) => {
-    setSlots(newSlots);
-    localStorage.setItem('mut-taucher-slots', JSON.stringify(newSlots));
-  };
-
-  const bookSlot = (id: string, name: string, email: string) => {
-    const newSlots = slots.map(slot => 
-      slot.id === id ? { ...slot, available: false } : slot
-    );
-    saveSlots(newSlots);
-    console.log(`Booking confirmed for ${name} (${email}) on slot ${id}`);
-    // Here you would typically send an email via API
-  };
-
-  const addSlot = (date: string, time: string) => {
-    const newSlot: Slot = {
-      id: Math.random().toString(36).substr(2, 9),
-      date,
-      time,
-      available: true,
-    };
-    saveSlots([...slots, newSlot]);
-  };
-
-  const removeSlot = (id: string) => {
-    const newSlots = slots.filter(s => s.id !== id);
-    saveSlots(newSlots);
-  };
-
-  return { slots, bookSlot, addSlot, removeSlot };
-};
+  return slots;
+}

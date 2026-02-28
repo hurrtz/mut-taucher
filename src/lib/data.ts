@@ -7,11 +7,29 @@ import topicEmotionsregulation from '@/assets/topic-emotionsregulation.jpeg';
 import topicSelbstwert from '@/assets/topic-selbstwert.jpeg';
 import topicTrauma from '@/assets/topic-trauma.jpeg';
 
+export interface DayConfig {
+  dayOfWeek: number;          // 1=Mon ... 7=Sun (ISO)
+  frequency: 'weekly' | 'biweekly';
+}
+
+export interface RecurringRule {
+  id: string;
+  label: string;              // e.g. "Montags Vormittag"
+  time: string;               // "10:15"
+  durationMinutes: number;    // 90
+  days: DayConfig[];          // which days + frequency
+  startDate: string;          // ISO date rule begins
+  endDate: string | null;     // null = indefinite
+  exceptions: string[];       // cancelled ISO dates
+}
+
 export interface Slot {
   id: string;
   date: string; // ISO string
   time: string; // "10:00"
+  durationMinutes: number;
   available: boolean;
+  ruleId?: string;            // links back to generating rule
 }
 
 export interface Article {
@@ -35,14 +53,6 @@ export interface Service {
   content: string;
   metaDescription: string;
 }
-
-export const initialSlots: Slot[] = [
-  { id: '1', date: '2026-03-01', time: '10:00', available: true },
-  { id: '2', date: '2026-03-01', time: '14:00', available: true },
-  { id: '3', date: '2026-03-02', time: '11:00', available: true },
-  { id: '4', date: '2026-03-03', time: '09:00', available: true },
-  { id: '5', date: '2026-03-05', time: '16:00', available: true },
-];
 
 export const services: Service[] = [
   {

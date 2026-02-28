@@ -1,41 +1,60 @@
-import { useState, type FormEvent } from 'react';
-import { useBooking } from '../lib/useBooking';
+import { useState, useEffect, type FormEvent } from 'react';
+import { usePublicBooking, type PublicSlot } from '../lib/usePublicBooking';
 import { format, startOfMonth, addMonths, isSameDay, isSameMonth, parseISO, startOfWeek, endOfWeek, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
-import type { Slot } from '../lib/data';
+import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
 export default function Booking() {
-  const { slots, bookSlot } = useBooking();
+  const { slots, loading, error, booking, fetchSlots, bookSlot } = usePublicBooking();
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<PublicSlot | null>(null);
   const [bookingForm, setBookingForm] = useState({ name: '', email: '' });
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const availableSlots = slots.filter(s => s.available);
-
-  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-  const prevMonth = () => setCurrentMonth(addMonths(currentMonth, -1));
-
-  // Build calendar grid: from Monday of the week containing the 1st, to Sunday of the week containing the last day
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  const handleBook = (e: FormEvent) => {
+  // Fetch slots when calendar range changes
+  useEffect(() => {
+    fetchSlots(calendarStart, calendarEnd);
+  }, [fetchSlots, calendarStart.getTime(), calendarEnd.getTime()]);
+
+  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+  const prevMonth = () => setCurrentMonth(addMonths(currentMonth, -1));
+
+  const handleBook = async (e: FormEvent) => {
     e.preventDefault();
-    if (selectedSlot && bookingForm.name && bookingForm.email) {
-      bookSlot(selectedSlot.id, bookingForm.name, bookingForm.email);
+    if (!selectedSlot || !bookingForm.name || !bookingForm.email) return;
+
+    const result = await bookSlot(
+      selectedSlot.ruleId,
+      selectedSlot.date,
+      selectedSlot.time,
+      bookingForm.name,
+      bookingForm.email,
+    );
+
+    if (result) {
       setIsSuccess(true);
       setTimeout(() => {
         setIsSuccess(false);
         setSelectedSlot(null);
         setBookingForm({ name: '', email: '' });
+        // Refresh slots to reflect the booking
+        fetchSlots(calendarStart, calendarEnd);
       }, 3000);
     }
+  };
+
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${minutes} Min.`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m > 0 ? `${h} Std. ${m} Min.` : `${h} Std.`;
   };
 
   return (
@@ -83,36 +102,49 @@ export default function Booking() {
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((day, i) => {
-                const inCurrentMonth = isSameMonth(day, currentMonth);
-                const daySlots = availableSlots.filter(s => isSameDay(parseISO(s.date), day));
-                const hasSlots = daySlots.length > 0;
-                const isSelected = selectedDate && isSameDay(day, selectedDate);
-                const isToday = isSameDay(day, new Date());
+            {loading && slots.length === 0 ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((day, i) => {
+                  const inCurrentMonth = isSameMonth(day, currentMonth);
+                  const daySlots = slots.filter(s => isSameDay(parseISO(s.date), day));
+                  const hasSlots = daySlots.length > 0;
+                  const isSelected = selectedDate && isSameDay(day, selectedDate);
+                  const isToday = isSameDay(day, new Date());
 
-                return (
-                  <button
-                    key={i}
-                    onClick={() => hasSlots && inCurrentMonth && setSelectedDate(day)}
-                    disabled={!hasSlots || !inCurrentMonth}
-                    className={`
-                      relative p-2 rounded-lg flex flex-col items-center justify-center transition-all duration-200 aspect-square
-                      ${!inCurrentMonth ? 'text-gray-200 cursor-default' : ''}
-                      ${inCurrentMonth && isSelected ? 'bg-primary text-white shadow-md transform scale-105 font-bold' : ''}
-                      ${inCurrentMonth && !isSelected && hasSlots ? 'bg-teal-50 text-teal-800 font-semibold hover:bg-teal-100 cursor-pointer ring-1 ring-teal-200' : ''}
-                      ${inCurrentMonth && !hasSlots && !isSelected ? 'text-gray-300 cursor-default' : ''}
-                      ${isToday && !isSelected ? 'ring-1 ring-gray-400 ring-inset' : ''}
-                    `}
-                  >
-                    <span className="text-sm">
-                      {format(day, 'd')}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => hasSlots && inCurrentMonth && setSelectedDate(day)}
+                      disabled={!hasSlots || !inCurrentMonth}
+                      className={`
+                        relative p-2 rounded-lg flex flex-col items-center justify-center transition-all duration-200 aspect-square
+                        ${!inCurrentMonth ? 'text-gray-200 cursor-default' : ''}
+                        ${inCurrentMonth && isSelected ? 'bg-primary text-white shadow-md transform scale-105 font-bold' : ''}
+                        ${inCurrentMonth && !isSelected && hasSlots ? 'bg-teal-50 text-teal-800 font-semibold hover:bg-teal-100 cursor-pointer ring-1 ring-teal-200' : ''}
+                        ${inCurrentMonth && !hasSlots && !isSelected ? 'text-gray-300 cursor-default' : ''}
+                        ${isToday && !isSelected ? 'ring-1 ring-gray-400 ring-inset' : ''}
+                      `}
+                    >
+                      <span className="text-sm">
+                        {format(day, 'd')}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-3">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {error}
+              </div>
+            )}
+
             <p className="mt-6 text-xs text-gray-400 text-center">
               Wählen Sie ein Datum mit verfügbaren Terminen (markiert mit Punkt).
             </p>
@@ -139,26 +171,42 @@ export default function Booking() {
                   <h3 className="text-lg font-semibold text-text mb-4">
                     Verfügbare Zeiten am {format(selectedDate, 'd. MMMM', { locale: de })}
                   </h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {availableSlots
+                  {(() => {
+                    const daySlots = slots
                       .filter(s => isSameDay(parseISO(s.date), selectedDate))
-                      .sort((a, b) => a.time.localeCompare(b.time))
-                      .map(slot => (
-                        <button
-                          key={slot.id}
-                          onClick={() => setSelectedSlot(slot)}
-                          className={`
-                            px-4 py-2 rounded-md text-sm font-medium border transition-all flex items-center justify-center gap-2
-                            ${selectedSlot?.id === slot.id 
-                              ? 'bg-primary text-white border-primary shadow-sm' 
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-primary'}
-                          `}
-                        >
-                          <Clock className="h-4 w-4" />
-                          {slot.time} Uhr
-                        </button>
-                      ))}
-                  </div>
+                      .sort((a, b) => a.time.localeCompare(b.time));
+
+                    if (daySlots.length === 0) {
+                      return (
+                        <p className="text-gray-400 text-sm">Keine verfügbaren Zeiten an diesem Tag.</p>
+                      );
+                    }
+
+                    return (
+                      <div className="grid grid-cols-2 gap-3">
+                        {daySlots.map(slot => (
+                          <button
+                            key={slot.id}
+                            onClick={() => setSelectedSlot(slot)}
+                            className={`
+                              px-4 py-2 rounded-md text-sm font-medium border transition-all flex flex-col items-center justify-center gap-0.5
+                              ${selectedSlot?.id === slot.id
+                                ? 'bg-primary text-white border-primary shadow-sm'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-primary'}
+                            `}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <Clock className="h-4 w-4" />
+                              {slot.time} Uhr
+                            </span>
+                            <span className={`text-xs ${selectedSlot?.id === slot.id ? 'text-white/80' : 'text-gray-400'}`}>
+                              {formatDuration(slot.durationMinutes)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {selectedSlot && (
@@ -187,10 +235,18 @@ export default function Booking() {
                         placeholder="ihre@email.de"
                       />
                     </div>
+                    {error && (
+                      <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-3">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        {error}
+                      </div>
+                    )}
                     <button
                       type="submit"
-                      className="w-full py-3 px-6 bg-secondary hover:bg-rose-600 text-white font-semibold text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
+                      disabled={booking}
+                      className="w-full py-3 px-6 bg-secondary hover:bg-rose-600 text-white font-semibold text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
+                      {booking && <Loader2 className="h-5 w-5 animate-spin" />}
                       Termin jetzt buchen
                     </button>
                   </form>

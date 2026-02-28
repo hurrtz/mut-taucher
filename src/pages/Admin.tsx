@@ -1,33 +1,572 @@
-import { useState, type FormEvent } from 'react';
-import { useBooking } from '../lib/useBooking';
-import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
+import { useState, useEffect, useMemo, type FormEvent } from 'react';
+import { useAdminBooking, type AdminBooking } from '../lib/useAdminBooking';
+import { generateSlots } from '../lib/useBooking';
+import type { RecurringRule, DayConfig } from '../lib/data';
+import {
+  format, startOfMonth, addMonths, endOfMonth, startOfWeek, endOfWeek,
+  eachDayOfInterval, isSameDay, isSameMonth, parseISO,
+} from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Trash2, Plus, Calendar as CalendarIcon, LogOut } from 'lucide-react';
+import {
+  Plus, Trash2, Pencil, ChevronLeft, ChevronRight, LogOut, Calendar as CalendarIcon,
+  Clock, Repeat, Ban, Loader2, AlertCircle, Mail, MailCheck, X, Users,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+const DAY_LABELS = ['', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const DAY_LABELS_LONG = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+const DURATION_OPTIONS = [
+  { value: 20, label: '20 Min.' },
+  { value: 50, label: '50 Min.' },
+  { value: 90, label: '90 Min.' },
+  { value: 0, label: 'Andere' },
+];
+
+// ─── Rule Form ───────────────────────────────────────────────────
+
+interface RuleFormData {
+  label: string;
+  time: string;
+  durationMinutes: number;
+  customDuration: string;
+  days: Record<number, { enabled: boolean; frequency: 'weekly' | 'biweekly' }>;
+  startDate: string;
+  endDate: string;
+  indefinite: boolean;
+}
+
+const emptyForm = (): RuleFormData => ({
+  label: '',
+  time: '10:00',
+  durationMinutes: 50,
+  customDuration: '',
+  days: Object.fromEntries(
+    [1, 2, 3, 4, 5, 6, 7].map(d => [d, { enabled: false, frequency: 'weekly' as const }])
+  ),
+  startDate: format(new Date(), 'yyyy-MM-dd'),
+  endDate: '',
+  indefinite: true,
+});
+
+function ruleToForm(rule: RecurringRule): RuleFormData {
+  const days: RuleFormData['days'] = {};
+  for (let d = 1; d <= 7; d++) {
+    const match = rule.days.find(dc => dc.dayOfWeek === d);
+    days[d] = { enabled: !!match, frequency: match?.frequency ?? 'weekly' };
+  }
+  const isPreset = DURATION_OPTIONS.some(o => o.value === rule.durationMinutes);
+  return {
+    label: rule.label,
+    time: rule.time,
+    durationMinutes: isPreset ? rule.durationMinutes : 0,
+    customDuration: isPreset ? '' : String(rule.durationMinutes),
+    days,
+    startDate: rule.startDate,
+    endDate: rule.endDate ?? '',
+    indefinite: !rule.endDate,
+  };
+}
+
+function formToDayConfigs(days: RuleFormData['days']): DayConfig[] {
+  return Object.entries(days)
+    .filter(([, v]) => v.enabled)
+    .map(([k, v]) => ({ dayOfWeek: Number(k), frequency: v.frequency }));
+}
+
+function RuleForm({ initial, onSave, onCancel }: {
+  initial?: RecurringRule;
+  onSave: (data: Omit<RecurringRule, 'id' | 'exceptions'>) => void;
+  onCancel?: () => void;
+}) {
+  const [form, setForm] = useState<RuleFormData>(initial ? ruleToForm(initial) : emptyForm());
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const dayConfigs = formToDayConfigs(form.days);
+    if (dayConfigs.length === 0) return;
+
+    const duration = form.durationMinutes === 0 ? Number(form.customDuration) || 50 : form.durationMinutes;
+    onSave({
+      label: form.label || dayConfigs.map(d => DAY_LABELS[d.dayOfWeek]).join(', '),
+      time: form.time,
+      durationMinutes: duration,
+      days: dayConfigs,
+      startDate: form.startDate,
+      endDate: form.indefinite ? null : (form.endDate || null),
+    });
+    if (!initial) setForm(emptyForm());
+  };
+
+  const toggleDay = (day: number) => {
+    setForm(f => ({
+      ...f,
+      days: { ...f.days, [day]: { ...f.days[day], enabled: !f.days[day].enabled } },
+    }));
+  };
+
+  const setFrequency = (day: number, freq: 'weekly' | 'biweekly') => {
+    setForm(f => ({
+      ...f,
+      days: { ...f.days, [day]: { ...f.days[day], frequency: freq } },
+    }));
+  };
+
+  const selectedDayCount = Object.values(form.days).filter(d => d.enabled).length;
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Bezeichnung (optional)</label>
+        <input
+          type="text"
+          value={form.label}
+          onChange={e => setForm({ ...form, label: e.target.value })}
+          placeholder="z.B. Montags Vormittag"
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Tage</label>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5, 6, 7].map(day => (
+            <div key={day} className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => toggleDay(day)}
+                className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                  form.days[day].enabled
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {DAY_LABELS[day]}
+              </button>
+              {form.days[day].enabled && (
+                <select
+                  value={form.days[day].frequency}
+                  onChange={e => setFrequency(day, e.target.value as 'weekly' | 'biweekly')}
+                  className="text-sm border rounded-md px-2 py-1.5"
+                >
+                  <option value="weekly">Jede Woche</option>
+                  <option value="biweekly">Jede 2. Woche</option>
+                </select>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Uhrzeit</label>
+        <input
+          type="time"
+          value={form.time}
+          onChange={e => setForm({ ...form, time: e.target.value })}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Dauer</label>
+        <div className="flex flex-wrap gap-2">
+          {DURATION_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setForm({ ...form, durationMinutes: opt.value })}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                form.durationMinutes === opt.value
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {form.durationMinutes === 0 && (
+          <input
+            type="number"
+            min="5"
+            max="480"
+            value={form.customDuration}
+            onChange={e => setForm({ ...form, customDuration: e.target.value })}
+            placeholder="Minuten"
+            className="mt-2 w-32 border rounded-md px-3 py-2 text-sm"
+          />
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Startdatum</label>
+          <input
+            type="date"
+            value={form.startDate}
+            onChange={e => setForm({ ...form, startDate: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Enddatum</label>
+          <div className="flex items-center gap-2 mb-1">
+            <input
+              type="checkbox"
+              id="indefinite"
+              checked={form.indefinite}
+              onChange={e => setForm({ ...form, indefinite: e.target.checked })}
+              className="rounded"
+            />
+            <label htmlFor="indefinite" className="text-xs text-gray-500">Unbegrenzt</label>
+          </div>
+          {!form.indefinite && (
+            <input
+              type="date"
+              value={form.endDate}
+              onChange={e => setForm({ ...form, endDate: e.target.value })}
+              className="w-full border rounded-md px-3 py-2 text-sm"
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={selectedDayCount === 0}
+          className="flex-1 bg-primary text-white py-2 rounded-md hover:bg-teal-600 disabled:opacity-50 text-sm font-medium"
+        >
+          {initial ? 'Speichern' : 'Regel anlegen'}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 border rounded-md text-sm text-gray-600 hover:bg-gray-50"
+          >
+            Abbrechen
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+// ─── Rule Card ───────────────────────────────────────────────────
+
+function RuleCard({ rule, onEdit, onDelete, onToggleException }: {
+  rule: RecurringRule;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggleException: (date: string) => void;
+}) {
+  const [showExceptions, setShowExceptions] = useState(false);
+
+  const daysLabel = rule.days
+    .map(d => `${DAY_LABELS_LONG[d.dayOfWeek]}${d.frequency === 'biweekly' ? ' (2-wöch.)' : ''}`)
+    .join(', ');
+
+  const formatDuration = (m: number) => {
+    if (m < 60) return `${m} Min.`;
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    return r > 0 ? `${h} Std. ${r} Min.` : `${h} Std.`;
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="font-semibold text-gray-900 truncate">{rule.label || 'Ohne Bezeichnung'}</h3>
+          <div className="mt-1 space-y-0.5 text-sm text-gray-600">
+            <div className="flex items-center gap-1.5">
+              <Repeat size={14} className="text-gray-400 shrink-0" />
+              {daysLabel}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock size={14} className="text-gray-400 shrink-0" />
+              {rule.time} Uhr · {formatDuration(rule.durationMinutes)}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CalendarIcon size={14} className="text-gray-400 shrink-0" />
+              Ab {format(parseISO(rule.startDate), 'd. MMM yyyy', { locale: de })}
+              {rule.endDate ? ` bis ${format(parseISO(rule.endDate), 'd. MMM yyyy', { locale: de })}` : ' · unbegrenzt'}
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-1 shrink-0">
+          <button onClick={onEdit} className="p-1.5 text-gray-400 hover:text-primary rounded hover:bg-gray-100" title="Bearbeiten">
+            <Pencil size={16} />
+          </button>
+          <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100" title="Löschen">
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+
+      {rule.exceptions.length > 0 && (
+        <div className="mt-3">
+          <button
+            onClick={() => setShowExceptions(!showExceptions)}
+            className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+          >
+            <Ban size={12} />
+            {rule.exceptions.length} Ausnahme{rule.exceptions.length > 1 ? 'n' : ''}
+            <ChevronRight size={12} className={`transition-transform ${showExceptions ? 'rotate-90' : ''}`} />
+          </button>
+          {showExceptions && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {rule.exceptions.sort().map(date => (
+                <button
+                  key={date}
+                  onClick={() => onToggleException(date)}
+                  className="px-2 py-0.5 text-xs bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 line-through"
+                  title="Klicken um Ausnahme aufzuheben"
+                >
+                  {format(parseISO(date), 'd. MMM', { locale: de })}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Calendar Preview ────────────────────────────────────────────
+
+function CalendarPreview({ rules, onToggleException }: {
+  rules: RecurringRule[];
+  onToggleException: (ruleId: string, date: string) => void;
+}) {
+  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
+
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+
+  // Client-side slot generation for instant preview
+  const allSlots = useMemo(
+    () => generateSlots(rules, calendarStart, calendarEnd, []),
+    [rules, calendarStart.getTime(), calendarEnd.getTime()]
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <CalendarIcon size={20} className="text-gray-500" />
+          Vorschau: {format(currentMonth, 'MMMM yyyy', { locale: de })}
+        </h2>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setCurrentMonth(addMonths(currentMonth, -1))} className="p-1 hover:bg-gray-100 rounded">
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            onClick={() => setCurrentMonth(startOfMonth(new Date()))}
+            className="px-2 py-0.5 text-xs text-gray-500 hover:text-primary hover:bg-gray-100 rounded"
+          >
+            Heute
+          </button>
+          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-gray-100 rounded">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 text-center mb-1">
+        {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (
+          <div key={d} className="text-xs font-medium text-gray-400">{d}</div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {calendarDays.map((day, i) => {
+          const inCurrentMonth = isSameMonth(day, currentMonth);
+          const dateStr = format(day, 'yyyy-MM-dd');
+          const daySlots = allSlots.filter(s => s.date === dateStr);
+          const isToday = isSameDay(day, new Date());
+
+          const cancelledOnDay = rules.flatMap(r =>
+            r.exceptions.includes(dateStr)
+              ? [{ ruleId: r.id, time: r.time }]
+              : []
+          );
+
+          return (
+            <div
+              key={i}
+              className={`min-h-[60px] p-1 rounded-lg border text-xs ${
+                !inCurrentMonth ? 'bg-gray-50 border-gray-100 opacity-40' :
+                isToday ? 'bg-blue-50 border-blue-200' :
+                'bg-white border-gray-100'
+              }`}
+            >
+              <div className={`text-center text-[11px] mb-0.5 ${isToday ? 'font-bold text-blue-600' : 'text-gray-500'}`}>
+                {format(day, 'd')}
+              </div>
+              <div className="space-y-0.5">
+                {daySlots.map(slot => (
+                  <button
+                    key={slot.id}
+                    onClick={() => {
+                      if (slot.ruleId) {
+                        onToggleException(slot.ruleId, dateStr);
+                      }
+                    }}
+                    className="w-full px-1 py-0.5 rounded text-[10px] text-left truncate transition-colors bg-teal-100 text-teal-800 hover:bg-teal-200 cursor-pointer"
+                    title="Klicken um als Ausnahme zu markieren"
+                  >
+                    {slot.time}
+                  </button>
+                ))}
+                {cancelledOnDay.map((c, j) => (
+                  <button
+                    key={`exc-${j}`}
+                    onClick={() => onToggleException(c.ruleId, dateStr)}
+                    className="w-full px-1 py-0.5 rounded text-[10px] text-left truncate bg-gray-100 text-gray-400 line-through hover:bg-gray-200 cursor-pointer"
+                    title="Ausnahme aufheben"
+                  >
+                    {c.time}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 flex items-center gap-4 text-[11px] text-gray-500">
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-teal-100 border border-teal-200" /> Verfügbar</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200" /> Ausnahme</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Booking Management ──────────────────────────────────────────
+
+function BookingList({ bookings, onUpdate, onSendEmail }: {
+  bookings: AdminBooking[];
+  onUpdate: (id: number, updates: Partial<AdminBooking>) => void;
+  onSendEmail: (id: number, type: 'intro' | 'reminder') => void;
+}) {
+  if (bookings.length === 0) {
+    return (
+      <p className="text-sm text-gray-400 text-center py-6">Keine Buchungen im gewählten Zeitraum.</p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {bookings.map(b => (
+        <div
+          key={b.id}
+          className={`bg-white rounded-xl border p-4 shadow-sm ${
+            b.status === 'cancelled' ? 'border-red-200 opacity-60' : 'border-gray-200'
+          }`}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="font-semibold text-gray-900">{b.clientName}</div>
+              <div className="text-sm text-gray-600">{b.clientEmail}</div>
+              <div className="mt-1 text-sm text-gray-500 flex items-center gap-1.5">
+                <CalendarIcon size={14} />
+                {format(parseISO(b.date), 'd. MMMM yyyy', { locale: de })} · {b.time} Uhr · {b.durationMinutes} Min.
+              </div>
+              {b.ruleLabel && (
+                <div className="text-xs text-gray-400 mt-0.5">Regel: {b.ruleLabel}</div>
+              )}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {b.status === 'confirmed' && (
+                <>
+                  <button
+                    onClick={() => onSendEmail(b.id, 'intro')}
+                    disabled={b.introEmailSent}
+                    className={`p-1.5 rounded transition-colors ${
+                      b.introEmailSent
+                        ? 'text-green-400 cursor-default'
+                        : 'text-gray-400 hover:text-primary hover:bg-gray-100'
+                    }`}
+                    title={b.introEmailSent ? 'Intro-E-Mail gesendet' : 'Intro-E-Mail senden'}
+                  >
+                    {b.introEmailSent ? <MailCheck size={16} /> : <Mail size={16} />}
+                  </button>
+                  <button
+                    onClick={() => onSendEmail(b.id, 'reminder')}
+                    disabled={b.reminderSent}
+                    className={`p-1.5 rounded transition-colors ${
+                      b.reminderSent
+                        ? 'text-green-400 cursor-default'
+                        : 'text-gray-400 hover:text-blue-500 hover:bg-gray-100'
+                    }`}
+                    title={b.reminderSent ? 'Erinnerung gesendet' : 'Erinnerung senden'}
+                  >
+                    {b.reminderSent ? <MailCheck size={16} /> : <Clock size={16} />}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Buchung von ${b.clientName} wirklich stornieren?`)) {
+                        onUpdate(b.id, { status: 'cancelled' });
+                      }
+                    }}
+                    className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100"
+                    title="Stornieren"
+                  >
+                    <X size={16} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main Admin Page ─────────────────────────────────────────────
+
 export default function Admin() {
-  const { slots, addSlot, removeSlot } = useBooking();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const {
+    authenticated, rules, bookings, loading, error,
+    login, logout, fetchRules, addRule, updateRule, removeRule,
+    toggleException, fetchBookings, updateBooking, sendEmail,
+  } = useAdminBooking();
+
   const [password, setPassword] = useState('');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [newTime, setNewTime] = useState('10:00');
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'rules' | 'bookings'>('rules');
 
-  const handleLogin = (e: FormEvent) => {
-    e.preventDefault();
-    if (password === 'secret') {
-      setIsAuthenticated(true);
-    } else {
-      alert('Falsches Passwort');
+  // Load data on auth
+  useEffect(() => {
+    if (authenticated) {
+      fetchRules();
+      fetchBookings();
     }
-  };
+  }, [authenticated, fetchRules, fetchBookings]);
 
-  const handleAddSlot = (e: FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
-    addSlot(format(selectedDate, 'yyyy-MM-dd'), newTime);
-    setNewTime('');
+    setLoginLoading(true);
+    setLoginError(null);
+    const success = await login(password);
+    if (!success) {
+      setLoginError('Falsches Passwort');
+    }
+    setLoginLoading(false);
   };
 
-  if (!isAuthenticated) {
+  if (!authenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <form onSubmit={handleLogin} className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
@@ -39,7 +578,18 @@ export default function Admin() {
             className="w-full border rounded px-3 py-2 mb-4"
             placeholder="Passwort"
           />
-          <button type="submit" className="w-full bg-primary text-white py-2 rounded hover:bg-teal-600">
+          {loginError && (
+            <div className="mb-4 flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded p-2">
+              <AlertCircle size={16} />
+              {loginError}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loginLoading}
+            className="w-full bg-primary text-white py-2 rounded hover:bg-teal-600 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loginLoading && <Loader2 size={18} className="animate-spin" />}
             Login
           </button>
           <Link to="/" className="block text-center mt-4 text-sm text-gray-500 hover:underline">Zurück zur Website</Link>
@@ -48,112 +598,142 @@ export default function Admin() {
     );
   }
 
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
+  const editingRule = editingRuleId ? rules.find(r => r.id === editingRuleId) : undefined;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Termin-Verwaltung</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Verfügbarkeit verwalten</h1>
           <div className="flex items-center gap-4">
-            <Link to="/" className="text-primary hover:underline">Zur Website</Link>
-            <button 
-              onClick={() => setIsAuthenticated(false)}
-              className="flex items-center gap-2 text-red-500 hover:text-red-700"
+            <Link to="/" className="text-primary hover:underline text-sm">Zur Website</Link>
+            <button
+              onClick={logout}
+              className="flex items-center gap-1.5 text-red-500 hover:text-red-700 text-sm"
             >
-              <LogOut size={18} /> Logout
+              <LogOut size={16} /> Logout
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Add Slot Panel */}
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Plus size={20} className="text-primary" />
-              Neuen Termin anlegen
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Datum</label>
-                <input 
-                  type="date" 
-                  value={format(selectedDate, 'yyyy-MM-dd')}
-                  onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Uhrzeit</label>
-                <input 
-                  type="time" 
-                  value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-              <button 
-                onClick={handleAddSlot}
-                disabled={!newTime}
-                className="w-full bg-primary text-white py-2 rounded-md hover:bg-teal-600 disabled:opacity-50"
-              >
-                Termin hinzufügen
-              </button>
-            </div>
+        {error && (
+          <div className="mb-6 flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-3">
+            <AlertCircle size={16} className="shrink-0" />
+            {error}
           </div>
+        )}
 
-          {/* Calendar View */}
-          <div className="bg-white p-6 rounded-xl shadow-sm lg:col-span-2">
-            <div className="flex justify-between items-center mb-6">
-               <h2 className="text-xl font-semibold flex items-center gap-2">
-                <CalendarIcon size={20} className="text-gray-500" />
-                Übersicht: {format(weekStart, 'MMMM yyyy', { locale: de })}
-              </h2>
-              <div className="space-x-2">
-                <button onClick={() => setSelectedDate(addDays(selectedDate, -7))} className="px-3 py-1 border rounded hover:bg-gray-50">← Woche</button>
-                <button onClick={() => setSelectedDate(addDays(selectedDate, 7))} className="px-3 py-1 border rounded hover:bg-gray-50">Woche →</button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-7 gap-4">
-              {weekDays.map((day) => {
-                const daySlots = slots.filter(s => isSameDay(parseISO(s.date), day));
-                const isToday = isSameDay(day, new Date());
-                
-                return (
-                  <div key={day.toISOString()} className={`min-h-[150px] border rounded-lg p-2 ${isToday ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'}`}>
-                    <div className="text-center font-medium text-gray-700 mb-2 border-b pb-1">
-                      {format(day, 'EEE', { locale: de })}<br/>
-                      <span className="text-sm text-gray-500">{format(day, 'd.M.')}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {daySlots.length === 0 && <div className="text-xs text-center text-gray-400 py-4">-</div>}
-                      {daySlots.sort((a,b) => a.time.localeCompare(b.time)).map(slot => (
-                        <div 
-                          key={slot.id} 
-                          className={`
-                            text-xs p-2 rounded flex justify-between items-center group
-                            ${slot.available ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}
-                          `}
-                        >
-                          <span className="font-mono">{slot.time}</span>
-                          <button 
-                            onClick={() => removeSlot(slot.id)}
-                            className="text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Löschen"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        {/* Tab navigation */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('rules')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'rules'
+                ? 'bg-primary text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+            }`}
+          >
+            <Repeat size={16} /> Regeln & Kalender
+          </button>
+          <button
+            onClick={() => setActiveTab('bookings')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'bookings'
+                ? 'bg-primary text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+            }`}
+          >
+            <Users size={16} /> Buchungen ({bookings.filter(b => b.status === 'confirmed').length})
+          </button>
         </div>
+
+        {loading && rules.length === 0 && (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          </div>
+        )}
+
+        {activeTab === 'rules' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left: Create / Edit Rule */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Plus size={20} className="text-primary" />
+                  {editingRule ? 'Regel bearbeiten' : 'Neue Verfügbarkeit anlegen'}
+                </h2>
+                {editingRule ? (
+                  <RuleForm
+                    key={editingRuleId}
+                    initial={editingRule}
+                    onSave={data => {
+                      updateRule(editingRuleId!, { ...data, exceptions: editingRule.exceptions });
+                      setEditingRuleId(null);
+                    }}
+                    onCancel={() => setEditingRuleId(null)}
+                  />
+                ) : (
+                  <RuleForm onSave={addRule} />
+                )}
+              </div>
+
+              {/* Active Rules */}
+              <div>
+                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Repeat size={20} className="text-gray-500" />
+                  Aktive Regeln ({rules.length})
+                </h2>
+                {rules.length === 0 && !loading ? (
+                  <p className="text-sm text-gray-400 bg-white rounded-xl border border-gray-200 p-6 text-center">
+                    Noch keine Regeln angelegt.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {rules.map(rule => (
+                      <RuleCard
+                        key={rule.id}
+                        rule={rule}
+                        onEdit={() => setEditingRuleId(rule.id)}
+                        onDelete={() => {
+                          if (confirm(`Regel "${rule.label || 'Ohne Bezeichnung'}" wirklich löschen?`)) {
+                            removeRule(rule.id);
+                            if (editingRuleId === rule.id) setEditingRuleId(null);
+                          }
+                        }}
+                        onToggleException={date => toggleException(rule.id, date)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Calendar Preview */}
+            <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <CalendarPreview
+                rules={rules}
+                onToggleException={toggleException}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'bookings' && (
+          <div className="max-w-3xl">
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Users size={20} className="text-gray-500" />
+                Buchungen
+              </h2>
+              <BookingList
+                bookings={bookings}
+                onUpdate={updateBooking}
+                onSendEmail={sendEmail}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
