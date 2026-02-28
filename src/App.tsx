@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Article from './pages/Article';
 import Service from './pages/Service';
 import Datenschutz from './pages/Datenschutz';
+import Impressum from './pages/Impressum';
 import Admin from './pages/Admin';
 
 // ScrollToTop component to reset scroll position on route change
@@ -24,6 +25,7 @@ function App() {
         <Route path="/leistungen/:slug" element={<Service />} />
         <Route path="/wissen/:slug" element={<Article />} />
         <Route path="/datenschutz" element={<Datenschutz />} />
+        <Route path="/impressum" element={<Impressum />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
     </Router>
