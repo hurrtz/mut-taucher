@@ -24,7 +24,7 @@ export default function Service() {
     if (service) {
       trackServiceViewed(service.slug, service.title);
     }
-  }, [service]);
+  }, [slug]);
 
   const ldData = useMemo(
     () => service ? serviceData(service) : null,

@@ -24,7 +24,7 @@ export default function Article() {
     if (article) {
       trackArticleViewed(article.slug, article.title);
     }
-  }, [article]);
+  }, [slug]);
 
   const ldData = useMemo(
     () => article ? articleData(article) : null,

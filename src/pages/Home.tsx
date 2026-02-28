@@ -31,8 +31,12 @@ export default function Home() {
       ['contact', 100],
     ];
 
+    let armed = false;
+    requestAnimationFrame(() => { armed = true; });
+
     const observer = new IntersectionObserver(
       (entries) => {
+        if (!armed) return;
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
           const match = thresholds.find(([id]) => entry.target.id === id);

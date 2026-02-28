@@ -14,7 +14,7 @@ import { trackPageView } from './lib/analytics';
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
   useEffect(() => {
-    trackPageView(pathname, document.title);
+    queueMicrotask(() => trackPageView(pathname, document.title));
 
     if (hash) {
       const el = document.querySelector(hash);
