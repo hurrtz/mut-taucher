@@ -153,3 +153,72 @@ function handleGetActiveGroup(): void {
         'showOnHomepage'      => true,
     ]);
 }
+
+/**
+ * POST /api/contact
+ * Body: { name, email, phone?, message, sendCopy? }
+ */
+function handleContact(): void {
+    $config = require __DIR__ . '/../config.php';
+    require_once __DIR__ . '/../lib/Mailer.php';
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    $name    = trim($input['name'] ?? '');
+    $email   = trim($input['email'] ?? '');
+    $phone   = trim($input['phone'] ?? '');
+    $message = trim($input['message'] ?? '');
+    $sendCopy = !empty($input['sendCopy']);
+
+    if (!$name || !$email || !$message) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Name, E-Mail und Nachricht sind erforderlich']);
+        return;
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Ungültige E-Mail-Adresse']);
+        return;
+    }
+
+    $mailer = new Mailer();
+    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $therapistEmail = $config['therapist_email'] ?? '';
+    $siteUrl = $config['site_url'] ?? '';
+
+    // Send to therapist
+    $therapistSubject = "Neue Kontaktanfrage von $name";
+    $therapistBody = "Name: $name\nE-Mail: $email\n"
+        . ($phone ? "Telefon: $phone\n" : '')
+        . "\nNachricht:\n$message";
+
+    try {
+        $mailer->send(
+            $therapistEmail,
+            $therapistName,
+            $therapistSubject,
+            nl2br(htmlspecialchars($therapistBody)),
+            $therapistBody
+        );
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Nachricht konnte nicht gesendet werden']);
+        return;
+    }
+
+    // Send copy to user if requested
+    if ($sendCopy) {
+        ob_start();
+        include __DIR__ . '/../templates/email/contact_copy.php';
+        $htmlBody = ob_get_clean();
+
+        try {
+            $mailer->send($email, $name, 'Kopie Ihrer Nachricht an ' . $therapistName, $htmlBody);
+        } catch (Exception $e) {
+            // Don't fail the request if the copy fails — the main message was sent
+        }
+    }
+
+    echo json_encode(['message' => 'Nachricht gesendet']);
+}

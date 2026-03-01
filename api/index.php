@@ -137,6 +137,11 @@ if ($method === 'DELETE' && preg_match('#^/admin/groups/(\d+)$#', $uri, $m)) {
     exit;
 }
 
+if ($method === 'POST' && $uri === '/contact') {
+    handleContact();
+    exit;
+}
+
 // 404
 http_response_code(404);
 echo json_encode(['error' => 'Route nicht gefunden']);
