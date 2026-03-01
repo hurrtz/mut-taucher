@@ -29,7 +29,7 @@ function ScrollToTop() {
 }
 
 function WipOverlay() {
-  if (localStorage.getItem('debug') === 'true') return null;
+  if (new URLSearchParams(window.location.search).get('preview') === 'true') return null;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-background flex items-center justify-center p-6">
