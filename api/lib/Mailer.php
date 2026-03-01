@@ -21,9 +21,14 @@ class Mailer {
         string $textBody = '',
         array $attachments = []
     ): void {
+        if (empty($this->config['smtp_host'])) {
+            throw new Exception('SMTP not configured');
+        }
+
         $mail = new PHPMailer(true);
 
         $mail->isSMTP();
+        $mail->Timeout    = 10;
         $mail->Host       = $this->config['smtp_host'];
         $mail->Port       = $this->config['smtp_port'];
         $mail->SMTPAuth   = true;
