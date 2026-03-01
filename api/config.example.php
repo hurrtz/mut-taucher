@@ -20,4 +20,12 @@ return [
 
     // Site URL for email links
     'site_url'    => 'https://example.com',
+
+    // SMTP
+    'smtp_host'       => '',
+    'smtp_port'       => 587,
+    'smtp_user'       => '',
+    'smtp_pass'       => '',
+    'smtp_from_email' => 'praxis@mut-taucher.de',
+    'smtp_from_name'  => 'Mut-Taucher Praxis',
 ];
