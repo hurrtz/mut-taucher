@@ -70,7 +70,7 @@ export default function Booking() {
         <div className="text-center mb-16">
           <h2 className="text-4xl sm:text-5xl font-serif font-bold text-text mb-4">Termin vereinbaren</h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Der erste Schritt ist oft der mutigste — wir begleiten Sie gerne.
+            Der erste Schritt ist oft der mutigste — ich begleite Sie gerne.
             Finden Sie hier direkt einen passenden Termin für ein unverbindliches Erstgespräch.
           </p>
         </div>

@@ -171,7 +171,7 @@ Die Gruppe bietet Ihnen einen verlässlichen und geschützten Rahmen, in dem Sie
     excerpt: 'Lernen Sie mich und meine Arbeitsweise unverbindlich kennen. Wir besprechen Ihr Anliegen und klären erste Fragen.',
     icon: 'MessageCircle',
     color: 'accent',
-    bullets: ['Kostenloses Kennenlernen (60 Min.)', 'Klärung des Bedarfs', 'Keine Verpflichtung'],
+    bullets: ['Kostenloses Kennenlernen (50 Min.)', 'Klärung des Bedarfs', 'Keine Verpflichtung'],
     metaDescription: 'Erstgespräch buchen — lernen Sie mich unverbindlich kennen. 90 Minuten für Ihre Fragen und eine erste Einschätzung.',
     image: erstgespraechImg,
     content: `
@@ -187,7 +187,7 @@ Die Angebote richten sich an Selbstzahler:innen. Eine Übernahme der Kosten durc
 
 Für privat Versicherte besteht je nach Vertrag die Möglichkeit einer teilweisen Kostenerstattung. Bitte klären Sie dies vorab direkt mit Ihrer Versicherung.
 
-**Erstgespräch (60 Minuten): 95 €**
+**Erstgespräch (50 Minuten): 95 €**
 Die Zahlung erfolgt im Voraus per Überweisung oder PayPal. Nach der Buchung erhalten Sie eine E-Mail mit allen Informationen zum Ablauf und zur Zahlung.
 
 ## Einzeltherapie
