@@ -361,6 +361,7 @@ function handleUpdateBooking(int $id): void {
  */
 function handleSendEmail(int $bookingId): void {
     requireAuth();
+    require_once __DIR__ . '/../lib/Mailer.php';
     $config = require __DIR__ . '/../config.php';
     $input = json_decode(file_get_contents('php://input'), true);
     $type = $input['type'] ?? '';
@@ -382,50 +383,112 @@ function handleSendEmail(int $bookingId): void {
         return;
     }
 
+    $clientName = $booking['client_name'];
     $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
-    $siteUrl = $config['site_url'] ?? 'https://example.com';
+    $time = $booking['booking_time'];
+    $duration = (int)$booking['duration_minutes'];
+    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $siteUrl = $config['site_url'] ?? '';
+
+    ob_start();
+    include __DIR__ . '/../templates/email/booking_confirmation.php';
+    $htmlBody = ob_get_clean();
 
     if ($type === 'intro') {
-        $subject = 'Ihr Termin bei ' . ($config['therapist_name'] ?? 'Mut-Taucher');
-        $body = "Hallo {$booking['client_name']},\n\n"
-            . "vielen Dank für Ihre Buchung.\n\n"
-            . "Ihr Termin:\n"
-            . "Datum: {$dateFormatted}\n"
-            . "Uhrzeit: {$booking['booking_time']} Uhr\n"
-            . "Dauer: {$booking['duration_minutes']} Minuten\n\n"
-            . "Wir freuen uns auf Sie!\n\n"
-            . "Mit freundlichen Grüßen\n"
-            . ($config['therapist_name'] ?? 'Mut-Taucher Praxis') . "\n"
-            . $siteUrl;
+        $subject = 'Ihr Termin bei ' . $therapistName;
     } else {
         $subject = 'Erinnerung: Ihr Termin am ' . $dateFormatted;
-        $body = "Hallo {$booking['client_name']},\n\n"
-            . "dies ist eine freundliche Erinnerung an Ihren bevorstehenden Termin.\n\n"
-            . "Datum: {$dateFormatted}\n"
-            . "Uhrzeit: {$booking['booking_time']} Uhr\n"
-            . "Dauer: {$booking['duration_minutes']} Minuten\n\n"
-            . "Wir freuen uns auf Sie!\n\n"
-            . "Mit freundlichen Grüßen\n"
-            . ($config['therapist_name'] ?? 'Mut-Taucher Praxis') . "\n"
-            . $siteUrl;
     }
 
-    $headers = "From: " . ($config['therapist_email'] ?? 'noreply@example.com') . "\r\n"
-        . "Content-Type: text/plain; charset=UTF-8\r\n";
-
-    $sent = mail($booking['client_email'], $subject, $body, $headers);
-
-    if (!$sent) {
+    try {
+        $mailer = new Mailer();
+        $mailer->send($booking['client_email'], $clientName, $subject, $htmlBody);
+    } catch (Exception $e) {
         http_response_code(500);
         echo json_encode(['error' => 'E-Mail konnte nicht gesendet werden']);
         return;
     }
 
-    // Mark as sent
     $flagField = $type === 'intro' ? 'intro_email_sent' : 'reminder_sent';
     $db->prepare("UPDATE bookings SET $flagField = 1 WHERE id = ?")->execute([$bookingId]);
 
     echo json_encode(['message' => 'E-Mail gesendet']);
+}
+
+/**
+ * POST /api/admin/bookings/:id/document
+ * Body: { type: "contract" | "dsgvo" | "confidentiality" | "online_therapy" }
+ */
+function handleSendDocument(int $bookingId): void {
+    requireAuth();
+    require_once __DIR__ . '/../lib/Mailer.php';
+    require_once __DIR__ . '/../lib/PdfGenerator.php';
+    $config = require __DIR__ . '/../config.php';
+    $input = json_decode(file_get_contents('php://input'), true);
+    $type = $input['type'] ?? '';
+
+    $typeMap = [
+        'contract'        => ['template' => 'behandlungsvertrag',       'name' => 'Behandlungsvertrag',                      'column' => 'contract_sent'],
+        'dsgvo'           => ['template' => 'datenschutzinfo',          'name' => 'Datenschutzinformation nach Art. 13 DSGVO', 'column' => 'dsgvo_sent'],
+        'confidentiality' => ['template' => 'schweigepflichtentbindung', 'name' => 'Schweigepflichtentbindung',               'column' => 'confidentiality_sent'],
+        'online_therapy'  => ['template' => 'onlinetherapie',           'name' => 'Vereinbarung über Online-Therapie',        'column' => 'online_therapy_sent'],
+    ];
+
+    if (!isset($typeMap[$type])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Ungültiger Dokumenttyp']);
+        return;
+    }
+
+    $db = getDB();
+    $stmt = $db->prepare('SELECT * FROM bookings WHERE id = ?');
+    $stmt->execute([$bookingId]);
+    $booking = $stmt->fetch();
+
+    if (!$booking) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Buchung nicht gefunden']);
+        return;
+    }
+
+    $docInfo = $typeMap[$type];
+    $clientName = $booking['client_name'];
+    $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
+    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $siteUrl = $config['site_url'] ?? '';
+
+    // Generate PDF
+    $pdfGen = new PdfGenerator();
+    $pdfContent = $pdfGen->generate($docInfo['template'], $clientName, $dateFormatted);
+
+    // Render cover email
+    $documentName = $docInfo['name'];
+    ob_start();
+    include __DIR__ . '/../templates/email/document_cover.php';
+    $htmlBody = ob_get_clean();
+
+    // Send
+    try {
+        $mailer = new Mailer();
+        $pdfFilename = str_replace(' ', '_', $docInfo['name']) . '.pdf';
+        $mailer->sendWithPdf(
+            $booking['client_email'],
+            $clientName,
+            $docInfo['name'] . ' — ' . $therapistName,
+            $htmlBody,
+            $pdfContent,
+            $pdfFilename
+        );
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Dokument konnte nicht gesendet werden: ' . $e->getMessage()]);
+        return;
+    }
+
+    // Mark as sent
+    $db->prepare("UPDATE bookings SET {$docInfo['column']} = 1 WHERE id = ?")->execute([$bookingId]);
+
+    echo json_encode(['message' => $docInfo['name'] . ' gesendet']);
 }
 
 // ─── Therapy Groups ─────────────────────────────────────────────
