@@ -332,9 +332,10 @@ function handleUpdateBooking(int $id): void {
     $fields = [];
     $params = [];
 
-    if (isset($input['status'])) {
-        $fields[] = 'status = ?';
-        $params[] = $input['status'];
+    if (isset($input['status']) && $input['status'] === 'cancelled') {
+        $db->prepare('DELETE FROM bookings WHERE id = ?')->execute([$id]);
+        echo json_encode(['message' => 'Buchung gelöscht']);
+        return;
     }
     if (isset($input['introEmailSent'])) {
         $fields[] = 'intro_email_sent = ?';
