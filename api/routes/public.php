@@ -117,6 +117,32 @@ function handleCreateBooking(): void {
 
         $bookingId = $db->lastInsertId();
 
+        // Send booking confirmation email
+        try {
+            require_once __DIR__ . '/../lib/Mailer.php';
+            $config = require __DIR__ . '/../config.php';
+            $mailer = new Mailer();
+
+            $clientName = $name;
+            $dateFormatted = date('d.m.Y', strtotime($date));
+            $duration = $durationMinutes;
+            $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+            $siteUrl = $config['site_url'] ?? '';
+
+            ob_start();
+            include __DIR__ . '/../templates/email/booking_confirmation.php';
+            $htmlBody = ob_get_clean();
+
+            $mailer->send(
+                $email,
+                $name,
+                'Terminbestätigung — ' . ($config['therapist_name'] ?? 'Mut-Taucher'),
+                $htmlBody
+            );
+        } catch (Exception $e) {
+            // Don't fail the booking if email fails
+        }
+
         echo json_encode([
             'id'      => (int)$bookingId,
             'message' => 'Termin erfolgreich gebucht',
