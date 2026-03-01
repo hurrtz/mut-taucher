@@ -99,7 +99,7 @@ Jede Sitzung dauert **50 Minuten**. In der ersten Sitzung lernen wir uns kennen 
 - Ein empathisches, wertschätzungsvolles Gespräch auf Augenhöhe
 - Wissenschaftlich fundierte Methoden, individuell angepasst
 - Konkrete Werkzeuge und Übungen für den Alltag
-- Flexible Terminvergabe, auch abends
+- Flexible Terminvergabe
 
 ## Für wen ist Einzeltherapie geeignet?
 
