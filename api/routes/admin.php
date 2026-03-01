@@ -310,6 +310,10 @@ function handleGetBookings(): void {
         'status'         => $b['status'],
         'introEmailSent' => (bool)$b['intro_email_sent'],
         'reminderSent'   => (bool)$b['reminder_sent'],
+            'contractSent'        => (bool)$b['contract_sent'],
+            'dsgvoSent'           => (bool)$b['dsgvo_sent'],
+            'confidentialitySent' => (bool)$b['confidentiality_sent'],
+            'onlineTherapySent'   => (bool)$b['online_therapy_sent'],
         'createdAt'      => $b['created_at'],
     ], $bookings);
 
