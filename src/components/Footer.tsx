@@ -14,7 +14,8 @@ export default function Footer() {
               <span>Mut Taucher</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
-              Gemeinsam tauchen wir mutig. Psychotherapie für ein selbstbestimmtes Leben in Balance.
+              Gemeinsam tauchen wir mutig.<br />
+              Psychotherapie für ein selbstbestimmtes Leben in Balance.
             </p>
           </div>
           
