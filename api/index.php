@@ -4,6 +4,8 @@
  * Front controller — routes all API requests.
  */
 
+require_once __DIR__ . '/vendor/autoload.php';
+
 header('Content-Type: application/json; charset=utf-8');
 
 // CORS for development

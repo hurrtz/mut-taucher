@@ -1,0 +1,14 @@
+{
+    "name": "mut-taucher/api",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Tobias Winkler",
+            "email": "tobias.winkler@omio.com"
+        }
+    ],
+    "require": {
+        "phpmailer/phpmailer": "^7.0",
+        "tecnickcom/tcpdf": "^6.11"
+    }
+}

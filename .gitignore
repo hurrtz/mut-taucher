@@ -28,3 +28,6 @@ dist-ssr
 
 # API config with secrets
 api/config.php
+
+# Composer vendor
+api/vendor/
