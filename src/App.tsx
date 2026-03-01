@@ -28,9 +28,29 @@ function ScrollToTop() {
   return null;
 }
 
+function WipOverlay() {
+  if (localStorage.getItem('debug') === 'true') return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-background flex items-center justify-center p-6">
+      <div className="text-center max-w-md">
+        <div className="text-6xl mb-6">🏗️</div>
+        <h1 className="text-3xl font-serif font-bold text-text mb-4">
+          Wir arbeiten an unserer Website
+        </h1>
+        <p className="text-lg text-gray-600 leading-relaxed">
+          Unsere Seite wird gerade überarbeitet und ist in Kürze wieder für Sie verfügbar.
+          Vielen Dank für Ihre Geduld!
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router>
+      <WipOverlay />
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
