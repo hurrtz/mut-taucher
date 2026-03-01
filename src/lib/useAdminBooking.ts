@@ -16,6 +16,10 @@ export interface AdminBooking {
   status: 'confirmed' | 'cancelled';
   introEmailSent: boolean;
   reminderSent: boolean;
+  contractSent: boolean;
+  dsgvoSent: boolean;
+  confidentialitySent: boolean;
+  onlineTherapySent: boolean;
   createdAt: string;
 }
 
@@ -285,6 +289,28 @@ export function useAdminBooking() {
     }
   }, []);
 
+  const sendDocument = useCallback(async (bookingId: number, type: 'contract' | 'dsgvo' | 'confidentiality' | 'online_therapy') => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}/document`, {
+        method: 'POST',
+        body: JSON.stringify({ type }),
+      });
+      const flagMap: Record<string, keyof AdminBooking> = {
+        contract: 'contractSent',
+        dsgvo: 'dsgvoSent',
+        confidentiality: 'confidentialitySent',
+        online_therapy: 'onlineTherapySent',
+      };
+      const flag = flagMap[type];
+      setBookings(prev => prev.map(b =>
+        b.id === bookingId ? { ...b, [flag]: true } : b
+      ));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Dokumentversand');
+    }
+  }, []);
+
   return {
     authenticated,
     rules,
@@ -306,6 +332,7 @@ export function useAdminBooking() {
     fetchBookings,
     updateBooking,
     sendEmail,
+    sendDocument,
     fetchGroups,
     addGroup,
     updateGroup,
