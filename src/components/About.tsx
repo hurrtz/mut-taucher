@@ -27,7 +27,7 @@ export default function About() {
             </h2>
             
             <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-              Willkommen bei Mut-Taucher. Ich bin Psychotherapeutin aus Leidenschaft und begleite Menschen auf ihrem Weg zu mehr innerer Stärke und Klarheit.
+              Willkommen bei Mut-Taucher. Ich bin Systemische Therapeutin aus Leidenschaft und begleite Menschen auf ihrem Weg zu mehr innerer Stärke und Klarheit.
             </p>
             
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
