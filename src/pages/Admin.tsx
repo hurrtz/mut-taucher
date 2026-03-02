@@ -17,7 +17,7 @@ import {
   Plus, Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, LogOut, Calendar as CalendarIcon,
   Clock, Repeat, Ban, Loader2, AlertCircle, Mail, MailCheck, X, Users, CalendarPlus,
   ExternalLink, BarChart3, Home, UserPlus, FileText, Send, Check, Euro,
-  Video,
+  Video, FileCheck,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -690,16 +690,35 @@ function DocumentChecklist({ contextType, contextId }: {
               const sentAt = getSentAt(doc.key);
               const isSending = sending === doc.key;
               const hasTemplate = !!doc.template;
+              const hasSigStep = !!doc.signedCounterpart;
+              const signed = hasSigStep ? isSent(doc.signedCounterpart!) : false;
+              const signedAt = hasSigStep ? getSentAt(doc.signedCounterpart!) : null;
+              const isSigningSending = hasSigStep ? sending === doc.signedCounterpart : false;
 
               return (
                 <div key={doc.key} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50">
                   <div className="flex items-center gap-2 min-w-0">
-                    {sent ? (
-                      <Check size={14} className="text-green-500 shrink-0" />
+                    {hasSigStep ? (
+                      <>
+                        {sent ? (
+                          <span title="Gesendet" className="shrink-0"><Check size={14} className="text-green-500" /></span>
+                        ) : (
+                          <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" title="Nicht gesendet" />
+                        )}
+                        {signed ? (
+                          <span title="Unterschrieben" className="shrink-0"><Check size={14} className="text-green-500" /></span>
+                        ) : (
+                          <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" title="Nicht unterschrieben" />
+                        )}
+                      </>
                     ) : (
-                      <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" />
+                      sent ? (
+                        <Check size={14} className="text-green-500 shrink-0" />
+                      ) : (
+                        <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" />
+                      )
                     )}
-                    <span className={`text-sm truncate ${sent ? 'text-gray-500' : 'text-gray-800'}`}>
+                    <span className={`text-sm truncate ${hasSigStep ? (signed ? 'text-gray-500' : 'text-gray-800') : (sent ? 'text-gray-500' : 'text-gray-800')}`}>
                       {doc.label}
                     </span>
                     {sent && sentAt && (
@@ -707,35 +726,59 @@ function DocumentChecklist({ contextType, contextId }: {
                         {format(new Date(sentAt), 'd.M.yy')}
                       </span>
                     )}
+                    {signed && signedAt && (
+                      <span className="text-[10px] text-gray-400 shrink-0">
+                        ✓ {format(new Date(signedAt), 'd.M.yy')}
+                      </span>
+                    )}
                   </div>
-                  {hasTemplate ? (
-                    <button
-                      onClick={() => sendDocument(contextType, contextId, doc.key)}
-                      disabled={isSending}
-                      className={`text-xs px-2 py-1 rounded border transition-colors flex items-center gap-1 shrink-0 ${
-                        sent
-                          ? 'border-green-200 text-green-600 bg-green-50 hover:bg-green-100'
-                          : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
-                      }`}
-                      title={sent ? 'Erneut senden' : 'PDF senden'}
-                    >
-                      {isSending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                      {sent ? 'Erneut' : 'Senden'}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => sendDocument(contextType, contextId, doc.key)}
-                      disabled={sent || isSending}
-                      className={`text-xs px-2 py-1 rounded border transition-colors shrink-0 ${
-                        sent
-                          ? 'border-green-200 text-green-500 bg-green-50 cursor-default'
-                          : 'border-gray-200 text-gray-500 hover:border-primary hover:text-primary'
-                      }`}
-                      title={sent ? 'Vermerkt' : 'Als erledigt markieren'}
-                    >
-                      {isSending ? <Loader2 size={12} className="animate-spin" /> : sent ? <Check size={12} /> : <FileText size={12} />}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {hasTemplate ? (
+                      <button
+                        onClick={() => sendDocument(contextType, contextId, doc.key)}
+                        disabled={isSending}
+                        className={`text-xs px-2 py-1 rounded border transition-colors flex items-center gap-1 ${
+                          sent
+                            ? 'border-green-200 text-green-600 bg-green-50 hover:bg-green-100'
+                            : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                        }`}
+                        title={sent ? 'Erneut senden' : 'PDF senden'}
+                      >
+                        {isSending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                        {sent ? 'Erneut' : 'Senden'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => sendDocument(contextType, contextId, doc.key)}
+                        disabled={sent || isSending}
+                        className={`text-xs px-2 py-1 rounded border transition-colors ${
+                          sent
+                            ? 'border-green-200 text-green-500 bg-green-50 cursor-default'
+                            : 'border-gray-200 text-gray-500 hover:border-primary hover:text-primary'
+                        }`}
+                        title={sent ? 'Vermerkt' : 'Als erledigt markieren'}
+                      >
+                        {isSending ? <Loader2 size={12} className="animate-spin" /> : sent ? <Check size={12} /> : <FileText size={12} />}
+                      </button>
+                    )}
+                    {hasSigStep && (
+                      <button
+                        onClick={() => sendDocument(contextType, contextId, doc.signedCounterpart!)}
+                        disabled={!sent || isSigningSending}
+                        className={`text-xs px-2 py-1 rounded border transition-colors flex items-center gap-1 ${
+                          signed
+                            ? 'border-green-200 text-green-600 bg-green-50 hover:bg-green-100'
+                            : !sent
+                              ? 'border-gray-100 text-gray-300 cursor-not-allowed'
+                              : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                        }`}
+                        title={signed ? 'Erneut als unterschrieben markieren' : !sent ? 'Erst senden' : 'Als unterschrieben markieren'}
+                      >
+                        {isSigningSending ? <Loader2 size={12} className="animate-spin" /> : <FileCheck size={12} />}
+                        {signed ? 'Signiert' : 'Unterschrieben'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}

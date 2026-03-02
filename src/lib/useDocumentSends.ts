@@ -16,19 +16,16 @@ export const DOCUMENT_DEFINITIONS: Record<string, DocumentDefinition[]> = {
     { key: 'email_einwilligung',    label: 'E-Mail-Einwilligung',                 category: 'sollte_unterschrieben', template: 'email_einwilligung' },
   ],
   erstgespraech: [
-    { key: 'vertrag_erstgespraech', label: 'Vertrag — Erstgespräch',              category: 'muss_vorhanden',        template: 'vertrag_erstgespraech' },
-    { key: 'vertrag_erstgespraech_sig',label: 'Vertrag — Erstgespräch (unterschrieben)',category: 'muss_unterschrieben',template: 'vertrag_erstgespraech' },
+    { key: 'vertrag_erstgespraech', label: 'Vertrag — Erstgespräch',              category: 'muss_vorhanden',        template: 'vertrag_erstgespraech', signedCounterpart: 'vertrag_erstgespraech_sig' },
 { key: 'video_einverstaendnis', label: 'Video-Einverständnis',                category: 'sollte_unterschrieben', template: 'video_einverstaendnis' },
   ],
   therapy: [
-    { key: 'vertrag_einzeltherapie',    label: 'Vertrag — Einzeltherapie',            category: 'muss_vorhanden',        template: 'vertrag_einzeltherapie' },
-    { key: 'vertrag_einzeltherapie_sig',label: 'Vertrag — Einzeltherapie (unterschrieben)',category: 'muss_unterschrieben',template: 'vertrag_einzeltherapie' },
+    { key: 'vertrag_einzeltherapie',    label: 'Vertrag — Einzeltherapie',            category: 'muss_vorhanden',        template: 'vertrag_einzeltherapie', signedCounterpart: 'vertrag_einzeltherapie_sig' },
     { key: 'honorarhinweis',        label: 'Honorarhinweis',                      category: 'muss_vorhanden',        template: null },
     { key: 'online_zustimmung',     label: 'Online-Zustimmung',                   category: 'sollte_unterschrieben', template: 'onlinetherapie' },
   ],
   group: [
-    { key: 'vertrag_gruppentherapie',    label: 'Vertrag — Gruppentherapie',          category: 'muss_vorhanden',        template: 'vertrag_gruppentherapie' },
-    { key: 'vertrag_gruppentherapie_sig',label: 'Vertrag — Gruppentherapie (unterschrieben)',category: 'muss_unterschrieben',template: 'vertrag_gruppentherapie' },
+    { key: 'vertrag_gruppentherapie',    label: 'Vertrag — Gruppentherapie',          category: 'muss_vorhanden',        template: 'vertrag_gruppentherapie', signedCounterpart: 'vertrag_gruppentherapie_sig' },
     { key: 'zahlungsregelung',      label: 'Zahlungsregelung',                    category: 'muss_vorhanden',        template: null },
     { key: 'vertraulichkeit_gruppe',label: 'Vertraulichkeitsvereinbarung Gruppe', category: 'muss_unterschrieben',   template: 'schweigepflichtentbindung' },
     { key: 'video_zustimmung',      label: 'Video-Zustimmung',                    category: 'sollte_unterschrieben', template: 'video_einverstaendnis' },

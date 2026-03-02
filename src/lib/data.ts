@@ -176,6 +176,7 @@ export interface DocumentDefinition {
   label: string;
   category: 'muss_vorhanden' | 'muss_unterschrieben' | 'sollte_unterschrieben';
   template: string | null;
+  signedCounterpart?: string;
 }
 
 export interface Service {
