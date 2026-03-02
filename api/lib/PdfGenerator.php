@@ -36,7 +36,7 @@ class PdfGenerator {
         return $pdf;
     }
 
-    public function generate(string $type, string $clientName, string $date): string {
+    public function generate(string $type, string $clientName, string $date, array $extra = []): string {
         $templateFile = __DIR__ . '/../templates/pdf/' . $type . '.php';
         if (!file_exists($templateFile)) {
             throw new RuntimeException("PDF template not found: $type");
@@ -47,6 +47,11 @@ class PdfGenerator {
             'datenschutzinfo'           => 'Datenschutzinformation nach Art. 13 DSGVO',
             'schweigepflichtentbindung' => 'Schweigepflichtentbindung',
             'onlinetherapie'            => 'Vereinbarung über Online-Therapie',
+            'kurzvertrag'               => 'Kurzvertrag / Honorarvereinbarung',
+            'video_einverstaendnis'     => 'Einverständnis zur Video-Therapie',
+            'datenschutz_digital'       => 'Datenschutzrisiken digitaler Kommunikation',
+            'email_einwilligung'        => 'Einwilligung zur E-Mail-Kommunikation',
+            'rechnung'                  => 'Rechnung',
         ];
 
         $title = $titles[$type] ?? $type;

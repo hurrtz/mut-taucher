@@ -1,7 +1,10 @@
-import { useState, useEffect, useMemo, useLayoutEffect, type FormEvent, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, useLayoutEffect, useCallback, type FormEvent, type ReactNode } from 'react';
 import { useAdminBooking, type AdminBooking } from '../lib/useAdminBooking';
+import { useAdminClients } from '../lib/useAdminClients';
+import { useAdminTherapies } from '../lib/useAdminTherapies';
+import { useDocumentSends, DOCUMENT_DEFINITIONS, CATEGORY_LABELS } from '../lib/useDocumentSends';
 import { generateSlots } from '../lib/useBooking';
-import type { RecurringRule, DayConfig, Event, TherapyGroup } from '../lib/data';
+import type { RecurringRule, DayConfig, Event, TherapyGroup, Client, Therapy, TherapySession, TherapyScheduleRule, DocumentDefinition } from '../lib/data';
 import {
   format, startOfMonth, addMonths, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameDay, isSameMonth, parseISO,
@@ -10,7 +13,8 @@ import { de } from 'date-fns/locale';
 import {
   Plus, Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, LogOut, Calendar as CalendarIcon,
   Clock, Repeat, Ban, Loader2, AlertCircle, Mail, MailCheck, X, Users, CalendarPlus,
-  ExternalLink, BarChart3, Home,
+  ExternalLink, BarChart3, Home, UserPlus, FileText, Send, Check, Euro,
+  Video,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -618,14 +622,108 @@ function CalendarPreview({ rules, events, onToggleException }: {
   );
 }
 
-// ─── Booking Management ──────────────────────────────────────────
+// ─── Document Checklist ──────────────────────────────────────────
 
-function BookingList({ bookings, onUpdate, onSendEmail, onSendDocument }: {
+function DocumentChecklist({ contextType, contextId }: {
+  contextType: 'booking' | 'therapy' | 'group';
+  contextId: number;
+}) {
+  const { sending, fetchStatus, sendDocument, isSent, getSentAt } = useDocumentSends();
+
+  useEffect(() => {
+    if (contextId) fetchStatus(contextType, contextId);
+  }, [contextType, contextId, fetchStatus]);
+
+  const grouped = useMemo(() => {
+    const defs = DOCUMENT_DEFINITIONS[contextType] ?? [];
+    const groups: Record<string, DocumentDefinition[]> = {};
+    for (const doc of defs) {
+      if (!groups[doc.category]) groups[doc.category] = [];
+      groups[doc.category].push(doc);
+    }
+    return groups;
+  }, [contextType]);
+
+  return (
+    <div className="space-y-4">
+      {Object.entries(grouped).map(([category, docs]) => (
+        <div key={category}>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            {CATEGORY_LABELS[category] ?? category}
+          </h4>
+          <div className="space-y-1">
+            {docs.map(doc => {
+              const sent = isSent(doc.key);
+              const sentAt = getSentAt(doc.key);
+              const isSending = sending === doc.key;
+              const hasTemplate = !!doc.template;
+
+              return (
+                <div key={doc.key} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {sent ? (
+                      <Check size={14} className="text-green-500 shrink-0" />
+                    ) : (
+                      <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" />
+                    )}
+                    <span className={`text-sm truncate ${sent ? 'text-gray-500' : 'text-gray-800'}`}>
+                      {doc.label}
+                    </span>
+                    {sent && sentAt && (
+                      <span className="text-[10px] text-gray-400 shrink-0">
+                        {format(new Date(sentAt), 'd.M.yy')}
+                      </span>
+                    )}
+                  </div>
+                  {hasTemplate ? (
+                    <button
+                      onClick={() => sendDocument(contextType, contextId, doc.key)}
+                      disabled={isSending}
+                      className={`text-xs px-2 py-1 rounded border transition-colors flex items-center gap-1 shrink-0 ${
+                        sent
+                          ? 'border-green-200 text-green-600 bg-green-50 hover:bg-green-100'
+                          : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                      }`}
+                      title={sent ? 'Erneut senden' : 'PDF senden'}
+                    >
+                      {isSending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                      {sent ? 'Erneut' : 'Senden'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => sendDocument(contextType, contextId, doc.key)}
+                      disabled={sent || isSending}
+                      className={`text-xs px-2 py-1 rounded border transition-colors shrink-0 ${
+                        sent
+                          ? 'border-green-200 text-green-500 bg-green-50 cursor-default'
+                          : 'border-gray-200 text-gray-500 hover:border-primary hover:text-primary'
+                      }`}
+                      title={sent ? 'Vermerkt' : 'Als erledigt markieren'}
+                    >
+                      {isSending ? <Loader2 size={12} className="animate-spin" /> : sent ? <Check size={12} /> : <FileText size={12} />}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Booking List (Erstgespräche) ────────────────────────────────
+
+function BookingList({ bookings, onUpdate, onSendEmail, onSendDocument, onMigrateToClient }: {
   bookings: AdminBooking[];
   onUpdate: (id: number, updates: Partial<AdminBooking>) => void;
   onSendEmail: (id: number, type: 'intro' | 'reminder') => void;
   onSendDocument: (id: number, type: 'contract' | 'dsgvo' | 'confidentiality' | 'online_therapy') => void;
+  onMigrateToClient: (bookingId: number) => void;
 }) {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
   if (bookings.length === 0) {
     return (
       <p className="text-sm text-gray-400 text-center py-6">Keine Buchungen im gewählten Zeitraum.</p>
@@ -681,6 +779,13 @@ function BookingList({ bookings, onUpdate, onSendEmail, onSendDocument }: {
                     {b.reminderSent ? <MailCheck size={16} /> : <Clock size={16} />}
                   </button>
                   <button
+                    onClick={() => onMigrateToClient(b.id)}
+                    className="p-1.5 text-gray-400 hover:text-primary rounded hover:bg-gray-100"
+                    title="Klient:in anlegen"
+                  >
+                    <UserPlus size={16} />
+                  </button>
+                  <button
                     onClick={() => {
                       if (confirm(`Buchung von ${b.clientName} wirklich stornieren?`)) {
                         onUpdate(b.id, { status: 'cancelled' });
@@ -696,29 +801,46 @@ function BookingList({ bookings, onUpdate, onSendEmail, onSendDocument }: {
             </div>
           </div>
           {b.status === 'confirmed' && (
-            <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-1.5">
-              {([
-                ['contract', 'Vertrag', b.contractSent],
-                ['dsgvo', 'DSGVO', b.dsgvoSent],
-                ['confidentiality', 'Schweigepflicht', b.confidentialitySent],
-                ['online_therapy', 'Online-Vereinbarung', b.onlineTherapySent],
-              ] as const).map(([type, label, sent]) => (
+            <>
+              <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-1.5">
+                {([
+                  ['contract', 'Vertrag', b.contractSent],
+                  ['dsgvo', 'DSGVO', b.dsgvoSent],
+                  ['confidentiality', 'Schweigepflicht', b.confidentialitySent],
+                  ['online_therapy', 'Online-Vereinbarung', b.onlineTherapySent],
+                ] as const).map(([type, label, sent]) => (
+                  <button
+                    key={type}
+                    onClick={() => onSendDocument(b.id, type)}
+                    disabled={sent}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1 ${
+                      sent
+                        ? 'border-green-200 text-green-600 bg-green-50 cursor-default'
+                        : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                    }`}
+                    title={sent ? `${label} gesendet` : `${label} senden`}
+                  >
+                    {sent ? <MailCheck size={12} /> : <Mail size={12} />}
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2">
                 <button
-                  key={type}
-                  onClick={() => onSendDocument(b.id, type)}
-                  disabled={sent}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1 ${
-                    sent
-                      ? 'border-green-200 text-green-600 bg-green-50 cursor-default'
-                      : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
-                  }`}
-                  title={sent ? `${label} gesendet` : `${label} senden`}
+                  onClick={() => setExpandedId(expandedId === b.id ? null : b.id)}
+                  className="text-xs text-gray-500 hover:text-primary flex items-center gap-1"
                 >
-                  {sent ? <MailCheck size={12} /> : <Mail size={12} />}
-                  {label}
+                  <FileText size={12} />
+                  Dokument-Checkliste
+                  <ChevronDown size={12} className={`transition-transform ${expandedId === b.id ? 'rotate-180' : ''}`} />
                 </button>
-              ))}
-            </div>
+                {expandedId === b.id && (
+                  <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                    <DocumentChecklist contextType="booking" contextId={b.id} />
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       ))}
@@ -837,6 +959,7 @@ function GroupManager({ groups, editingGroupId, onAdd, onUpdate, onDelete, onTog
   onEditStart: (id: number) => void;
   onEditCancel: () => void;
 }) {
+  const [expandedDocId, setExpandedDocId] = useState<number | null>(null);
   const editingGroup = editingGroupId !== null ? groups.find(g => g.id === editingGroupId) : undefined;
 
   return (
@@ -913,7 +1036,7 @@ function GroupManager({ groups, editingGroupId, onAdd, onUpdate, onDelete, onTog
                         }`}
                         title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}
                       >
-                        <CalendarIcon size={16} />
+                        <Home size={16} />
                       </button>
                       <button
                         onClick={() => onEditStart(group.id)}
@@ -935,6 +1058,22 @@ function GroupManager({ groups, editingGroupId, onAdd, onUpdate, onDelete, onTog
                       </button>
                     </div>
                   </div>
+                  {/* Document checklist for groups */}
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => setExpandedDocId(expandedDocId === group.id ? null : group.id)}
+                      className="text-xs text-gray-500 hover:text-primary flex items-center gap-1"
+                    >
+                      <FileText size={12} />
+                      Dokument-Checkliste
+                      <ChevronDown size={12} className={`transition-transform ${expandedDocId === group.id ? 'rotate-180' : ''}`} />
+                    </button>
+                    {expandedDocId === group.id && (
+                      <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                        <DocumentChecklist contextType="group" contextId={group.id} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -945,7 +1084,618 @@ function GroupManager({ groups, editingGroupId, onAdd, onUpdate, onDelete, onTog
   );
 }
 
+// ─── Client Form ─────────────────────────────────────────────────
+
+function ClientForm({ initial, onSave, onCancel }: {
+  initial?: Client;
+  onSave: (data: { name: string; email: string; phone?: string; notes?: string; status?: 'active' | 'archived' }) => void;
+  onCancel?: () => void;
+}) {
+  const [form, setForm] = useState<{
+    name: string; email: string; phone: string; notes: string; status: 'active' | 'archived';
+  }>({
+    name: initial?.name ?? '',
+    email: initial?.email ?? '',
+    phone: initial?.phone ?? '',
+    notes: initial?.notes ?? '',
+    status: initial?.status ?? 'active',
+  });
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    onSave({
+      name: form.name,
+      email: form.email,
+      phone: form.phone || undefined,
+      notes: form.notes || undefined,
+      status: form.status,
+    });
+    if (!initial) setForm({ name: '', email: '', phone: '', notes: '', status: 'active' });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+          <input
+            type="text"
+            value={form.name}
+            onChange={e => setForm({ ...form, name: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
+          <input
+            type="email"
+            value={form.email}
+            onChange={e => setForm({ ...form, email: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            required
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+        <input
+          type="tel"
+          value={form.phone}
+          onChange={e => setForm({ ...form, phone: e.target.value })}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
+        <textarea
+          value={form.notes}
+          onChange={e => setForm({ ...form, notes: e.target.value })}
+          rows={3}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+      </div>
+      {initial && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <select
+            value={form.status}
+            onChange={e => setForm({ ...form, status: e.target.value as 'active' | 'archived' })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          >
+            <option value="active">Aktiv</option>
+            <option value="archived">Archiviert</option>
+          </select>
+        </div>
+      )}
+      <div className="flex gap-2">
+        <button type="submit" className="flex-1 bg-primary text-white py-2 rounded-md hover:bg-teal-600 text-sm font-medium">
+          {initial ? 'Speichern' : 'Klient:in anlegen'}
+        </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="px-4 py-2 border rounded-md text-sm text-gray-600 hover:bg-gray-50">
+            Abbrechen
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+// ─── Client List ─────────────────────────────────────────────────
+
+function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
+  clients: Client[];
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
+  onNewTherapy: (clientId: number) => void;
+}) {
+  if (clients.length === 0) {
+    return (
+      <p className="text-sm text-gray-400 bg-white rounded-xl border border-gray-200 p-6 text-center">
+        Noch keine Klient:innen angelegt.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {clients.map(c => (
+        <div key={c.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900">{c.name}</h3>
+                {c.status === 'archived' && (
+                  <span className="text-[10px] font-medium bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Archiviert</span>
+                )}
+              </div>
+              <div className="text-sm text-gray-600">{c.email}</div>
+              {c.phone && <div className="text-sm text-gray-500">{c.phone}</div>}
+              <div className="mt-1 text-xs text-gray-400">
+                {c.therapyCount} Therapie{c.therapyCount !== 1 ? 'n' : ''}
+                {c.bookingId && ' · aus Buchung'}
+              </div>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <button
+                onClick={() => onNewTherapy(c.id)}
+                className="p-1.5 text-gray-400 hover:text-primary rounded hover:bg-gray-100"
+                title="Neue Therapie"
+              >
+                <Plus size={16} />
+              </button>
+              <button
+                onClick={() => onEdit(c.id)}
+                className="p-1.5 text-gray-400 hover:text-primary rounded hover:bg-gray-100"
+                title="Bearbeiten"
+              >
+                <Pencil size={16} />
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Klient:in "${c.name}" wirklich löschen?`)) onDelete(c.id);
+                }}
+                className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100"
+                title="Löschen"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+          {c.notes && (
+            <div className="mt-2 text-xs text-gray-500 bg-gray-50 rounded p-2">{c.notes}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Therapy Form ────────────────────────────────────────────────
+
+function TherapyForm({ clients, initialClientId, onSave, onCancel }: {
+  clients: Client[];
+  initialClientId?: number;
+  onSave: (data: {
+    clientId: number; label: string; startDate: string; endDate?: string | null;
+    sessionCostCents?: number; sessionDurationMinutes?: number; videoLink?: string;
+    notes?: string; schedule: TherapyScheduleRule[];
+  }) => void;
+  onCancel?: () => void;
+}) {
+  const [form, setForm] = useState({
+    clientId: initialClientId ?? 0,
+    label: '',
+    startDate: format(new Date(), 'yyyy-MM-dd'),
+    endDate: '',
+    sessionCostCents: 12000,
+    sessionDurationMinutes: 60,
+    videoLink: '',
+    notes: '',
+    schedule: [{ dayOfWeek: 1, frequency: 'weekly' as 'weekly' | 'biweekly', time: '10:00' }],
+  });
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!form.clientId) return;
+    onSave({
+      clientId: form.clientId,
+      label: form.label,
+      startDate: form.startDate,
+      endDate: form.endDate || null,
+      sessionCostCents: form.sessionCostCents,
+      sessionDurationMinutes: form.sessionDurationMinutes,
+      videoLink: form.videoLink || undefined,
+      notes: form.notes || undefined,
+      schedule: form.schedule.filter(s => s.time),
+    });
+  };
+
+  const addScheduleRule = () => {
+    setForm(f => ({
+      ...f,
+      schedule: [...f.schedule, { dayOfWeek: 1, frequency: 'weekly' as 'weekly' | 'biweekly', time: '10:00' }],
+    }));
+  };
+
+  const removeScheduleRule = (idx: number) => {
+    setForm(f => ({ ...f, schedule: f.schedule.filter((_, i) => i !== idx) }));
+  };
+
+  const updateScheduleRule = (idx: number, updates: Partial<TherapyScheduleRule>) => {
+    setForm(f => ({
+      ...f,
+      schedule: f.schedule.map((s, i) => i === idx ? { ...s, ...updates } : s),
+    }));
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Klient:in</label>
+        <select
+          value={form.clientId}
+          onChange={e => setForm({ ...form, clientId: Number(e.target.value) })}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+          required
+        >
+          <option value={0}>Bitte wählen...</option>
+          {clients.map(c => (
+            <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Bezeichnung</label>
+        <input
+          type="text"
+          value={form.label}
+          onChange={e => setForm({ ...form, label: e.target.value })}
+          placeholder="z.B. Einzeltherapie"
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Startdatum</label>
+          <input
+            type="date"
+            value={form.startDate}
+            onChange={e => setForm({ ...form, startDate: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Enddatum (optional)</label>
+          <input
+            type="date"
+            value={form.endDate}
+            onChange={e => setForm({ ...form, endDate: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Kosten pro Sitzung (Cent)</label>
+          <input
+            type="number"
+            value={form.sessionCostCents}
+            onChange={e => setForm({ ...form, sessionCostCents: Number(e.target.value) })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          />
+          <span className="text-xs text-gray-400">{(form.sessionCostCents / 100).toFixed(2)} €</span>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Sitzungsdauer (Min.)</label>
+          <input
+            type="number"
+            value={form.sessionDurationMinutes}
+            onChange={e => setForm({ ...form, sessionDurationMinutes: Number(e.target.value) })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Video-Link</label>
+        <input
+          type="url"
+          value={form.videoLink}
+          onChange={e => setForm({ ...form, videoLink: e.target.value })}
+          placeholder="https://..."
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Zeitplan</label>
+        {form.schedule.map((rule, idx) => (
+          <div key={idx} className="flex items-center gap-2 mb-2">
+            <select
+              value={rule.dayOfWeek}
+              onChange={e => updateScheduleRule(idx, { dayOfWeek: Number(e.target.value) })}
+              className="border rounded-md px-2 py-1.5 text-sm"
+            >
+              {[1, 2, 3, 4, 5, 6, 7].map(d => (
+                <option key={d} value={d}>{DAY_LABELS_LONG[d]}</option>
+              ))}
+            </select>
+            <select
+              value={rule.frequency}
+              onChange={e => updateScheduleRule(idx, { frequency: e.target.value as 'weekly' | 'biweekly' })}
+              className="border rounded-md px-2 py-1.5 text-sm"
+            >
+              <option value="weekly">Wöchentlich</option>
+              <option value="biweekly">2-wöchentlich</option>
+            </select>
+            <input
+              type="time"
+              value={rule.time}
+              onChange={e => updateScheduleRule(idx, { time: e.target.value })}
+              className="border rounded-md px-2 py-1.5 text-sm"
+            />
+            {form.schedule.length > 1 && (
+              <button type="button" onClick={() => removeScheduleRule(idx)} className="p-1 text-gray-400 hover:text-red-500">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        ))}
+        <button type="button" onClick={addScheduleRule} className="text-xs text-primary hover:underline flex items-center gap-1">
+          <Plus size={12} /> Weiteren Termin hinzufügen
+        </button>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
+        <textarea
+          value={form.notes}
+          onChange={e => setForm({ ...form, notes: e.target.value })}
+          rows={2}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div className="flex gap-2">
+        <button type="submit" disabled={!form.clientId} className="flex-1 bg-primary text-white py-2 rounded-md hover:bg-teal-600 disabled:opacity-50 text-sm font-medium">
+          Therapie anlegen
+        </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="px-4 py-2 border rounded-md text-sm text-gray-600 hover:bg-gray-50">
+            Abbrechen
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+// ─── Session Panel ───────────────────────────────────────────────
+
+function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDeleteSession, onSendInvoice }: {
+  therapy: Therapy;
+  sessions: TherapySession[];
+  onGenerate: (from: string, to: string) => void;
+  onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
+  onDeleteSession: (id: number) => void;
+  onSendInvoice: (id: number) => void;
+}) {
+  const [genFrom, setGenFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [genTo, setGenTo] = useState(format(addMonths(new Date(), 3), 'yyyy-MM-dd'));
+
+  const statusLabels: Record<string, string> = {
+    scheduled: 'Geplant',
+    completed: 'Abgeschlossen',
+    cancelled: 'Abgesagt',
+    no_show: 'Nicht erschienen',
+  };
+
+  const statusColors: Record<string, string> = {
+    scheduled: 'bg-blue-50 text-blue-700 border-blue-200',
+    completed: 'bg-green-50 text-green-700 border-green-200',
+    cancelled: 'bg-gray-100 text-gray-500 border-gray-200',
+    no_show: 'bg-red-50 text-red-600 border-red-200',
+  };
+
+  // Payment summary
+  const totalDue = sessions.filter(s => s.paymentStatus === 'due' && s.status !== 'cancelled').length;
+  const totalPaid = sessions.filter(s => s.paymentStatus === 'paid').length;
+  const amountDue = totalDue * therapy.sessionCostCents;
+  const amountPaid = totalPaid * therapy.sessionCostCents;
+
+  return (
+    <div className="space-y-4">
+      {/* Payment Summary */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-blue-50 rounded-lg p-3 text-center">
+          <div className="text-xs text-blue-600 font-medium">Offen</div>
+          <div className="text-lg font-bold text-blue-700">{(amountDue / 100).toFixed(0)} €</div>
+          <div className="text-xs text-blue-500">{totalDue} Sitzungen</div>
+        </div>
+        <div className="bg-green-50 rounded-lg p-3 text-center">
+          <div className="text-xs text-green-600 font-medium">Bezahlt</div>
+          <div className="text-lg font-bold text-green-700">{(amountPaid / 100).toFixed(0)} €</div>
+          <div className="text-xs text-green-500">{totalPaid} Sitzungen</div>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <div className="text-xs text-gray-600 font-medium">Gesamt</div>
+          <div className="text-lg font-bold text-gray-700">{((amountDue + amountPaid) / 100).toFixed(0)} €</div>
+          <div className="text-xs text-gray-500">{sessions.length} Sitzungen</div>
+        </div>
+      </div>
+
+      {/* Generate Sessions */}
+      <div className="bg-gray-50 rounded-lg p-3">
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Sitzungen generieren</h4>
+        <div className="flex items-end gap-2">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Von</label>
+            <input type="date" value={genFrom} onChange={e => setGenFrom(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Bis</label>
+            <input type="date" value={genTo} onChange={e => setGenTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+          </div>
+          <button
+            onClick={() => onGenerate(genFrom, genTo)}
+            className="px-3 py-1.5 bg-primary text-white rounded text-sm hover:bg-teal-600"
+          >
+            Generieren
+          </button>
+        </div>
+      </div>
+
+      {/* Session List */}
+      {sessions.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-4">Noch keine Sitzungen.</p>
+      ) : (
+        <div className="space-y-2">
+          {sessions.map(s => (
+            <div key={s.id} className="bg-white rounded-lg border border-gray-200 p-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">
+                    {format(parseISO(s.sessionDate), 'd. MMM yyyy', { locale: de })}
+                  </span>
+                  <span className="text-gray-500">{s.sessionTime} Uhr</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded border ${statusColors[s.status]}`}>
+                    {statusLabels[s.status]}
+                  </span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded border ${
+                    s.paymentStatus === 'paid' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-amber-50 text-amber-600 border-amber-200'
+                  }`}>
+                    {s.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <select
+                    value={s.status}
+                    onChange={e => onUpdateSession(s.id, { status: e.target.value as TherapySession['status'] })}
+                    className="text-xs border rounded px-1.5 py-1"
+                  >
+                    <option value="scheduled">Geplant</option>
+                    <option value="completed">Abgeschlossen</option>
+                    <option value="cancelled">Abgesagt</option>
+                    <option value="no_show">Nicht erschienen</option>
+                  </select>
+                  <button
+                    onClick={() => onUpdateSession(s.id, {
+                      paymentStatus: s.paymentStatus === 'paid' ? 'due' : 'paid',
+                      paymentPaidDate: s.paymentStatus === 'paid' ? null : format(new Date(), 'yyyy-MM-dd'),
+                    })}
+                    className={`p-1 rounded ${s.paymentStatus === 'paid' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'}`}
+                    title={s.paymentStatus === 'paid' ? 'Als offen markieren' : 'Als bezahlt markieren'}
+                  >
+                    <Euro size={14} />
+                  </button>
+                  <button
+                    onClick={() => onSendInvoice(s.id)}
+                    disabled={s.invoiceSent}
+                    className={`p-1 rounded ${s.invoiceSent ? 'text-green-400 cursor-default' : 'text-gray-400 hover:text-primary'}`}
+                    title={s.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}
+                  >
+                    {s.invoiceSent ? <MailCheck size={14} /> : <FileText size={14} />}
+                  </button>
+                  <button
+                    onClick={() => { if (confirm('Sitzung löschen?')) onDeleteSession(s.id); }}
+                    className="p-1 text-gray-400 hover:text-red-500 rounded"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+              {s.notes && (
+                <div className="mt-1 text-xs text-gray-500">{s.notes}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Therapy List ────────────────────────────────────────────────
+
+function TherapyList({ therapies, sessions, selectedTherapyId, onSelect, onDelete, onGenerateSessions,
+  onUpdateSession, onDeleteSession, onSendInvoice }: {
+  therapies: Therapy[];
+  sessions: TherapySession[];
+  selectedTherapyId: number | null;
+  onSelect: (id: number | null) => void;
+  onDelete: (id: number) => void;
+  onGenerateSessions: (therapyId: number, from: string, to: string) => void;
+  onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
+  onDeleteSession: (id: number, therapyId: number) => void;
+  onSendInvoice: (id: number) => void;
+}) {
+  if (therapies.length === 0) {
+    return (
+      <p className="text-sm text-gray-400 bg-white rounded-xl border border-gray-200 p-6 text-center">
+        Noch keine Therapien angelegt.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {therapies.map(t => {
+        const isSelected = selectedTherapyId === t.id;
+        const scheduleLabel = t.schedule
+          .map(s => `${DAY_LABELS[s.dayOfWeek]} ${s.time}${s.frequency === 'biweekly' ? ' (2-wöch.)' : ''}`)
+          .join(', ');
+
+        return (
+          <div key={t.id} className={`bg-white rounded-xl border shadow-sm ${isSelected ? 'border-primary' : 'border-gray-200'}`}>
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <button onClick={() => onSelect(isSelected ? null : t.id)} className="text-left min-w-0 flex-1">
+                  <h3 className="font-semibold text-gray-900">{t.label || 'Einzeltherapie'}</h3>
+                  <div className="text-sm text-gray-600">{t.clientName}</div>
+                  <div className="mt-1 text-xs text-gray-500 space-y-0.5">
+                    {scheduleLabel && <div className="flex items-center gap-1"><Repeat size={12} /> {scheduleLabel}</div>}
+                    <div className="flex items-center gap-1">
+                      <CalendarIcon size={12} />
+                      Ab {format(parseISO(t.startDate), 'd. MMM yyyy', { locale: de })}
+                      {t.endDate && ` bis ${format(parseISO(t.endDate), 'd. MMM yyyy', { locale: de })}`}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Euro size={12} /> {(t.sessionCostCents / 100).toFixed(0)} € · {t.sessionDurationMinutes} Min.
+                    </div>
+                    {t.videoLink && (
+                      <a href={t.videoLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline" onClick={e => e.stopPropagation()}>
+                        <Video size={12} /> Video-Link
+                      </a>
+                    )}
+                  </div>
+                </button>
+                <div className="flex gap-1 shrink-0">
+                  <button
+                    onClick={() => { if (confirm(`Therapie "${t.label || 'Einzeltherapie'}" löschen?`)) onDelete(t.id); }}
+                    className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+            {isSelected && (
+              <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-4">
+                {/* Document checklist */}
+                <CollapsibleSection
+                  title="Dokumente"
+                  icon={<FileText size={18} className="text-gray-500" />}
+                >
+                  <DocumentChecklist contextType="therapy" contextId={t.id} />
+                </CollapsibleSection>
+
+                {/* Sessions */}
+                <SessionPanel
+                  therapy={t}
+                  sessions={sessions}
+                  onGenerate={(from, to) => onGenerateSessions(t.id, from, to)}
+                  onUpdateSession={onUpdateSession}
+                  onDeleteSession={(id) => onDeleteSession(id, t.id)}
+                  onSendInvoice={onSendInvoice}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Main Admin Page ─────────────────────────────────────────────
+
+type TabKey = 'rules' | 'erstgespraeche' | 'einzel' | 'kunden' | 'groups';
 
 export default function Admin() {
   // Block indexing of admin page
@@ -968,12 +1718,28 @@ export default function Admin() {
     fetchGroups, addGroup, updateGroup, removeGroup,
   } = useAdminBooking();
 
+  const {
+    clients, error: clientsError,
+    fetchClients, addClient, updateClient, removeClient, migrateBookingToClient,
+  } = useAdminClients();
+
+  const {
+    therapies, sessions, error: therapiesError,
+    fetchTherapies, addTherapy, removeTherapy,
+    fetchSessions, generateSessions, updateSession, removeSession, sendInvoice,
+  } = useAdminTherapies();
+
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'rules' | 'bookings' | 'groups'>('rules');
+  const [activeTab, setActiveTab] = useState<TabKey>('rules');
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+  const [editingClientId, setEditingClientId] = useState<number | null>(null);
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [showNewTherapy, setShowNewTherapy] = useState(false);
+  const [newTherapyClientId, setNewTherapyClientId] = useState<number | undefined>();
+  const [selectedTherapyId, setSelectedTherapyId] = useState<number | null>(null);
 
   // Load data on auth
   useEffect(() => {
@@ -982,8 +1748,17 @@ export default function Admin() {
       fetchEvents();
       fetchBookings();
       fetchGroups();
+      fetchClients();
+      fetchTherapies();
     }
-  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups]);
+  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchClients, fetchTherapies]);
+
+  // Load sessions when therapy selected
+  useEffect(() => {
+    if (selectedTherapyId) {
+      fetchSessions(selectedTherapyId);
+    }
+  }, [selectedTherapyId, fetchSessions]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -995,6 +1770,23 @@ export default function Admin() {
     }
     setLoginLoading(false);
   };
+
+  // Cross-tab navigation: migrate booking → create client → switch to Kunden
+  const handleMigrateToClient = useCallback(async (bookingId: number) => {
+    const clientId = await migrateBookingToClient(bookingId);
+    if (clientId) {
+      setActiveTab('kunden');
+    }
+  }, [migrateBookingToClient]);
+
+  // Cross-tab navigation: new therapy from Kunden → switch to Einzel
+  const handleNewTherapyFromClient = useCallback((clientId: number) => {
+    setNewTherapyClientId(clientId);
+    setShowNewTherapy(true);
+    setActiveTab('einzel');
+  }, []);
+
+  const combinedError = error || clientsError || therapiesError;
 
   if (!authenticated) {
     return (
@@ -1029,6 +1821,7 @@ export default function Admin() {
   }
 
   const editingRule = editingRuleId ? rules.find(r => r.id === editingRuleId) : undefined;
+  const editingClient = editingClientId ? clients.find(c => c.id === editingClientId) : undefined;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
@@ -1058,25 +1851,27 @@ export default function Admin() {
           </button>
         </div>
 
-        {error && (
+        {combinedError && (
           <div className="mb-6 flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-3">
             <AlertCircle size={16} className="shrink-0" />
-            {error}
+            {combinedError}
           </div>
         )}
 
         {/* Tab navigation */}
         <div className="border-b border-gray-200 mb-6">
-          <nav className="flex gap-6">
+          <nav className="flex gap-4 overflow-x-auto">
             {([
               ['rules', Repeat, 'Regeln & Kalender', null],
-              ['bookings', CalendarIcon, 'Buchungen', bookings.filter(b => b.status === 'confirmed').length],
-              ['groups', Users, 'Gruppen', groups.length],
+              ['erstgespraeche', CalendarIcon, 'Erstgespräche', bookings.filter(b => b.status === 'confirmed').length],
+              ['einzel', Video, 'Einzeltherapie', therapies.length],
+              ['groups', Users, 'Gruppentherapie', groups.length],
+              ['kunden', Users, 'Kunden', clients.length],
             ] as const).map(([key, Icon, label, count]) => (
               <button
                 key={key}
-                onClick={() => setActiveTab(key as typeof activeTab)}
-                className={`flex items-center gap-2 px-1 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                onClick={() => setActiveTab(key as TabKey)}
+                className={`flex items-center gap-2 px-1 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
                   activeTab === key
                     ? 'border-primary text-primary'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1181,18 +1976,111 @@ export default function Admin() {
           </div>
         )}
 
-        {activeTab === 'bookings' && (
+        {activeTab === 'erstgespraeche' && (
           <div className="max-w-3xl">
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Users size={20} className="text-gray-500" />
-                Buchungen
+                <CalendarIcon size={20} className="text-gray-500" />
+                Erstgespräche
               </h2>
               <BookingList
                 bookings={bookings}
                 onUpdate={updateBooking}
                 onSendEmail={sendEmail}
                 onSendDocument={sendDocument}
+                onMigrateToClient={handleMigrateToClient}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'einzel' && (
+          <div className="max-w-4xl space-y-6">
+            {showNewTherapy ? (
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Plus size={20} className="text-primary" />
+                  Neue Therapie
+                </h2>
+                <TherapyForm
+                  clients={clients}
+                  initialClientId={newTherapyClientId}
+                  onSave={async (data) => {
+                    await addTherapy(data);
+                    setShowNewTherapy(false);
+                    setNewTherapyClientId(undefined);
+                  }}
+                  onCancel={() => { setShowNewTherapy(false); setNewTherapyClientId(undefined); }}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowNewTherapy(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-teal-600 text-sm font-medium"
+              >
+                <Plus size={16} /> Neue Therapie
+              </button>
+            )}
+
+            <TherapyList
+              therapies={therapies}
+              sessions={sessions}
+              selectedTherapyId={selectedTherapyId}
+              onSelect={setSelectedTherapyId}
+              onDelete={removeTherapy}
+              onGenerateSessions={async (tid, from, to) => { await generateSessions(tid, from, to); }}
+              onUpdateSession={(id, updates) => updateSession(id, updates)}
+              onDeleteSession={(id, tid) => removeSession(id, tid)}
+              onSendInvoice={sendInvoice}
+            />
+          </div>
+        )}
+
+        {activeTab === 'kunden' && (
+          <div className="max-w-3xl space-y-6">
+            {showNewClient || editingClient ? (
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  {editingClient ? (
+                    <><Pencil size={20} className="text-primary" /> Klient:in bearbeiten</>
+                  ) : (
+                    <><UserPlus size={20} className="text-primary" /> Neue:r Klient:in</>
+                  )}
+                </h2>
+                <ClientForm
+                  key={editingClientId ?? 'new'}
+                  initial={editingClient ?? undefined}
+                  onSave={async (data) => {
+                    if (editingClient) {
+                      await updateClient(editingClientId!, data);
+                    } else {
+                      await addClient(data);
+                    }
+                    setEditingClientId(null);
+                    setShowNewClient(false);
+                  }}
+                  onCancel={() => { setEditingClientId(null); setShowNewClient(false); }}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowNewClient(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-teal-600 text-sm font-medium"
+              >
+                <UserPlus size={16} /> Neue:r Klient:in
+              </button>
+            )}
+
+            <div>
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Users size={20} className="text-gray-500" />
+                Klient:innen ({clients.length})
+              </h2>
+              <ClientList
+                clients={clients}
+                onEdit={(id) => { setEditingClientId(id); setShowNewClient(false); }}
+                onDelete={removeClient}
+                onNewTherapy={handleNewTherapyFromClient}
               />
             </div>
           </div>

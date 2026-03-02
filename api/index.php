@@ -24,6 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/routes/public.php';
 require_once __DIR__ . '/routes/admin.php';
+require_once __DIR__ . '/routes/clients.php';
+require_once __DIR__ . '/routes/therapies.php';
 
 // Parse request
 $method = $_SERVER['REQUEST_METHOD'];
@@ -116,6 +118,11 @@ if ($method === 'POST' && preg_match('#^/admin/bookings/(\d+)/email$#', $uri, $m
     exit;
 }
 
+if ($method === 'POST' && preg_match('#^/admin/bookings/(\d+)/migrate-to-client$#', $uri, $m)) {
+    handleMigrateBookingToClient((int)$m[1]);
+    exit;
+}
+
 if ($method === 'POST' && preg_match('#^/admin/bookings/(\d+)/document$#', $uri, $m)) {
     handleSendDocument((int)$m[1]);
     exit;
@@ -144,6 +151,110 @@ if ($method === 'DELETE' && preg_match('#^/admin/groups/(\d+)$#', $uri, $m)) {
 
 if ($method === 'POST' && $uri === '/contact') {
     handleContact();
+    exit;
+}
+
+// Admin: clients
+if ($method === 'GET' && $uri === '/admin/clients') {
+    handleGetClients();
+    exit;
+}
+
+if ($method === 'GET' && preg_match('#^/admin/clients/(\d+)$#', $uri, $m)) {
+    handleGetClient((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && $uri === '/admin/clients') {
+    handleCreateClient();
+    exit;
+}
+
+if ($method === 'PUT' && preg_match('#^/admin/clients/(\d+)$#', $uri, $m)) {
+    handleUpdateClient((int)$m[1]);
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/clients/(\d+)$#', $uri, $m)) {
+    handleDeleteClient((int)$m[1]);
+    exit;
+}
+
+// Admin: therapies
+if ($method === 'GET' && $uri === '/admin/therapies') {
+    handleGetTherapies();
+    exit;
+}
+
+if ($method === 'GET' && preg_match('#^/admin/therapies/(\d+)$#', $uri, $m)) {
+    handleGetTherapy((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && $uri === '/admin/therapies') {
+    handleCreateTherapy();
+    exit;
+}
+
+if ($method === 'PUT' && preg_match('#^/admin/therapies/(\d+)$#', $uri, $m)) {
+    handleUpdateTherapy((int)$m[1]);
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/therapies/(\d+)$#', $uri, $m)) {
+    handleDeleteTherapy((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/therapies/(\d+)/exceptions$#', $uri, $m)) {
+    handleToggleTherapyException((int)$m[1]);
+    exit;
+}
+
+// Admin: therapy sessions
+if ($method === 'GET' && preg_match('#^/admin/therapies/(\d+)/sessions$#', $uri, $m)) {
+    handleGetTherapySessions((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/therapies/(\d+)/sessions$#', $uri, $m)) {
+    handleCreateTherapySession((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/therapies/(\d+)/sessions/generate$#', $uri, $m)) {
+    handleGenerateSessions((int)$m[1]);
+    exit;
+}
+
+if ($method === 'PATCH' && preg_match('#^/admin/sessions/(\d+)$#', $uri, $m)) {
+    handleUpdateSession((int)$m[1]);
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/sessions/(\d+)$#', $uri, $m)) {
+    handleDeleteSession((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/sessions/(\d+)/invoice$#', $uri, $m)) {
+    handleSendInvoice((int)$m[1]);
+    exit;
+}
+
+// Admin: documents
+if ($method === 'POST' && $uri === '/admin/documents/send') {
+    handleDocumentSend();
+    exit;
+}
+
+if ($method === 'GET' && $uri === '/admin/documents/status') {
+    handleDocumentStatus();
+    exit;
+}
+
+if ($method === 'GET' && $uri === '/admin/documents/registry') {
+    handleDocumentRegistry();
     exit;
 }
 

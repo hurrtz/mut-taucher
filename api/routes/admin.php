@@ -4,6 +4,7 @@ require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../jwt.php';
 require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/../slots.php';
+require_once __DIR__ . '/../lib/DocumentRegistry.php';
 
 /**
  * POST /api/login
@@ -597,4 +598,150 @@ function handleDeleteGroup(int $id): void {
     }
 
     echo json_encode(['message' => 'Gruppe gelöscht']);
+}
+
+// ─── Document Send/Status (generic) ─────────────────────────────
+
+/**
+ * POST /api/admin/documents/send
+ * Body: { contextType, contextId, documentKey }
+ * Sends a document (PDF if template exists) and records it in document_sends.
+ */
+function handleDocumentSend(): void {
+    requireAuth();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $db = getDB();
+
+    $contextType = $input['contextType'] ?? '';
+    $contextId = (int)($input['contextId'] ?? 0);
+    $documentKey = $input['documentKey'] ?? '';
+
+    if (!$contextType || !$contextId || !$documentKey) {
+        http_response_code(400);
+        echo json_encode(['error' => 'contextType, contextId und documentKey sind erforderlich']);
+        return;
+    }
+
+    $doc = DocumentRegistry::findDocument($contextType, $documentKey);
+    if (!$doc) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Unbekannter Dokumenttyp']);
+        return;
+    }
+
+    // Resolve client name/email based on context
+    $clientName = '';
+    $clientEmail = '';
+
+    if ($contextType === 'booking') {
+        $stmt = $db->prepare('SELECT client_name, client_email FROM bookings WHERE id = ?');
+        $stmt->execute([$contextId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Buchung nicht gefunden']);
+            return;
+        }
+        $clientName = $row['client_name'];
+        $clientEmail = $row['client_email'];
+    } elseif ($contextType === 'therapy') {
+        $stmt = $db->prepare(
+            'SELECT c.name, c.email FROM therapies t JOIN clients c ON t.client_id = c.id WHERE t.id = ?'
+        );
+        $stmt->execute([$contextId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Therapie nicht gefunden']);
+            return;
+        }
+        $clientName = $row['name'];
+        $clientEmail = $row['email'];
+    }
+
+    // If document has a PDF template, generate and send
+    if ($doc['template'] && $clientEmail) {
+        require_once __DIR__ . '/../lib/Mailer.php';
+        require_once __DIR__ . '/../lib/PdfGenerator.php';
+        $config = require __DIR__ . '/../config.php';
+
+        $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+        $siteUrl = $config['site_url'] ?? '';
+        $dateFormatted = date('d.m.Y');
+
+        $pdfGen = new PdfGenerator();
+        $pdfContent = $pdfGen->generate($doc['template'], $clientName, $dateFormatted);
+
+        $documentName = $doc['label'];
+        ob_start();
+        include __DIR__ . '/../templates/email/document_cover.php';
+        $htmlBody = ob_get_clean();
+
+        try {
+            $mailer = new Mailer();
+            $pdfFilename = str_replace(' ', '_', $doc['label']) . '.pdf';
+            $mailer->sendWithPdf(
+                $clientEmail,
+                $clientName,
+                $doc['label'] . ' — ' . $therapistName,
+                $htmlBody,
+                $pdfContent,
+                $pdfFilename
+            );
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Dokument konnte nicht gesendet werden: ' . $e->getMessage()]);
+            return;
+        }
+    }
+
+    // Record in document_sends
+    $stmt = $db->prepare(
+        'INSERT INTO document_sends (context_type, context_id, document_key) VALUES (?, ?, ?)'
+    );
+    $stmt->execute([$contextType, $contextId, $documentKey]);
+
+    echo json_encode(['message' => $doc['label'] . ' gesendet/vermerkt']);
+}
+
+/**
+ * GET /api/admin/documents/status?contextType=&contextId=
+ * Returns send history for a given context.
+ */
+function handleDocumentStatus(): void {
+    requireAuth();
+    $db = getDB();
+
+    $contextType = $_GET['contextType'] ?? '';
+    $contextId = (int)($_GET['contextId'] ?? 0);
+
+    if (!$contextType || !$contextId) {
+        http_response_code(400);
+        echo json_encode(['error' => 'contextType und contextId sind erforderlich']);
+        return;
+    }
+
+    $stmt = $db->prepare(
+        'SELECT document_key, sent_at FROM document_sends
+         WHERE context_type = ? AND context_id = ?
+         ORDER BY sent_at DESC'
+    );
+    $stmt->execute([$contextType, $contextId]);
+    $sends = $stmt->fetchAll();
+
+    $result = array_map(fn($s) => [
+        'documentKey' => $s['document_key'],
+        'sentAt'      => $s['sent_at'],
+    ], $sends);
+
+    echo json_encode(array_values($result));
+}
+
+/**
+ * GET /api/admin/documents/registry
+ * Returns the full document registry for the frontend.
+ */
+function handleDocumentRegistry(): void {
+    requireAuth();
+    echo json_encode(DocumentRegistry::getAll());
 }

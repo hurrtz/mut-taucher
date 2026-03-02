@@ -62,6 +62,70 @@ export interface TherapyGroup {
   showOnHomepage: boolean;
 }
 
+export interface Client {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  notes: string | null;
+  status: 'active' | 'archived';
+  bookingId: number | null;
+  therapyCount: number;
+  createdAt: string;
+}
+
+export interface TherapyScheduleRule {
+  dayOfWeek: number;
+  frequency: 'weekly' | 'biweekly';
+  time: string;
+}
+
+export interface Therapy {
+  id: number;
+  clientId: number;
+  clientName: string;
+  clientEmail: string;
+  label: string;
+  startDate: string;
+  endDate: string | null;
+  status: 'active' | 'archived';
+  videoLink: string | null;
+  sessionCostCents: number;
+  sessionDurationMinutes: number;
+  notes: string | null;
+  createdAt: string;
+  schedule: TherapyScheduleRule[];
+  exceptions?: string[];
+}
+
+export interface TherapySession {
+  id: number;
+  therapyId: number;
+  sessionDate: string;
+  sessionTime: string;
+  durationMinutes: number;
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+  notes: string | null;
+  paymentStatus: 'due' | 'paid';
+  paymentDueDate: string | null;
+  paymentPaidDate: string | null;
+  invoiceSent: boolean;
+  invoiceSentAt: string | null;
+  createdAt: string;
+}
+
+export interface DocumentSend {
+  documentKey: string;
+  sentAt: string;
+}
+
+export interface DocumentDefinition {
+  key: string;
+  label: string;
+  category: 'muss_vorhanden' | 'muss_unterschrieben' | 'sollte_unterschrieben';
+  template: string | null;
+}
+
 export interface Service {
   id: string;
   title: string;
