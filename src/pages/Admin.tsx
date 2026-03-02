@@ -10,6 +10,7 @@ import { de } from 'date-fns/locale';
 import {
   Plus, Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, LogOut, Calendar as CalendarIcon,
   Clock, Repeat, Ban, Loader2, AlertCircle, Mail, MailCheck, X, Users, CalendarPlus,
+  ExternalLink, BarChart3, Home,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -1034,17 +1035,27 @@ export default function Admin() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Verfügbarkeit verwalten</h1>
           <div className="flex items-center gap-4">
-            <a href="https://app.eu.amplitude.com/analytics/mut-taucher-395196/home" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">Amplitude</a>
-            <Link to="/" className="text-primary hover:underline text-sm">Zur Website</Link>
-            <button
-              onClick={logout}
-              className="flex items-center gap-1.5 text-red-500 hover:text-red-700 text-sm"
-            >
-              <LogOut size={16} /> Logout
-            </button>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Administration</h1>
+            <nav className="hidden sm:flex items-center gap-1 ml-2">
+              <Link to="/" className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors">
+                <Home size={14} />
+                Website
+              </Link>
+              <a href="https://app.eu.amplitude.com/analytics/mut-taucher-395196/home" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors">
+                <BarChart3 size={14} />
+                Analytics
+                <ExternalLink size={10} className="opacity-50" />
+              </a>
+            </nav>
           </div>
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+          >
+            <LogOut size={14} />
+            Logout
+          </button>
         </div>
 
         {error && (
