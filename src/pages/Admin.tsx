@@ -1606,7 +1606,7 @@ function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
                 {c.therapyCount > 0 && c.groupCount > 0 && ' · '}
                 {c.groupCount > 0 && <>{c.groupCount} Gruppe{c.groupCount !== 1 ? 'n' : ''}</>}
                 {c.therapyCount === 0 && c.groupCount === 0 && 'Keine Therapien'}
-                {c.bookingId && ' · aus Buchung'}
+                {c.bookingId && ' · aus Erstgespräch'}
               </div>
             </div>
             <div className="flex gap-1 shrink-0">
