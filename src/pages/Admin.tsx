@@ -1602,7 +1602,10 @@ function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
               <div className="text-sm text-gray-600">{c.email}</div>
               {c.phone && <div className="text-sm text-gray-500">{c.phone}</div>}
               <div className="mt-1 text-xs text-gray-400">
-                {c.therapyCount} Therapie{c.therapyCount !== 1 ? 'n' : ''}
+                {c.therapyCount > 0 && <>{c.therapyCount} Einzeltherapie{c.therapyCount !== 1 ? 'n' : ''}</>}
+                {c.therapyCount > 0 && c.groupCount > 0 && ' · '}
+                {c.groupCount > 0 && <>{c.groupCount} Gruppe{c.groupCount !== 1 ? 'n' : ''}</>}
+                {c.therapyCount === 0 && c.groupCount === 0 && 'Keine Therapien'}
                 {c.bookingId && ' · aus Buchung'}
               </div>
             </div>

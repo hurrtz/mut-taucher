@@ -14,7 +14,9 @@ function handleGetClients(): void {
     $status = $_GET['status'] ?? 'active';
 
     $stmt = $db->prepare(
-        'SELECT c.*, (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count
+        'SELECT c.*,
+                (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count,
+                (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count
          FROM clients c WHERE c.status = ? ORDER BY c.created_at DESC'
     );
     $stmt->execute([$status]);
@@ -29,6 +31,7 @@ function handleGetClients(): void {
         'status'       => $c['status'],
         'bookingId'    => $c['booking_id'] ? (int)$c['booking_id'] : null,
         'therapyCount' => (int)$c['therapy_count'],
+        'groupCount'   => (int)$c['group_count'],
         'createdAt'    => $c['created_at'],
     ], $clients);
 
@@ -43,7 +46,9 @@ function handleGetClient(int $id): void {
     $db = getDB();
 
     $stmt = $db->prepare(
-        'SELECT c.*, (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count
+        'SELECT c.*,
+                (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count,
+                (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count
          FROM clients c WHERE c.id = ?'
     );
     $stmt->execute([$id]);
@@ -64,6 +69,7 @@ function handleGetClient(int $id): void {
         'status'       => $c['status'],
         'bookingId'    => $c['booking_id'] ? (int)$c['booking_id'] : null,
         'therapyCount' => (int)$c['therapy_count'],
+        'groupCount'   => (int)$c['group_count'],
         'createdAt'    => $c['created_at'],
     ]);
 }

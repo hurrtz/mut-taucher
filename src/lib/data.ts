@@ -114,6 +114,7 @@ export interface Client {
   status: 'active' | 'archived';
   bookingId: number | null;
   therapyCount: number;
+  groupCount: number;
   createdAt: string;
 }
 
