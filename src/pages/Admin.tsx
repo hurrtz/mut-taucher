@@ -626,7 +626,7 @@ function CalendarPreview({ rules, events, onToggleException }: {
 // ─── Document Checklist ──────────────────────────────────────────
 
 function DocumentChecklist({ contextType, contextId }: {
-  contextType: 'booking' | 'therapy' | 'group';
+  contextType: 'client' | 'erstgespraech' | 'therapy' | 'group';
   contextId: number;
 }) {
   const { sending, fetchStatus, sendDocument, isSent, getSentAt } = useDocumentSends();
@@ -716,11 +716,10 @@ function DocumentChecklist({ contextType, contextId }: {
 
 // ─── Booking List (Erstgespräche) ────────────────────────────────
 
-function BookingList({ bookings, onUpdate, onSendEmail, onSendDocument, onMigrateToClient }: {
+function BookingList({ bookings, onUpdate, onSendEmail, onMigrateToClient }: {
   bookings: AdminBooking[];
   onUpdate: (id: number, updates: Partial<AdminBooking>) => void;
   onSendEmail: (id: number, type: 'intro' | 'reminder') => void;
-  onSendDocument: (id: number, type: 'contract' | 'dsgvo' | 'confidentiality' | 'online_therapy') => void;
   onMigrateToClient: (bookingId: number) => void;
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -802,46 +801,21 @@ function BookingList({ bookings, onUpdate, onSendEmail, onSendDocument, onMigrat
             </div>
           </div>
           {b.status === 'confirmed' && (
-            <>
-              <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-1.5">
-                {([
-                  ['contract', 'Vertrag', b.contractSent],
-                  ['dsgvo', 'DSGVO', b.dsgvoSent],
-                  ['confidentiality', 'Schweigepflicht', b.confidentialitySent],
-                  ['online_therapy', 'Online-Vereinbarung', b.onlineTherapySent],
-                ] as const).map(([type, label, sent]) => (
-                  <button
-                    key={type}
-                    onClick={() => onSendDocument(b.id, type)}
-                    disabled={sent}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1 ${
-                      sent
-                        ? 'border-green-200 text-green-600 bg-green-50 cursor-default'
-                        : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
-                    }`}
-                    title={sent ? `${label} gesendet` : `${label} senden`}
-                  >
-                    {sent ? <MailCheck size={12} /> : <Mail size={12} />}
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-2">
-                <button
-                  onClick={() => setExpandedId(expandedId === b.id ? null : b.id)}
-                  className="text-xs text-gray-500 hover:text-primary flex items-center gap-1"
-                >
-                  <FileText size={12} />
-                  Dokument-Checkliste
-                  <ChevronDown size={12} className={`transition-transform ${expandedId === b.id ? 'rotate-180' : ''}`} />
-                </button>
-                {expandedId === b.id && (
-                  <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                    <DocumentChecklist contextType="booking" contextId={b.id} />
-                  </div>
-                )}
-              </div>
-            </>
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <button
+                onClick={() => setExpandedId(expandedId === b.id ? null : b.id)}
+                className="text-xs text-gray-500 hover:text-primary flex items-center gap-1"
+              >
+                <FileText size={12} />
+                Dokument-Checkliste
+                <ChevronDown size={12} className={`transition-transform ${expandedId === b.id ? 'rotate-180' : ''}`} />
+              </button>
+              {expandedId === b.id && (
+                <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                  <DocumentChecklist contextType="erstgespraech" contextId={b.id} />
+                </div>
+              )}
+            </div>
           )}
         </div>
       ))}
@@ -1579,6 +1553,8 @@ function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
   onDelete: (id: number) => void;
   onNewTherapy: (clientId: number) => void;
 }) {
+  const [expandedDocId, setExpandedDocId] = useState<number | null>(null);
+
   if (clients.length === 0) {
     return (
       <p className="text-sm text-gray-400 bg-white rounded-xl border border-gray-200 p-6 text-center">
@@ -1638,6 +1614,21 @@ function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
           {c.notes && (
             <div className="mt-2 text-xs text-gray-500 bg-gray-50 rounded p-2">{c.notes}</div>
           )}
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <button
+              onClick={() => setExpandedDocId(expandedDocId === c.id ? null : c.id)}
+              className="text-xs text-gray-500 hover:text-primary flex items-center gap-1"
+            >
+              <FileText size={12} />
+              Dokumente
+              <ChevronDown size={12} className={`transition-transform ${expandedDocId === c.id ? 'rotate-180' : ''}`} />
+            </button>
+            {expandedDocId === c.id && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                <DocumentChecklist contextType="client" contextId={c.id} />
+              </div>
+            )}
+          </div>
         </div>
       ))}
     </div>
@@ -2106,7 +2097,7 @@ export default function Admin() {
     authenticated, rules, events, bookings, loading, error,
     login, logout, fetchRules, addRule, updateRule, removeRule,
     toggleException, fetchEvents, addEvent, removeEvent,
-    fetchBookings, updateBooking, sendEmail, sendDocument,
+    fetchBookings, updateBooking, sendEmail,
   } = useAdminBooking();
 
   const {
@@ -2395,7 +2386,6 @@ export default function Admin() {
                 bookings={bookings}
                 onUpdate={updateBooking}
                 onSendEmail={sendEmail}
-                onSendDocument={sendDocument}
                 onMigrateToClient={handleMigrateToClient}
               />
             </div>

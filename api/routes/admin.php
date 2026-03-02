@@ -311,10 +311,6 @@ function handleGetBookings(): void {
         'status'         => $b['status'],
         'introEmailSent' => (bool)$b['intro_email_sent'],
         'reminderSent'   => (bool)$b['reminder_sent'],
-        'contractSent'        => (bool)$b['contract_sent'],
-        'dsgvoSent'           => (bool)$b['dsgvo_sent'],
-        'confidentialitySent' => (bool)$b['confidentiality_sent'],
-        'onlineTherapySent'   => (bool)$b['online_therapy_sent'],
         'createdAt'      => $b['created_at'],
     ], $bookings);
 
@@ -421,82 +417,6 @@ function handleSendEmail(int $bookingId): void {
     echo json_encode(['message' => 'E-Mail gesendet']);
 }
 
-/**
- * POST /api/admin/bookings/:id/document
- * Body: { type: "contract" | "dsgvo" | "confidentiality" | "online_therapy" }
- */
-function handleSendDocument(int $bookingId): void {
-    requireAuth();
-    require_once __DIR__ . '/../lib/Mailer.php';
-    require_once __DIR__ . '/../lib/PdfGenerator.php';
-    $config = require __DIR__ . '/../config.php';
-    $input = json_decode(file_get_contents('php://input'), true);
-    $type = $input['type'] ?? '';
-
-    $typeMap = [
-        'contract'        => ['template' => 'behandlungsvertrag',       'name' => 'Behandlungsvertrag',                      'column' => 'contract_sent'],
-        'dsgvo'           => ['template' => 'datenschutzinfo',          'name' => 'Datenschutzinformation nach Art. 13 DSGVO', 'column' => 'dsgvo_sent'],
-        'confidentiality' => ['template' => 'schweigepflichtentbindung', 'name' => 'Schweigepflichtentbindung',               'column' => 'confidentiality_sent'],
-        'online_therapy'  => ['template' => 'onlinetherapie',           'name' => 'Vereinbarung über Online-Therapie',        'column' => 'online_therapy_sent'],
-    ];
-
-    if (!isset($typeMap[$type])) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Ungültiger Dokumenttyp']);
-        return;
-    }
-
-    $db = getDB();
-    $stmt = $db->prepare('SELECT * FROM bookings WHERE id = ?');
-    $stmt->execute([$bookingId]);
-    $booking = $stmt->fetch();
-
-    if (!$booking) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Buchung nicht gefunden']);
-        return;
-    }
-
-    $docInfo = $typeMap[$type];
-    $clientName = $booking['client_name'];
-    $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
-    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
-    $siteUrl = $config['site_url'] ?? '';
-
-    // Generate PDF
-    $pdfGen = new PdfGenerator();
-    $pdfContent = $pdfGen->generate($docInfo['template'], $clientName, $dateFormatted);
-
-    // Render cover email
-    $documentName = $docInfo['name'];
-    ob_start();
-    include __DIR__ . '/../templates/email/document_cover.php';
-    $htmlBody = ob_get_clean();
-
-    // Send
-    try {
-        $mailer = new Mailer();
-        $pdfFilename = str_replace(' ', '_', $docInfo['name']) . '.pdf';
-        $mailer->sendWithPdf(
-            $booking['client_email'],
-            $clientName,
-            $docInfo['name'] . ' — ' . $therapistName,
-            $htmlBody,
-            $pdfContent,
-            $pdfFilename
-        );
-    } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Dokument konnte nicht gesendet werden: ' . $e->getMessage()]);
-        return;
-    }
-
-    // Mark as sent
-    $db->prepare("UPDATE bookings SET {$docInfo['column']} = 1 WHERE id = ?")->execute([$bookingId]);
-
-    echo json_encode(['message' => $docInfo['name'] . ' gesendet']);
-}
-
 // ─── Document Send/Status (generic) ─────────────────────────────
 
 /**
@@ -530,7 +450,18 @@ function handleDocumentSend(): void {
     $clientName = '';
     $clientEmail = '';
 
-    if ($contextType === 'booking') {
+    if ($contextType === 'client') {
+        $stmt = $db->prepare('SELECT name, email FROM clients WHERE id = ?');
+        $stmt->execute([$contextId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Klient:in nicht gefunden']);
+            return;
+        }
+        $clientName = $row['name'];
+        $clientEmail = $row['email'];
+    } elseif ($contextType === 'erstgespraech') {
         $stmt = $db->prepare('SELECT client_name, client_email FROM bookings WHERE id = ?');
         $stmt->execute([$contextId]);
         $row = $stmt->fetch();

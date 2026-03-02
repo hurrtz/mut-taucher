@@ -124,11 +124,6 @@ if ($method === 'POST' && preg_match('#^/admin/bookings/(\d+)/migrate-to-client$
     exit;
 }
 
-if ($method === 'POST' && preg_match('#^/admin/bookings/(\d+)/document$#', $uri, $m)) {
-    handleSendDocument((int)$m[1]);
-    exit;
-}
-
 // Admin: groups
 if ($method === 'GET' && $uri === '/admin/groups') {
     handleGetGroups();
