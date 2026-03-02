@@ -1,6 +1,7 @@
 <?php
-/** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName */
+/** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName @var string $title */
 
+$pdf->writeHTML('<h1>' . htmlspecialchars($title) . '</h1>');
 $pdf->writeHTML('<p>Sehr geehrte/r ' . htmlspecialchars($clientName) . ',</p>');
 $pdf->Ln(2);
 $pdf->writeHTML('<p>gemäß Art. 13 der Datenschutz-Grundverordnung (DSGVO) informiere ich Sie über die Verarbeitung Ihrer personenbezogenen Daten:</p>');

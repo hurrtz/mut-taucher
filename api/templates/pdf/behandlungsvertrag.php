@@ -1,6 +1,7 @@
 <?php
-/** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName */
+/** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName @var string $title */
 
+$pdf->writeHTML('<h1>' . htmlspecialchars($title) . '</h1>');
 $pdf->writeHTML('<p><strong>Zwischen:</strong></p>');
 $pdf->writeHTML('<p>' . htmlspecialchars($therapistName) . ' (nachfolgend „Therapeutin")</p>');
 $pdf->writeHTML('<p><strong>und</strong></p>');

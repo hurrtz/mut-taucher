@@ -1,6 +1,7 @@
 <?php
-/** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName */
+/** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName @var string $title */
 
+$pdf->writeHTML('<h1>' . htmlspecialchars($title) . '</h1>');
 $pdf->writeHTML('<p><strong>Klient/in:</strong> ' . htmlspecialchars($clientName) . '</p>');
 $pdf->writeHTML('<p><strong>Datum:</strong> ' . htmlspecialchars($date) . '</p>');
 $pdf->Ln(4);

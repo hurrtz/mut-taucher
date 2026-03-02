@@ -61,14 +61,6 @@ class PdfGenerator {
         $pdf->SetAutoPageBreak(true, 25);
         $pdf->AddPage();
 
-        // Header
-        $pdf->SetFont('helvetica', 'B', 18);
-        $pdf->SetTextColor(45, 212, 191); // primary teal
-        $pdf->Cell(0, 12, $title, 0, 1, 'L');
-        $pdf->SetTextColor(51, 65, 85); // text color
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->Ln(4);
-
         return $pdf;
     }
 
@@ -123,6 +115,7 @@ class PdfGenerator {
                 throw new RuntimeException("PDF template not found: $type");
             }
             $therapistName = $this->therapistName;
+            // $title is available to PHP templates for rendering their own heading
             include $templateFile;
         }
 

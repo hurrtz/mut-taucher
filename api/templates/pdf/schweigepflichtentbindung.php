@@ -1,6 +1,7 @@
 <?php
-/** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName */
+/** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName @var string $title */
 
+$pdf->writeHTML('<h1>' . htmlspecialchars($title) . '</h1>');
 $pdf->writeHTML('<p>Ich, <strong>' . htmlspecialchars($clientName) . '</strong>, entbinde hiermit</p>');
 $pdf->writeHTML('<p><strong>' . htmlspecialchars($therapistName) . '</strong></p>');
 $pdf->writeHTML('<p>von der Schweigepflicht gegenüber folgenden Personen/Institutionen:</p>');

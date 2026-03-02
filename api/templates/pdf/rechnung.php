@@ -1,6 +1,7 @@
 <?php
-/** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName @var array $extra */
+/** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName @var string $title @var array $extra */
 
+$pdf->writeHTML('<h1>' . htmlspecialchars($title) . '</h1>');
 $invoiceNumber = $extra['invoiceNumber'] ?? '';
 $amountFormatted = $extra['amountFormatted'] ?? '0,00 €';
 $durationMinutes = $extra['durationMinutes'] ?? 60;
