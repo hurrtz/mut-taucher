@@ -72,6 +72,30 @@ class PdfGenerator {
         return $pdf;
     }
 
+    /**
+     * Replace {{placeholder}} tokens with sample data for preview.
+     */
+    public function replacePlaceholdersSample(string $html): string {
+        $today = date('d.m.Y');
+        return $this->replacePlaceholders($html, 'Max Mustermann', $today, [
+            'invoiceNumber'  => 'RE-2026-0042',
+            'amountFormatted'=> '95,00 €',
+            'durationMinutes'=> '50',
+            'therapyLabel'   => 'Einzeltherapie',
+            'sessionDate'    => $today,
+            'sessionTime'    => '10:00',
+        ]);
+    }
+
+    /**
+     * Generate a PDF from raw HTML (used for preview).
+     */
+    public function generateFromHtml(string $title, string $html): string {
+        $pdf = $this->createPdf($title);
+        $pdf->writeHTML($html);
+        return $pdf->Output('', 'S');
+    }
+
     public function generate(string $type, string $clientName, string $date, array $extra = []): string {
         $titles = [
             'behandlungsvertrag'        => 'Behandlungsvertrag',

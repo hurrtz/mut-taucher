@@ -8,7 +8,7 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { useEffect, useState } from 'react';
 import {
   Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3,
-  List, ListOrdered, TableIcon, Plus, Trash2, Loader2, Save,
+  List, ListOrdered, TableIcon, Plus, Trash2, Loader2, Save, Eye,
 } from 'lucide-react';
 
 const PLACEHOLDER_LABELS: Record<string, string> = {
@@ -27,10 +27,12 @@ interface TemplateEditorProps {
   htmlContent: string;
   placeholders: string[];
   saving: boolean;
+  previewing: boolean;
   onSave: (html: string) => void;
+  onPreview: (html: string) => void;
 }
 
-export default function TemplateEditor({ htmlContent, placeholders, saving, onSave }: TemplateEditorProps) {
+export default function TemplateEditor({ htmlContent, placeholders, saving, previewing, onSave, onPreview }: TemplateEditorProps) {
   const [selectedPlaceholder, setSelectedPlaceholder] = useState('');
 
   const editor = useEditor({
@@ -71,6 +73,11 @@ export default function TemplateEditor({ htmlContent, placeholders, saving, onSa
   const handleSave = () => {
     if (!editor) return;
     onSave(editor.getHTML());
+  };
+
+  const handlePreview = () => {
+    if (!editor) return;
+    onPreview(editor.getHTML());
   };
 
   if (!editor) return null;
@@ -217,8 +224,16 @@ export default function TemplateEditor({ htmlContent, placeholders, saving, onSa
         <EditorContent editor={editor} />
       </div>
 
-      {/* Save */}
-      <div className="flex justify-end">
+      {/* Actions */}
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={handlePreview}
+          disabled={previewing}
+          className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 text-sm font-medium cursor-pointer"
+        >
+          {previewing ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
+          Vorschau
+        </button>
         <button
           onClick={handleSave}
           disabled={saving}

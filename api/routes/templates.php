@@ -56,6 +56,44 @@ function handleGetTemplate(string $key): void {
 }
 
 /**
+ * POST /api/admin/templates/:key/preview
+ * Body: { htmlContent }
+ * Returns a PDF preview with sample placeholder data.
+ */
+function handlePreviewTemplate(string $key): void {
+    requireAuth();
+    $db = getDB();
+
+    $stmt = $db->prepare('SELECT label FROM document_templates WHERE template_key = ?');
+    $stmt->execute([$key]);
+    $row = $stmt->fetch();
+
+    if (!$row) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Vorlage nicht gefunden']);
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $htmlContent = $input['htmlContent'] ?? '';
+    if (!$htmlContent) {
+        http_response_code(400);
+        echo json_encode(['error' => 'htmlContent ist erforderlich']);
+        return;
+    }
+
+    require_once __DIR__ . '/../lib/PdfGenerator.php';
+    $generator = new PdfGenerator();
+    $html = $generator->replacePlaceholdersSample($htmlContent);
+    $pdfData = $generator->generateFromHtml($row['label'], $html);
+
+    // Override the default JSON content-type set in index.php
+    header('Content-Type: application/pdf', true);
+    header('Content-Disposition: inline; filename="vorschau.pdf"');
+    echo $pdfData;
+}
+
+/**
  * PUT /api/admin/templates/:key
  * Body: { htmlContent }
  * Updates the HTML content of a template.

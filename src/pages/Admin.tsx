@@ -2123,8 +2123,9 @@ export default function Admin() {
   } = useAdminGroups();
 
   const {
-    templates, activeTemplate, saving: templateSaving, error: templatesError,
-    fetchTemplates, fetchTemplate, updateTemplate,
+    templates, activeTemplate, saving: templateSaving, previewing: templatePreviewing,
+    error: templatesError,
+    fetchTemplates, fetchTemplate, updateTemplate, previewTemplate,
   } = useAdminTemplates();
 
   const [password, setPassword] = useState('');
@@ -2567,7 +2568,9 @@ export default function Admin() {
                     htmlContent={activeTemplate.htmlContent}
                     placeholders={activeTemplate.placeholders}
                     saving={templateSaving}
+                    previewing={templatePreviewing}
                     onSave={(html) => updateTemplate(activeTemplate.key, html)}
+                    onPreview={(html) => previewTemplate(activeTemplate.key, html)}
                   />
                 </div>
               ) : (

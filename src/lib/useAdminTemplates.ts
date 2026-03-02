@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { apiFetch } from './api';
+import { apiFetch, getToken } from './api';
 
 export interface TemplateSummary {
   key: string;
@@ -16,6 +16,7 @@ export function useAdminTemplates() {
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [activeTemplate, setActiveTemplate] = useState<TemplateDetail | null>(null);
   const [saving, setSaving] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTemplates = useCallback(async () => {
@@ -57,14 +58,46 @@ export function useAdminTemplates() {
     }
   }, [activeTemplate, fetchTemplates]);
 
+  const previewTemplate = useCallback(async (key: string, htmlContent: string) => {
+    setError(null);
+    setPreviewing(true);
+    try {
+      const token = getToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/admin/templates/${key}/preview`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ htmlContent }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Fehler bei der Vorschau' }));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler bei der Vorschau');
+    } finally {
+      setPreviewing(false);
+    }
+  }, []);
+
   return {
     templates,
     activeTemplate,
     saving,
+    previewing,
     error,
     fetchTemplates,
     fetchTemplate,
     updateTemplate,
+    previewTemplate,
     setActiveTemplate,
   };
 }

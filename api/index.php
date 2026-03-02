@@ -315,6 +315,11 @@ if ($method === 'GET' && $uri === '/admin/documents/registry') {
 }
 
 // Admin: document templates
+if ($method === 'POST' && preg_match('#^/admin/templates/([a-z_]+)/preview$#', $uri, $m)) {
+    handlePreviewTemplate($m[1]);
+    exit;
+}
+
 if ($method === 'GET' && $uri === '/admin/templates') {
     handleGetTemplates();
     exit;
