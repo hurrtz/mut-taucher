@@ -39,24 +39,38 @@ class PdfGenerator {
      * Replace {{placeholder}} tokens in HTML with escaped values.
      */
     private function replacePlaceholders(string $html, string $clientName, string $date, array $extra = []): string {
+        // Build composite address blocks (name + street + zip city)
+        $therapistAddress = htmlspecialchars($this->therapistName)
+            . '<br>' . htmlspecialchars($this->therapistStreet)
+            . '<br>' . htmlspecialchars($this->therapistZip) . ' ' . htmlspecialchars($this->therapistCity);
+
+        $clientStreet  = htmlspecialchars($extra['clientStreet'] ?? '');
+        $clientZip     = htmlspecialchars($extra['clientZip'] ?? '');
+        $clientCity    = htmlspecialchars($extra['clientCity'] ?? '');
+        $clientAddress = htmlspecialchars($clientName)
+            . '<br>' . $clientStreet
+            . '<br>' . $clientZip . ' ' . $clientCity;
+
         $replacements = [
-            '{{client_name}}'      => htmlspecialchars($clientName),
-            '{{client_street}}'    => htmlspecialchars($extra['clientStreet'] ?? ''),
-            '{{client_zip}}'       => htmlspecialchars($extra['clientZip'] ?? ''),
-            '{{client_city}}'      => htmlspecialchars($extra['clientCity'] ?? ''),
-            '{{client_country}}'   => htmlspecialchars($extra['clientCountry'] ?? ''),
-            '{{date}}'             => htmlspecialchars($date),
-            '{{therapist_name}}'   => htmlspecialchars($this->therapistName),
-            '{{therapist_street}}' => htmlspecialchars($this->therapistStreet),
-            '{{therapist_zip}}'    => htmlspecialchars($this->therapistZip),
-            '{{therapist_city}}'   => htmlspecialchars($this->therapistCity),
-            '{{therapist_tax_id}}' => htmlspecialchars($this->therapistTaxId),
-            '{{invoice_number}}'   => htmlspecialchars($extra['invoiceNumber'] ?? ''),
-            '{{amount}}'           => htmlspecialchars($extra['amountFormatted'] ?? ''),
-            '{{duration_minutes}}' => htmlspecialchars((string)($extra['durationMinutes'] ?? '')),
-            '{{therapy_label}}'    => htmlspecialchars($extra['therapyLabel'] ?? ''),
-            '{{session_date}}'     => htmlspecialchars($extra['sessionDate'] ?? ''),
-            '{{session_time}}'     => htmlspecialchars($extra['sessionTime'] ?? ''),
+            '{{therapist_address}}' => $therapistAddress,
+            '{{client_address}}'    => $clientAddress,
+            '{{client_name}}'       => htmlspecialchars($clientName),
+            '{{client_street}}'     => $clientStreet,
+            '{{client_zip}}'        => $clientZip,
+            '{{client_city}}'       => $clientCity,
+            '{{client_country}}'    => htmlspecialchars($extra['clientCountry'] ?? ''),
+            '{{date}}'              => htmlspecialchars($date),
+            '{{therapist_name}}'    => htmlspecialchars($this->therapistName),
+            '{{therapist_street}}'  => htmlspecialchars($this->therapistStreet),
+            '{{therapist_zip}}'     => htmlspecialchars($this->therapistZip),
+            '{{therapist_city}}'    => htmlspecialchars($this->therapistCity),
+            '{{therapist_tax_id}}'  => htmlspecialchars($this->therapistTaxId),
+            '{{invoice_number}}'    => htmlspecialchars($extra['invoiceNumber'] ?? ''),
+            '{{amount}}'            => htmlspecialchars($extra['amountFormatted'] ?? ''),
+            '{{duration_minutes}}'  => htmlspecialchars((string)($extra['durationMinutes'] ?? '')),
+            '{{therapy_label}}'     => htmlspecialchars($extra['therapyLabel'] ?? ''),
+            '{{session_date}}'      => htmlspecialchars($extra['sessionDate'] ?? ''),
+            '{{session_time}}'      => htmlspecialchars($extra['sessionTime'] ?? ''),
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $html);

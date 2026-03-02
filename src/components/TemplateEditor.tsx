@@ -51,6 +51,8 @@ const FontSize = Extension.create({
 const FONT_SIZES = ['8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '16pt', '18pt', '20pt', '24pt'];
 
 const PLACEHOLDER_LABELS: Record<string, string> = {
+  therapist_address: 'Therapeut:in Adresse (Block)',
+  client_address: 'Klient:in Adresse (Block)',
   client_name: 'Klient:in Name',
   client_street: 'Klient:in Straße',
   client_zip: 'Klient:in PLZ',
