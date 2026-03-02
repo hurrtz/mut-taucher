@@ -111,7 +111,7 @@ function handleUpdateTemplate(string $key): void {
     }
 
     // Strip unsafe tags, keep TCPDF-safe subset
-    $allowed = '<p><br><strong><b><em><i><u><h1><h2><h3><ul><ol><li><table><tr><td><th><thead><tbody><span>';
+    $allowed = '<p><br><strong><b><em><i><u><h1><h2><h3><ul><ol><li><table><tr><td><th><thead><tbody><span><img><mark>';
     $htmlContent = strip_tags($htmlContent, $allowed);
 
     $stmt = $db->prepare(
@@ -126,4 +126,61 @@ function handleUpdateTemplate(string $key): void {
     }
 
     echo json_encode(['message' => 'Vorlage aktualisiert']);
+}
+
+/**
+ * POST /api/admin/templates/upload-image
+ * Accepts multipart form-data with an 'image' file.
+ * Returns { url: "/api/assets/uploads/img_xxx.png" }
+ */
+function handleUploadImage(): void {
+    requireAuth();
+
+    if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Keine Datei hochgeladen']);
+        return;
+    }
+
+    $file = $_FILES['image'];
+
+    // Max 2 MB
+    if ($file['size'] > 2 * 1024 * 1024) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Datei zu groß (max. 2 MB)']);
+        return;
+    }
+
+    // Validate MIME type
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = $finfo->file($file['tmp_name']);
+    $allowedMimes = [
+        'image/png'  => 'png',
+        'image/jpeg' => 'jpg',
+        'image/gif'  => 'gif',
+        'image/webp' => 'webp',
+    ];
+
+    if (!isset($allowedMimes[$mime])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Ungültiger Dateityp (erlaubt: PNG, JPG, GIF, WebP)']);
+        return;
+    }
+
+    $ext = $allowedMimes[$mime];
+    $filename = 'img_' . uniqid() . '.' . $ext;
+    $uploadDir = __DIR__ . '/../assets/uploads';
+
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    $dest = $uploadDir . '/' . $filename;
+    if (!move_uploaded_file($file['tmp_name'], $dest)) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Fehler beim Speichern der Datei']);
+        return;
+    }
+
+    echo json_encode(['url' => '/api/assets/uploads/' . $filename]);
 }

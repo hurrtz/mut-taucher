@@ -5,11 +5,50 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import { useEffect, useState } from 'react';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import Image from '@tiptap/extension-image';
+import { Extension } from '@tiptap/react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, TableIcon, Plus, Trash2, Loader2, Save, Eye,
+  AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, ImageIcon,
 } from 'lucide-react';
+
+// Custom FontSize extension using TextStyle
+const FontSize = Extension.create({
+  name: 'fontSize',
+
+  addGlobalAttributes() {
+    return [{
+      types: ['textStyle'],
+      attributes: {
+        fontSize: {
+          default: null,
+          parseHTML: el => el.style.fontSize?.replace(/['"]+/g, '') || null,
+          renderHTML: attrs => {
+            if (!attrs.fontSize) return {};
+            return { style: `font-size: ${attrs.fontSize}` };
+          },
+        },
+      },
+    }];
+  },
+
+  addCommands() {
+    return {
+      setFontSize: (size: string) => ({ chain }: { chain: () => ReturnType<ReturnType<typeof useEditor>['chain']> }) =>
+        chain().setMark('textStyle', { fontSize: size }).run(),
+      unsetFontSize: () => ({ chain }: { chain: () => ReturnType<ReturnType<typeof useEditor>['chain']> }) =>
+        chain().setMark('textStyle', { fontSize: null }).run(),
+    };
+  },
+});
+
+const FONT_SIZES = ['8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '16pt', '18pt', '20pt', '24pt'];
 
 const PLACEHOLDER_LABELS: Record<string, string> = {
   client_name: 'Klient:in Name',
@@ -38,10 +77,17 @@ interface TemplateEditorProps {
   previewing: boolean;
   onSave: (html: string) => void;
   onPreview: (html: string) => void;
+  onUploadImage: (file: File) => Promise<string>;
 }
 
-export default function TemplateEditor({ htmlContent, placeholders, saving, previewing, onSave, onPreview }: TemplateEditorProps) {
+export default function TemplateEditor({ htmlContent, placeholders, saving, previewing, onSave, onPreview, onUploadImage }: TemplateEditorProps) {
   const [selectedPlaceholder, setSelectedPlaceholder] = useState('');
+  const [showImagePanel, setShowImagePanel] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
+  const imagePanelRef = useRef<HTMLDivElement>(null);
+  const textColorRef = useRef<HTMLInputElement>(null);
+  const highlightColorRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -58,6 +104,12 @@ export default function TemplateEditor({ htmlContent, placeholders, saving, prev
       TableRow,
       TableCell,
       TableHeader,
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Image.configure({ inline: false, allowBase64: false }),
+      FontSize,
     ],
     content: htmlContent,
   });
@@ -72,10 +124,44 @@ export default function TemplateEditor({ htmlContent, placeholders, saving, prev
     }
   }, [htmlContent, editor]);
 
+  // Close image panel on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (imagePanelRef.current && !imagePanelRef.current.contains(e.target as Node)) {
+        setShowImagePanel(false);
+      }
+    };
+    if (showImagePanel) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showImagePanel]);
+
   const insertPlaceholder = (key: string) => {
     if (!editor || !key) return;
     editor.chain().focus().insertContent(`{{${key}}}`).run();
     setSelectedPlaceholder('');
+  };
+
+  const insertImageFromUrl = () => {
+    if (!editor || !imageUrl.trim()) return;
+    editor.chain().focus().setImage({ src: imageUrl.trim() }).run();
+    setImageUrl('');
+    setShowImagePanel(false);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+    setImageUploading(true);
+    try {
+      const url = await onUploadImage(file);
+      editor.chain().focus().setImage({ src: url }).run();
+      setShowImagePanel(false);
+    } catch {
+      // Error is handled by parent hook
+    } finally {
+      setImageUploading(false);
+      e.target.value = '';
+    }
   };
 
   const handleSave = () => {
@@ -164,6 +250,86 @@ export default function TemplateEditor({ htmlContent, placeholders, saving, prev
 
         <div className="w-px h-6 bg-gray-300 mx-1" />
 
+        {/* Alignment */}
+        <ToolbarButton
+          active={editor.isActive({ textAlign: 'left' })}
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          title="Linksbündig"
+        >
+          <AlignLeft size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          active={editor.isActive({ textAlign: 'center' })}
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          title="Zentriert"
+        >
+          <AlignCenter size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          active={editor.isActive({ textAlign: 'right' })}
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          title="Rechtsbündig"
+        >
+          <AlignRight size={16} />
+        </ToolbarButton>
+
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+
+        {/* Text color */}
+        <ToolbarButton
+          active={false}
+          onClick={() => textColorRef.current?.click()}
+          title="Textfarbe"
+        >
+          <Palette size={16} />
+          <input
+            ref={textColorRef}
+            type="color"
+            className="sr-only"
+            value={editor.getAttributes('textStyle').color || '#000000'}
+            onChange={e => editor.chain().focus().setColor(e.target.value).run()}
+          />
+        </ToolbarButton>
+
+        {/* Highlight */}
+        <ToolbarButton
+          active={editor.isActive('highlight')}
+          onClick={() => highlightColorRef.current?.click()}
+          title="Hervorheben"
+        >
+          <Highlighter size={16} />
+          <input
+            ref={highlightColorRef}
+            type="color"
+            className="sr-only"
+            value="#ffff00"
+            onChange={e => editor.chain().focus().toggleHighlight({ color: e.target.value }).run()}
+          />
+        </ToolbarButton>
+
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+
+        {/* Font size */}
+        <select
+          value={editor.getAttributes('textStyle').fontSize || ''}
+          onChange={e => {
+            if (e.target.value) {
+              editor.chain().focus().setMark('textStyle', { fontSize: e.target.value }).run();
+            } else {
+              editor.chain().focus().setMark('textStyle', { fontSize: null }).run();
+            }
+          }}
+          className="text-sm border border-gray-300 rounded px-1.5 py-1 bg-white"
+          title="Schriftgröße"
+        >
+          <option value="">Größe</option>
+          {FONT_SIZES.map(s => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+
         {/* Table */}
         <ToolbarButton
           active={false}
@@ -209,6 +375,69 @@ export default function TemplateEditor({ htmlContent, placeholders, saving, prev
             </ToolbarButton>
           </>
         )}
+
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+
+        {/* Image */}
+        <div className="relative" ref={imagePanelRef}>
+          <ToolbarButton
+            active={showImagePanel}
+            onClick={() => setShowImagePanel(!showImagePanel)}
+            title="Bild einfügen"
+          >
+            <ImageIcon size={16} />
+          </ToolbarButton>
+
+          {showImagePanel && (
+            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 w-72">
+              <div className="space-y-3">
+                {/* URL tab */}
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Bild-URL</label>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="url"
+                      value={imageUrl}
+                      onChange={e => setImageUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
+                      onKeyDown={e => e.key === 'Enter' && insertImageFromUrl()}
+                    />
+                    <button
+                      onClick={insertImageFromUrl}
+                      disabled={!imageUrl.trim()}
+                      className="text-xs px-2 py-1 bg-primary text-white rounded hover:bg-teal-600 disabled:opacity-50 cursor-pointer"
+                    >
+                      Einfügen
+                    </button>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200" />
+
+                {/* Upload tab */}
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Datei hochladen</label>
+                  <label className="flex items-center gap-2 text-sm text-primary hover:text-teal-600 cursor-pointer">
+                    {imageUploading ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Plus size={14} />
+                    )}
+                    {imageUploading ? 'Wird hochgeladen...' : 'Bild auswählen (max. 2 MB)'}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/gif,image/webp"
+                      className="sr-only"
+                      onChange={handleImageUpload}
+                      disabled={imageUploading}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="w-px h-6 bg-gray-300 mx-1" />
 

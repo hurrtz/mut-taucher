@@ -2285,7 +2285,7 @@ export default function Admin() {
   const {
     templates, activeTemplate, saving: templateSaving, previewing: templatePreviewing,
     error: templatesError,
-    fetchTemplates, fetchTemplate, updateTemplate, previewTemplate,
+    fetchTemplates, fetchTemplate, updateTemplate, previewTemplate, uploadImage,
   } = useAdminTemplates();
 
   const [password, setPassword] = useState('');
@@ -2731,6 +2731,7 @@ export default function Admin() {
                     previewing={templatePreviewing}
                     onSave={(html) => updateTemplate(activeTemplate.key, html)}
                     onPreview={(html) => previewTemplate(activeTemplate.key, html)}
+                    onUploadImage={uploadImage}
                   />
                 </div>
               ) : (

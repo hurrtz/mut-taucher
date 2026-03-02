@@ -208,3 +208,28 @@
 .tiptap-editor .ProseMirror .selectedCell {
   background-color: #dbeafe;
 }
+
+.tiptap-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  margin: 0.5rem 0;
+  border-radius: 4px;
+}
+
+.tiptap-editor .ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid #2dd4bf;
+  outline-offset: 2px;
+}
+
+.tiptap-editor .ProseMirror mark {
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.tiptap-editor .ProseMirror [style*="text-align: center"] {
+  text-align: center;
+}
+
+.tiptap-editor .ProseMirror [style*="text-align: right"] {
+  text-align: right;
+}

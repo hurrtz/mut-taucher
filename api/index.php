@@ -335,6 +335,11 @@ if ($method === 'PUT' && preg_match('#^/admin/templates/([a-z_]+)$#', $uri, $m))
     exit;
 }
 
+if ($method === 'POST' && $uri === '/admin/templates/upload-image') {
+    handleUploadImage();
+    exit;
+}
+
 // 404
 http_response_code(404);
 echo json_encode(['error' => 'Route nicht gefunden']);

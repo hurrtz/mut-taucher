@@ -88,6 +88,29 @@ export function useAdminTemplates() {
     }
   }, []);
 
+  const uploadImage = useCallback(async (file: File): Promise<string> => {
+    const token = getToken();
+    const form = new FormData();
+    form.append('image', file);
+
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch('/api/admin/templates/upload-image', {
+      method: 'POST',
+      headers,
+      body: form,
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: 'Upload fehlgeschlagen' }));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.url;
+  }, []);
+
   return {
     templates,
     activeTemplate,
@@ -99,5 +122,6 @@ export function useAdminTemplates() {
     updateTemplate,
     previewTemplate,
     setActiveTemplate,
+    uploadImage,
   };
 }

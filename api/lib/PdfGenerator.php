@@ -63,6 +63,8 @@ class PdfGenerator {
     }
 
     private function createPdf(string $title): TCPDF {
+        require_once __DIR__ . '/PdfHeader.php';
+
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8');
         $pdf->SetCreator('Mut-Taucher');
         $pdf->SetAuthor($this->therapistName);
@@ -73,9 +75,12 @@ class PdfGenerator {
         $pdf->setFooterData(['0', '0', '0'], ['200', '200', '200']);
 
         $pdf->SetFont('helvetica', '', 11);
-        $pdf->SetMargins(25, 25, 25);
+        $pdf->SetMargins(25, 35, 25);
         $pdf->SetAutoPageBreak(true, 25);
         $pdf->AddPage();
+
+        // Branded header on every PDF
+        renderPdfHeader($pdf, $this->therapistName);
 
         return $pdf;
     }
@@ -100,11 +105,53 @@ class PdfGenerator {
     }
 
     /**
+     * Apply brand styling to semantic HTML at render time.
+     * Injects inline styles so both DB templates and preview get consistent branding.
+     */
+    private function applyBranding(string $html): string {
+        // Only brand tags that don't already have a style attribute (user styles take priority)
+        $html = preg_replace(
+            '/<h1(?![^>]*\bstyle\b)(?=[\s>])/',
+            '<h1 style="color: #2dd4bf; font-size: 16pt;"',
+            $html
+        );
+        $html = preg_replace(
+            '/<h2(?![^>]*\bstyle\b)(?=[\s>])/',
+            '<h2 style="color: #2dd4bf; font-size: 12pt; border-bottom: 1px solid #e2e8f0;"',
+            $html
+        );
+        $html = preg_replace(
+            '/<th(?![^>]*\bstyle\b)(?=[\s>])/',
+            '<th style="background-color: #2dd4bf; color: #ffffff; padding: 6px;"',
+            $html
+        );
+        return $html;
+    }
+
+    /**
+     * Convert /api/assets/... URLs to absolute filesystem paths for TCPDF.
+     */
+    private function resolveImagePaths(string $html): string {
+        $assetsDir = realpath(__DIR__ . '/../assets');
+        if (!$assetsDir) return $html;
+
+        return preg_replace_callback(
+            '/(<img\b[^>]*\bsrc\s*=\s*["\'])\/api\/assets\/([^"\']+)(["\'])/',
+            function ($matches) use ($assetsDir) {
+                $path = $assetsDir . '/' . $matches[2];
+                return $matches[1] . $path . $matches[3];
+            },
+            $html
+        );
+    }
+
+    /**
      * Generate a PDF from raw HTML (used for preview).
      */
     public function generateFromHtml(string $title, string $html): string {
         $pdf = $this->createPdf($title);
-        $pdf->writeHTML($html);
+        $branded = $this->applyBranding($html);
+        $pdf->writeHTML($this->resolveImagePaths($branded));
         return $pdf->Output('', 'S');
     }
 
@@ -129,7 +176,8 @@ class PdfGenerator {
         $dbHtml = $this->loadFromDatabase($type);
         if ($dbHtml !== null) {
             $html = $this->replacePlaceholders($dbHtml, $clientName, $date, $extra);
-            $pdf->writeHTML($html);
+            $branded = $this->applyBranding($html);
+            $pdf->writeHTML($this->resolveImagePaths($branded));
         } else {
             $templateFile = __DIR__ . '/../templates/pdf/' . $type . '.php';
             if (!file_exists($templateFile)) {
