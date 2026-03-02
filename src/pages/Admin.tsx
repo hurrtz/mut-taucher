@@ -1066,37 +1066,34 @@ export default function Admin() {
         )}
 
         {/* Tab navigation */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setActiveTab('rules')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'rules'
-                ? 'bg-primary text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-            }`}
-          >
-            <Repeat size={16} /> Regeln & Kalender
-          </button>
-          <button
-            onClick={() => setActiveTab('bookings')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'bookings'
-                ? 'bg-primary text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-            }`}
-          >
-            <Users size={16} /> Buchungen ({bookings.filter(b => b.status === 'confirmed').length})
-          </button>
-          <button
-            onClick={() => setActiveTab('groups')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'groups'
-                ? 'bg-primary text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-            }`}
-          >
-            <Users size={16} /> Gruppen ({groups.length})
-          </button>
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="flex gap-6">
+            {([
+              ['rules', Repeat, 'Regeln & Kalender', null],
+              ['bookings', CalendarIcon, 'Buchungen', bookings.filter(b => b.status === 'confirmed').length],
+              ['groups', Users, 'Gruppen', groups.length],
+            ] as const).map(([key, Icon, label, count]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key as typeof activeTab)}
+                className={`flex items-center gap-2 px-1 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                  activeTab === key
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Icon size={16} />
+                {label}
+                {count !== null && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    activeTab === key ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
         </div>
 
         {loading && rules.length === 0 && (
