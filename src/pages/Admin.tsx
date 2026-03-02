@@ -1378,6 +1378,11 @@ function GroupManager({ groups, clients, selectedGroupId, onSelect, onDelete,
                         style={{ width: `${Math.min(pct, 100)}%` }}
                       />
                     </div>
+                    {group.participants && group.participants.length > 0 && (
+                      <div className="mt-1 text-xs text-gray-500">
+                        {group.participants.map(p => p.clientName).join(', ')}
+                      </div>
+                    )}
                   </div>
                 </button>
                 <div className="flex gap-1 shrink-0">

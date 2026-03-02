@@ -14,18 +14,22 @@ function formatGroupRow(array $g, PDO $db): array {
     $schedStmt->execute([$g['id']]);
     $schedule = $schedStmt->fetchAll();
 
-    // Participant count
-    $countStmt = $db->prepare(
-        'SELECT COUNT(*) FROM group_participants WHERE group_id = ? AND status = \'active\''
+    // Active participants
+    $partStmt = $db->prepare(
+        'SELECT gp.client_id, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix, c.email as client_email, gp.joined_at, gp.status
+         FROM group_participants gp
+         JOIN clients c ON gp.client_id = c.id
+         WHERE gp.group_id = ? AND gp.status = \'active\'
+         ORDER BY c.last_name, c.first_name'
     );
-    $countStmt->execute([$g['id']]);
-    $participantCount = (int)$countStmt->fetchColumn();
+    $partStmt->execute([$g['id']]);
+    $participants = $partStmt->fetchAll();
 
     return [
         'id'                     => (int)$g['id'],
         'label'                  => $g['label'],
         'maxParticipants'        => (int)$g['max_participants'],
-        'participantCount'       => $participantCount,
+        'participantCount'       => count($participants),
         'showOnHomepage'         => (bool)$g['show_on_homepage'],
         'startDate'              => $g['start_date'],
         'endDate'                => $g['end_date'],
@@ -40,6 +44,13 @@ function formatGroupRow(array $g, PDO $db): array {
             'frequency' => $s['frequency'],
             'time'      => $s['time'],
         ], $schedule),
+        'participants'           => array_map(fn($p) => [
+            'clientId'    => (int)$p['client_id'],
+            'clientName'  => composeClientName($p['client_title'], $p['client_first_name'], $p['client_last_name'], $p['client_suffix']),
+            'clientEmail' => $p['client_email'],
+            'joinedAt'    => $p['joined_at'],
+            'status'      => $p['status'],
+        ], $participants),
     ];
 }
 
