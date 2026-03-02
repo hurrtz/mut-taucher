@@ -90,7 +90,9 @@ class PdfGenerator {
 
     public function generate(string $type, string $clientName, string $date, array $extra = []): string {
         $titles = [
-            'behandlungsvertrag'        => 'Behandlungsvertrag',
+            'vertrag_erstgespraech'     => 'Vertrag — Erstgespräch',
+            'vertrag_einzeltherapie'    => 'Vertrag — Einzeltherapie',
+            'vertrag_gruppentherapie'   => 'Vertrag — Gruppentherapie',
             'datenschutzinfo'           => 'Datenschutzinformation nach Art. 13 DSGVO',
             'schweigepflichtentbindung' => 'Schweigepflichtentbindung',
             'onlinetherapie'            => 'Vereinbarung über Online-Therapie',

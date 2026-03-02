@@ -14,13 +14,13 @@ $pdf->Ln(4);
 $pdf->SetFont('helvetica', 'B', 12);
 $pdf->Cell(0, 8, '§ 1 Gegenstand des Vertrages', 0, 1);
 $pdf->SetFont('helvetica', '', 11);
-$pdf->writeHTML('<p>[PLATZHALTER: Hier wird der Gegenstand des Behandlungsvertrages beschrieben. Bitte durch die tatsächlichen Vertragsbedingungen ersetzen.]</p>');
+$pdf->writeHTML('<p>[PLATZHALTER: Hier wird der Gegenstand des Behandlungsvertrages für Gruppentherapie beschrieben.]</p>');
 $pdf->Ln(4);
 
 $pdf->SetFont('helvetica', 'B', 12);
 $pdf->Cell(0, 8, '§ 2 Leistungen', 0, 1);
 $pdf->SetFont('helvetica', '', 11);
-$pdf->writeHTML('<p>[PLATZHALTER: Beschreibung der therapeutischen Leistungen, Sitzungsdauer, Häufigkeit.]</p>');
+$pdf->writeHTML('<p>[PLATZHALTER: Beschreibung der Gruppentherapie, Sitzungsdauer, Häufigkeit, Gruppengröße.]</p>');
 $pdf->Ln(4);
 
 $pdf->SetFont('helvetica', 'B', 12);
@@ -33,6 +33,12 @@ $pdf->SetFont('helvetica', 'B', 12);
 $pdf->Cell(0, 8, '§ 4 Schweigepflicht', 0, 1);
 $pdf->SetFont('helvetica', '', 11);
 $pdf->writeHTML('<p>[PLATZHALTER: Hinweis auf die gesetzliche Schweigepflicht.]</p>');
+$pdf->Ln(4);
+
+$pdf->SetFont('helvetica', 'B', 12);
+$pdf->Cell(0, 8, '§ 5 Vertraulichkeit in der Gruppe', 0, 1);
+$pdf->SetFont('helvetica', '', 11);
+$pdf->writeHTML('<p>[PLATZHALTER: Besondere Vertraulichkeitsvereinbarung für das Gruppenformat.]</p>');
 $pdf->Ln(8);
 
 $pdf->writeHTML('<p>_________________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_________________________</p>');
