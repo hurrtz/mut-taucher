@@ -323,7 +323,7 @@ function RuleCard({ rule, onEdit, onDelete, onToggleException }: {
           >
             <Ban size={12} />
             {rule.exceptions.length} Ausnahme{rule.exceptions.length > 1 ? 'n' : ''}
-            <ChevronRight size={12} className={`transition-transform ${showExceptions ? 'rotate-90' : ''}`} />
+            <ChevronDown size={12} className={`transition-transform ${showExceptions ? 'rotate-180' : ''}`} />
           </button>
           {showExceptions && (
             <div className="mt-2 flex flex-wrap gap-1">
@@ -345,6 +345,36 @@ function RuleCard({ rule, onEdit, onDelete, onToggleException }: {
   );
 }
 
+// ─── Inline Collapsible (lightweight, for inside expanded cards) ──
+
+function InlineCollapsible({ title, count, children, defaultOpen = false }: {
+  title: string;
+  count?: number;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-1.5 py-2 text-left cursor-pointer"
+      >
+        <ChevronDown
+          size={14}
+          className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+        <span className="text-sm font-medium text-gray-700">
+          {title}{count != null ? ` (${count})` : ''}
+        </span>
+      </button>
+      {open && <div className="pb-1">{children}</div>}
+    </div>
+  );
+}
+
 // ─── Collapsible Section ─────────────────────────────────────────
 
 function CollapsibleSection({ title, icon, children, defaultOpen = false }: {
@@ -360,16 +390,16 @@ function CollapsibleSection({ title, icon, children, defaultOpen = false }: {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 p-5 text-left hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center gap-2 p-4 text-left hover:bg-gray-50 transition-colors cursor-pointer"
       >
         {icon}
-        <h2 className="text-lg font-semibold flex-1">{title}</h2>
+        <h2 className="text-base font-semibold flex-1">{title}</h2>
         <ChevronDown
           size={20}
           className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
         />
       </button>
-      {open && <div className="px-5 pb-5 border-t border-gray-100 pt-4">{children}</div>}
+      {open && <div className="px-4 pb-4 border-t border-gray-100 pt-3">{children}</div>}
     </div>
   );
 }
@@ -806,7 +836,7 @@ function BookingList({ bookings, onUpdate, onSendEmail, onMigrateToClient }: {
             <div className="mt-3 pt-3 border-t border-gray-100">
               <button
                 onClick={() => setExpandedId(expandedId === b.id ? null : b.id)}
-                className="text-xs text-gray-500 hover:text-primary flex items-center gap-1"
+                className="text-xs text-gray-500 hover:text-primary flex items-center gap-1 cursor-pointer"
               >
                 <FileText size={12} />
                 Dokument-Checkliste
@@ -1214,7 +1244,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                 <div className="flex items-center justify-between gap-2 p-3">
                   <button
                     onClick={() => setExpandedSessionId(isExpanded ? null : s.id)}
-                    className="flex items-center gap-2 text-left flex-1"
+                    className="flex items-center gap-2 text-left flex-1 cursor-pointer"
                   >
                     <ChevronDown size={14} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                     <span className="font-medium">
@@ -1340,8 +1370,9 @@ function GroupManager({ groups, clients, selectedGroupId, onSelect, onDelete,
           <div key={group.id} className={`bg-white rounded-xl border shadow-sm ${isSelected ? 'border-primary' : 'border-gray-200'}`}>
             <div className="p-4">
               <div className="flex items-start justify-between gap-2">
-                <button onClick={() => onSelect(isSelected ? null : group.id)} className="text-left min-w-0 flex-1">
+                <button onClick={() => onSelect(isSelected ? null : group.id)} className="text-left min-w-0 flex-1 cursor-pointer">
                   <div className="flex items-center gap-2">
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 shrink-0 ${isSelected ? 'rotate-180' : ''}`} />
                     <h3 className="font-semibold text-gray-900 truncate">{group.label || 'Ohne Bezeichnung'}</h3>
                     {group.showOnHomepage && (
                       <span className="shrink-0 text-[10px] font-medium bg-secondary/10 text-secondary px-1.5 py-0.5 rounded">
@@ -1412,19 +1443,16 @@ function GroupManager({ groups, clients, selectedGroupId, onSelect, onDelete,
               </div>
             </div>
             {isSelected && (
-              <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-4">
+              <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
                 {/* Document checklist */}
-                <CollapsibleSection
-                  title="Dokumente"
-                  icon={<FileText size={18} className="text-gray-500" />}
-                >
+                <InlineCollapsible title="Dokumente">
                   <DocumentChecklist contextType="group" contextId={group.id} />
-                </CollapsibleSection>
+                </InlineCollapsible>
 
                 {/* Participants */}
-                <CollapsibleSection
+                <InlineCollapsible
                   title="Teilnehmer"
-                  icon={<Users size={18} className="text-gray-500" />}
+                  count={group.participantCount}
                   defaultOpen={true}
                 >
                   <ParticipantPanel
@@ -1433,7 +1461,7 @@ function GroupManager({ groups, clients, selectedGroupId, onSelect, onDelete,
                     onAdd={(clientId) => onAddParticipant(group.id, clientId)}
                     onRemove={(clientId) => onRemoveParticipant(group.id, clientId)}
                   />
-                </CollapsibleSection>
+                </InlineCollapsible>
 
                 {/* Sessions */}
                 <GroupSessionPanel
@@ -1708,7 +1736,7 @@ function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
           <div className="mt-2 pt-2 border-t border-gray-100">
             <button
               onClick={() => setExpandedDocId(expandedDocId === c.id ? null : c.id)}
-              className="text-xs text-gray-500 hover:text-primary flex items-center gap-1"
+              className="text-xs text-gray-500 hover:text-primary flex items-center gap-1 cursor-pointer"
             >
               <FileText size={12} />
               Dokumente
@@ -2109,8 +2137,11 @@ function TherapyList({ therapies, sessions, selectedTherapyId, onSelect, onDelet
           <div key={t.id} className={`bg-white rounded-xl border shadow-sm ${isSelected ? 'border-primary' : 'border-gray-200'}`}>
             <div className="p-4">
               <div className="flex items-start justify-between gap-2">
-                <button onClick={() => onSelect(isSelected ? null : t.id)} className="text-left min-w-0 flex-1">
-                  <h3 className="font-semibold text-gray-900">{t.label || 'Einzeltherapie'}</h3>
+                <button onClick={() => onSelect(isSelected ? null : t.id)} className="text-left min-w-0 flex-1 cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 shrink-0 ${isSelected ? 'rotate-180' : ''}`} />
+                    <h3 className="font-semibold text-gray-900">{t.label || 'Einzeltherapie'}</h3>
+                  </div>
                   <div className="text-sm text-gray-600">{t.clientName}</div>
                   <div className="mt-1 text-xs text-gray-500 space-y-0.5">
                     {scheduleLabel && <div className="flex items-center gap-1"><Repeat size={12} /> {scheduleLabel}</div>}
@@ -2140,14 +2171,11 @@ function TherapyList({ therapies, sessions, selectedTherapyId, onSelect, onDelet
               </div>
             </div>
             {isSelected && (
-              <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-4">
+              <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
                 {/* Document checklist */}
-                <CollapsibleSection
-                  title="Dokumente"
-                  icon={<FileText size={18} className="text-gray-500" />}
-                >
+                <InlineCollapsible title="Dokumente">
                   <DocumentChecklist contextType="therapy" contextId={t.id} />
-                </CollapsibleSection>
+                </InlineCollapsible>
 
                 {/* Sessions */}
                 <SessionPanel
