@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { apiFetch, setToken, clearToken, isAuthenticated as checkAuth, ApiError } from './api';
-import type { RecurringRule, DayConfig, Event, TherapyGroup } from './data';
+import type { RecurringRule, DayConfig, Event } from './data';
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -55,7 +55,6 @@ export function useAdminBooking() {
   const [rules, setRules] = useState<RecurringRule[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
-  const [groups, setGroups] = useState<TherapyGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,7 +84,6 @@ export function useAdminBooking() {
     setRules([]);
     setEvents([]);
     setBookings([]);
-    setGroups([]);
   }, []);
 
   // ─── Rules ───────────────────────────────────────────────────
@@ -191,57 +189,6 @@ export function useAdminBooking() {
     }
   }, [fetchEvents]);
 
-  // ─── Groups ─────────────────────────────────────────────────
-
-  const fetchGroups = useCallback(async () => {
-    setError(null);
-    try {
-      const data = await apiFetch<TherapyGroup[]>('/admin/groups');
-      setGroups(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Laden der Gruppen');
-    }
-  }, []);
-
-  const addGroup = useCallback(async (group: Omit<TherapyGroup, 'id'>) => {
-    setError(null);
-    try {
-      await apiFetch('/admin/groups', {
-        method: 'POST',
-        body: JSON.stringify(group),
-      });
-      await fetchGroups();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Anlegen');
-    }
-  }, [fetchGroups]);
-
-  const updateGroup = useCallback(async (id: number, updates: Partial<TherapyGroup>) => {
-    setError(null);
-    try {
-      const existing = groups.find(g => g.id === id);
-      if (!existing) return;
-      const merged = { ...existing, ...updates };
-      await apiFetch(`/admin/groups/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(merged),
-      });
-      await fetchGroups();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren');
-    }
-  }, [groups, fetchGroups]);
-
-  const removeGroup = useCallback(async (id: number) => {
-    setError(null);
-    try {
-      await apiFetch(`/admin/groups/${id}`, { method: 'DELETE' });
-      await fetchGroups();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Löschen');
-    }
-  }, [fetchGroups]);
-
   // ─── Bookings ────────────────────────────────────────────────
 
   const fetchBookings = useCallback(async (from?: string, to?: string) => {
@@ -316,7 +263,6 @@ export function useAdminBooking() {
     rules,
     events,
     bookings,
-    groups,
     loading,
     error,
     login,
@@ -333,9 +279,5 @@ export function useAdminBooking() {
     updateBooking,
     sendEmail,
     sendDocument,
-    fetchGroups,
-    addGroup,
-    updateGroup,
-    removeGroup,
   };
 }

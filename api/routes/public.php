@@ -163,7 +163,13 @@ function handleCreateBooking(): void {
  */
 function handleGetActiveGroup(): void {
     $db = getDB();
-    $stmt = $db->query('SELECT * FROM therapy_groups WHERE show_on_homepage = TRUE LIMIT 1');
+    $stmt = $db->query(
+        'SELECT g.*,
+                (SELECT COUNT(*) FROM group_participants gp WHERE gp.group_id = g.id AND gp.status = \'active\') as participant_count
+         FROM therapy_groups g
+         WHERE g.show_on_homepage = TRUE
+         LIMIT 1'
+    );
     $group = $stmt->fetch();
 
     if (!$group) {
@@ -172,11 +178,11 @@ function handleGetActiveGroup(): void {
     }
 
     echo json_encode([
-        'id'                  => (int)$group['id'],
-        'label'               => $group['label'],
-        'maxParticipants'     => (int)$group['max_participants'],
-        'currentParticipants' => (int)$group['current_participants'],
-        'showOnHomepage'      => true,
+        'id'               => (int)$group['id'],
+        'label'            => $group['label'],
+        'maxParticipants'  => (int)$group['max_participants'],
+        'participantCount' => (int)$group['participant_count'],
+        'showOnHomepage'   => true,
     ]);
 }
 

@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo, useLayoutEffect, useCallback, type FormEv
 import { useAdminBooking, type AdminBooking } from '../lib/useAdminBooking';
 import { useAdminClients } from '../lib/useAdminClients';
 import { useAdminTherapies } from '../lib/useAdminTherapies';
+import { useAdminGroups } from '../lib/useAdminGroups';
 import { useDocumentSends, DOCUMENT_DEFINITIONS, CATEGORY_LABELS } from '../lib/useDocumentSends';
 import { generateSlots } from '../lib/useBooking';
-import type { RecurringRule, DayConfig, Event, TherapyGroup, Client, Therapy, TherapySession, TherapyScheduleRule, DocumentDefinition } from '../lib/data';
+import type { RecurringRule, DayConfig, Event, TherapyGroup, Client, Therapy, TherapySession, TherapyScheduleRule, GroupSession, DocumentDefinition } from '../lib/data';
 import {
   format, startOfMonth, addMonths, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameDay, isSameMonth, parseISO,
@@ -850,29 +851,62 @@ function BookingList({ bookings, onUpdate, onSendEmail, onSendDocument, onMigrat
 
 // ─── Group Form ──────────────────────────────────────────────────
 
-interface GroupFormData {
-  label: string;
-  maxParticipants: number;
-  currentParticipants: number;
-  showOnHomepage: boolean;
-}
-
 function GroupForm({ initial, onSave, onCancel }: {
   initial?: TherapyGroup;
-  onSave: (data: Omit<TherapyGroup, 'id'>) => void;
+  onSave: (data: {
+    label: string; maxParticipants: number; showOnHomepage: boolean;
+    startDate?: string | null; endDate?: string | null;
+    sessionCostCents?: number; sessionDurationMinutes?: number;
+    videoLink?: string; notes?: string;
+    schedule: TherapyScheduleRule[];
+  }) => void;
   onCancel?: () => void;
 }) {
-  const [form, setForm] = useState<GroupFormData>({
+  const [form, setForm] = useState({
     label: initial?.label ?? '',
     maxParticipants: initial?.maxParticipants ?? 7,
-    currentParticipants: initial?.currentParticipants ?? 0,
     showOnHomepage: initial?.showOnHomepage ?? false,
+    startDate: initial?.startDate ?? format(new Date(), 'yyyy-MM-dd'),
+    endDate: initial?.endDate ?? '',
+    sessionCostCents: initial?.sessionCostCents ?? 9500,
+    sessionDurationMinutes: initial?.sessionDurationMinutes ?? 90,
+    videoLink: initial?.videoLink ?? '',
+    notes: initial?.notes ?? '',
+    schedule: initial?.schedule?.length ? initial.schedule : [{ dayOfWeek: 1, frequency: 'weekly' as 'weekly' | 'biweekly', time: '16:30' }],
   });
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onSave(form);
-    if (!initial) setForm({ label: '', maxParticipants: 7, currentParticipants: 0, showOnHomepage: false });
+    onSave({
+      label: form.label,
+      maxParticipants: form.maxParticipants,
+      showOnHomepage: form.showOnHomepage,
+      startDate: form.startDate || null,
+      endDate: form.endDate || null,
+      sessionCostCents: form.sessionCostCents,
+      sessionDurationMinutes: form.sessionDurationMinutes,
+      videoLink: form.videoLink || undefined,
+      notes: form.notes || undefined,
+      schedule: form.schedule.filter(s => s.time),
+    });
+  };
+
+  const addScheduleRule = () => {
+    setForm(f => ({
+      ...f,
+      schedule: [...f.schedule, { dayOfWeek: 1, frequency: 'weekly' as 'weekly' | 'biweekly', time: '16:30' }],
+    }));
+  };
+
+  const removeScheduleRule = (idx: number) => {
+    setForm(f => ({ ...f, schedule: f.schedule.filter((_, i) => i !== idx) }));
+  };
+
+  const updateScheduleRule = (idx: number, updates: Partial<TherapyScheduleRule>) => {
+    setForm(f => ({
+      ...f,
+      schedule: f.schedule.map((s, i) => i === idx ? { ...s, ...updates } : s),
+    }));
   };
 
   return (
@@ -903,17 +937,97 @@ function GroupForm({ initial, onSave, onCancel }: {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Aktuelle Teilnehmer</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Sitzungsdauer (Min.)</label>
           <input
             type="number"
-            min="0"
-            max={form.maxParticipants}
-            value={form.currentParticipants}
-            onChange={e => setForm({ ...form, currentParticipants: Number(e.target.value) })}
+            value={form.sessionDurationMinutes}
+            onChange={e => setForm({ ...form, sessionDurationMinutes: Number(e.target.value) })}
             className="w-full border rounded-md px-3 py-2 text-sm"
-            required
           />
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Startdatum</label>
+          <input
+            type="date"
+            value={form.startDate}
+            onChange={e => setForm({ ...form, startDate: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Enddatum (optional)</label>
+          <input
+            type="date"
+            value={form.endDate}
+            onChange={e => setForm({ ...form, endDate: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Kosten pro Sitzung (Cent)</label>
+          <input
+            type="number"
+            value={form.sessionCostCents}
+            onChange={e => setForm({ ...form, sessionCostCents: Number(e.target.value) })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          />
+          <span className="text-xs text-gray-400">{(form.sessionCostCents / 100).toFixed(2)} €</span>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Video-Link</label>
+          <input
+            type="url"
+            value={form.videoLink}
+            onChange={e => setForm({ ...form, videoLink: e.target.value })}
+            placeholder="https://..."
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Zeitplan</label>
+        {form.schedule.map((rule, idx) => (
+          <div key={idx} className="flex items-center gap-2 mb-2">
+            <select
+              value={rule.dayOfWeek}
+              onChange={e => updateScheduleRule(idx, { dayOfWeek: Number(e.target.value) })}
+              className="border rounded-md px-2 py-1.5 text-sm"
+            >
+              {[1, 2, 3, 4, 5, 6, 7].map(d => (
+                <option key={d} value={d}>{DAY_LABELS_LONG[d]}</option>
+              ))}
+            </select>
+            <select
+              value={rule.frequency}
+              onChange={e => updateScheduleRule(idx, { frequency: e.target.value as 'weekly' | 'biweekly' })}
+              className="border rounded-md px-2 py-1.5 text-sm"
+            >
+              <option value="weekly">Wöchentlich</option>
+              <option value="biweekly">2-wöchentlich</option>
+            </select>
+            <input
+              type="time"
+              value={rule.time}
+              onChange={e => updateScheduleRule(idx, { time: e.target.value })}
+              className="border rounded-md px-2 py-1.5 text-sm"
+            />
+            {form.schedule.length > 1 && (
+              <button type="button" onClick={() => removeScheduleRule(idx)} className="p-1 text-gray-400 hover:text-red-500">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        ))}
+        <button type="button" onClick={addScheduleRule} className="text-xs text-primary hover:underline flex items-center gap-1">
+          <Plus size={12} /> Weiteren Termin hinzufügen
+        </button>
       </div>
 
       <label className="flex items-center gap-2 cursor-pointer">
@@ -925,6 +1039,16 @@ function GroupForm({ initial, onSave, onCancel }: {
         />
         <span className="text-sm text-gray-700">Auf Homepage anzeigen</span>
       </label>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
+        <textarea
+          value={form.notes}
+          onChange={e => setForm({ ...form, notes: e.target.value })}
+          rows={2}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+      </div>
 
       <div className="flex gap-2">
         <button
@@ -947,140 +1071,405 @@ function GroupForm({ initial, onSave, onCancel }: {
   );
 }
 
-// ─── Group Manager ───────────────────────────────────────────────
+// ─── Participant Panel ───────────────────────────────────────────
 
-function GroupManager({ groups, editingGroupId, onAdd, onUpdate, onDelete, onToggleHomepage, onEditStart, onEditCancel }: {
-  groups: TherapyGroup[];
-  editingGroupId: number | null;
-  onAdd: (data: Omit<TherapyGroup, 'id'>) => void;
-  onUpdate: (id: number, data: Partial<TherapyGroup>) => void;
-  onDelete: (id: number) => void;
-  onToggleHomepage: (id: number, current: boolean) => void;
-  onEditStart: (id: number) => void;
-  onEditCancel: () => void;
+function ParticipantPanel({ group, clients, onAdd, onRemove }: {
+  group: TherapyGroup;
+  clients: Client[];
+  onAdd: (clientId: number) => void;
+  onRemove: (clientId: number) => void;
 }) {
-  const [expandedDocId, setExpandedDocId] = useState<number | null>(null);
-  const editingGroup = editingGroupId !== null ? groups.find(g => g.id === editingGroupId) : undefined;
+  const [selectedClientId, setSelectedClientId] = useState(0);
+  const activeParticipants = group.participants?.filter(p => p.status === 'active') ?? [];
+  const participantIds = new Set(activeParticipants.map(p => p.clientId));
+  const availableClients = clients.filter(c => !participantIds.has(c.id));
+  const isFull = activeParticipants.length >= group.maxParticipants;
 
   return (
-    <>
-      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          {editingGroup ? (
-            <><Pencil size={20} className="text-primary" /> Gruppe bearbeiten</>
-          ) : (
-            <><Plus size={20} className="text-primary" /> Neue Gruppe</>
-          )}
-        </h2>
-        {editingGroup ? (
-          <GroupForm
-            key={editingGroupId}
-            initial={editingGroup}
-            onSave={data => onUpdate(editingGroupId!, data)}
-            onCancel={onEditCancel}
-          />
-        ) : (
-          <GroupForm onSave={onAdd} />
-        )}
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium text-gray-700">
+          Teilnehmer ({activeParticipants.length} / {group.maxParticipants})
+        </h4>
       </div>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <Users size={20} className="text-gray-500" />
-          Gruppen ({groups.length})
-        </h2>
-        {groups.length === 0 ? (
-          <p className="text-sm text-gray-400 bg-white rounded-xl border border-gray-200 p-6 text-center">
-            Noch keine Gruppen angelegt.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {groups.map(group => {
-              const pct = group.maxParticipants > 0
-                ? Math.round((group.currentParticipants / group.maxParticipants) * 100)
-                : 0;
-              const spotsLeft = group.maxParticipants - group.currentParticipants;
+      {/* Participant list */}
+      {activeParticipants.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-2">Noch keine Teilnehmer.</p>
+      ) : (
+        <div className="space-y-1">
+          {activeParticipants.map(p => (
+            <div key={p.clientId} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+              <div>
+                <span className="font-medium text-gray-900">{p.clientName}</span>
+                <span className="text-gray-500 ml-2">{p.clientEmail}</span>
+              </div>
+              <button
+                onClick={() => { if (confirm(`${p.clientName} wirklich entfernen?`)) onRemove(p.clientId); }}
+                className="p-1 text-gray-400 hover:text-red-500"
+                title="Entfernen"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
-              return (
-                <div key={group.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900 truncate">{group.label || 'Ohne Bezeichnung'}</h3>
-                        {group.showOnHomepage && (
-                          <span className="shrink-0 text-[10px] font-medium bg-secondary/10 text-secondary px-1.5 py-0.5 rounded">
-                            Homepage
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-2">
-                        <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
-                          <span>{group.currentParticipants} / {group.maxParticipants} Teilnehmer</span>
-                          <span className="text-xs text-gray-400">{spotsLeft > 0 ? `${spotsLeft} frei` : 'Voll'}</span>
-                        </div>
-                        <div className="w-full bg-gray-100 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all ${pct >= 100 ? 'bg-red-400' : pct >= 70 ? 'bg-amber-400' : 'bg-primary'}`}
-                            style={{ width: `${Math.min(pct, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <button
-                        onClick={() => onToggleHomepage(group.id, group.showOnHomepage)}
-                        className={`p-1.5 rounded transition-colors ${
-                          group.showOnHomepage
-                            ? 'text-secondary hover:text-secondary/70 hover:bg-gray-100'
-                            : 'text-gray-400 hover:text-secondary hover:bg-gray-100'
-                        }`}
-                        title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}
-                      >
-                        <Home size={16} />
-                      </button>
-                      <button
-                        onClick={() => onEditStart(group.id)}
-                        className="p-1.5 text-gray-400 hover:text-primary rounded hover:bg-gray-100"
-                        title="Bearbeiten"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Gruppe "${group.label || 'Ohne Bezeichnung'}" wirklich löschen?`)) {
-                            onDelete(group.id);
-                          }
-                        }}
-                        className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100"
-                        title="Löschen"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                  {/* Document checklist for groups */}
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <button
-                      onClick={() => setExpandedDocId(expandedDocId === group.id ? null : group.id)}
-                      className="text-xs text-gray-500 hover:text-primary flex items-center gap-1"
-                    >
-                      <FileText size={12} />
-                      Dokument-Checkliste
-                      <ChevronDown size={12} className={`transition-transform ${expandedDocId === group.id ? 'rotate-180' : ''}`} />
-                    </button>
-                    {expandedDocId === group.id && (
-                      <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                        <DocumentChecklist contextType="group" contextId={group.id} />
-                      </div>
+      {/* Add participant */}
+      {!isFull && availableClients.length > 0 && (
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedClientId}
+            onChange={e => setSelectedClientId(Number(e.target.value))}
+            className="flex-1 border rounded-md px-2 py-1.5 text-sm"
+          >
+            <option value={0}>Klient:in auswählen...</option>
+            {availableClients.map(c => (
+              <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+            ))}
+          </select>
+          <button
+            onClick={() => { if (selectedClientId) { onAdd(selectedClientId); setSelectedClientId(0); } }}
+            disabled={!selectedClientId}
+            className="px-3 py-1.5 bg-primary text-white rounded text-sm hover:bg-teal-600 disabled:opacity-50"
+          >
+            Hinzufügen
+          </button>
+        </div>
+      )}
+      {isFull && (
+        <p className="text-xs text-amber-600">Maximale Teilnehmerzahl erreicht.</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Group Session Panel ─────────────────────────────────────────
+
+function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDeleteSession, onUpdatePayment, onSendInvoice }: {
+  group: TherapyGroup;
+  sessions: GroupSession[];
+  onGenerate: (from: string, to: string) => void;
+  onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
+  onDeleteSession: (id: number) => void;
+  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null }) => void;
+  onSendInvoice: (paymentId: number) => void;
+}) {
+  const [genFrom, setGenFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [genTo, setGenTo] = useState(format(addMonths(new Date(), 3), 'yyyy-MM-dd'));
+  const [expandedSessionId, setExpandedSessionId] = useState<number | null>(null);
+
+  const statusLabels: Record<string, string> = {
+    scheduled: 'Geplant',
+    completed: 'Abgeschlossen',
+    cancelled: 'Abgesagt',
+    no_show: 'Nicht erschienen',
+  };
+
+  const statusColors: Record<string, string> = {
+    scheduled: 'bg-blue-50 text-blue-700 border-blue-200',
+    completed: 'bg-green-50 text-green-700 border-green-200',
+    cancelled: 'bg-gray-100 text-gray-500 border-gray-200',
+    no_show: 'bg-red-50 text-red-600 border-red-200',
+  };
+
+  // Payment summary across all sessions and participants
+  const allPayments = sessions.flatMap(s => s.payments);
+  const totalDue = allPayments.filter(p => p.paymentStatus === 'due').length;
+  const totalPaid = allPayments.filter(p => p.paymentStatus === 'paid').length;
+  const amountDue = totalDue * group.sessionCostCents;
+  const amountPaid = totalPaid * group.sessionCostCents;
+
+  return (
+    <div className="space-y-4">
+      {/* Payment Summary */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-blue-50 rounded-lg p-3 text-center">
+          <div className="text-xs text-blue-600 font-medium">Offen</div>
+          <div className="text-lg font-bold text-blue-700">{(amountDue / 100).toFixed(0)} €</div>
+          <div className="text-xs text-blue-500">{totalDue} Zahlungen</div>
+        </div>
+        <div className="bg-green-50 rounded-lg p-3 text-center">
+          <div className="text-xs text-green-600 font-medium">Bezahlt</div>
+          <div className="text-lg font-bold text-green-700">{(amountPaid / 100).toFixed(0)} €</div>
+          <div className="text-xs text-green-500">{totalPaid} Zahlungen</div>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <div className="text-xs text-gray-600 font-medium">Gesamt</div>
+          <div className="text-lg font-bold text-gray-700">{((amountDue + amountPaid) / 100).toFixed(0)} €</div>
+          <div className="text-xs text-gray-500">{sessions.length} Sitzungen</div>
+        </div>
+      </div>
+
+      {/* Generate Sessions */}
+      <div className="bg-gray-50 rounded-lg p-3">
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Sitzungen generieren</h4>
+        <div className="flex items-end gap-2">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Von</label>
+            <input type="date" value={genFrom} onChange={e => setGenFrom(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Bis</label>
+            <input type="date" value={genTo} onChange={e => setGenTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+          </div>
+          <button
+            onClick={() => onGenerate(genFrom, genTo)}
+            className="px-3 py-1.5 bg-primary text-white rounded text-sm hover:bg-teal-600"
+          >
+            Generieren
+          </button>
+        </div>
+      </div>
+
+      {/* Session List */}
+      {sessions.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-4">Noch keine Sitzungen.</p>
+      ) : (
+        <div className="space-y-2">
+          {sessions.map(s => {
+            const isExpanded = expandedSessionId === s.id;
+            const paidCount = s.payments.filter(p => p.paymentStatus === 'paid').length;
+            const totalCount = s.payments.length;
+
+            return (
+              <div key={s.id} className="bg-white rounded-lg border border-gray-200 text-sm">
+                <div className="flex items-center justify-between gap-2 p-3">
+                  <button
+                    onClick={() => setExpandedSessionId(isExpanded ? null : s.id)}
+                    className="flex items-center gap-2 text-left flex-1"
+                  >
+                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    <span className="font-medium">
+                      {format(parseISO(s.sessionDate), 'd. MMM yyyy', { locale: de })}
+                    </span>
+                    <span className="text-gray-500">{s.sessionTime} Uhr</span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded border ${statusColors[s.status]}`}>
+                      {statusLabels[s.status]}
+                    </span>
+                    {totalCount > 0 && (
+                      <span className="text-xs text-gray-400">{paidCount}/{totalCount} bezahlt</span>
                     )}
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <select
+                      value={s.status}
+                      onChange={e => onUpdateSession(s.id, { status: e.target.value as GroupSession['status'] })}
+                      className="text-xs border rounded px-1.5 py-1"
+                    >
+                      <option value="scheduled">Geplant</option>
+                      <option value="completed">Abgeschlossen</option>
+                      <option value="cancelled">Abgesagt</option>
+                      <option value="no_show">Nicht erschienen</option>
+                    </select>
+                    <button
+                      onClick={() => { if (confirm('Sitzung löschen?')) onDeleteSession(s.id); }}
+                      className="p-1 text-gray-400 hover:text-red-500 rounded"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
-              );
-            })}
+                {/* Expandable per-participant payment rows */}
+                {isExpanded && (
+                  <div className="border-t border-gray-100 px-3 pb-3 pt-2 space-y-1">
+                    {s.payments.length === 0 ? (
+                      <p className="text-xs text-gray-400">Keine Zahlungen (keine Teilnehmer).</p>
+                    ) : (
+                      s.payments.map(p => (
+                        <div key={p.id} className="flex items-center justify-between bg-gray-50 rounded px-2 py-1.5 text-xs">
+                          <span className="font-medium text-gray-700">{p.clientName}</span>
+                          <div className="flex items-center gap-1">
+                            <span className={`px-1.5 py-0.5 rounded border ${
+                              p.paymentStatus === 'paid' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-amber-50 text-amber-600 border-amber-200'
+                            }`}>
+                              {p.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
+                            </span>
+                            <button
+                              onClick={() => onUpdatePayment(p.id, {
+                                paymentStatus: p.paymentStatus === 'paid' ? 'due' : 'paid',
+                                paymentPaidDate: p.paymentStatus === 'paid' ? null : format(new Date(), 'yyyy-MM-dd'),
+                              })}
+                              className={`p-0.5 rounded ${p.paymentStatus === 'paid' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'}`}
+                              title={p.paymentStatus === 'paid' ? 'Als offen markieren' : 'Als bezahlt markieren'}
+                            >
+                              <Euro size={12} />
+                            </button>
+                            <button
+                              onClick={() => onSendInvoice(p.id)}
+                              disabled={p.invoiceSent}
+                              className={`p-0.5 rounded ${p.invoiceSent ? 'text-green-400 cursor-default' : 'text-gray-400 hover:text-primary'}`}
+                              title={p.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}
+                            >
+                              {p.invoiceSent ? <MailCheck size={12} /> : <FileText size={12} />}
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Group Manager ───────────────────────────────────────────────
+
+function GroupManager({ groups, clients, selectedGroupId, onSelect, onDelete,
+  onToggleHomepage, onAddParticipant, onRemoveParticipant,
+  groupSessions, onGenerateSessions, onUpdateSession, onDeleteSession,
+  onUpdatePayment, onSendInvoice }: {
+  groups: TherapyGroup[];
+  clients: Client[];
+  selectedGroupId: number | null;
+  onSelect: (id: number | null) => void;
+  onDelete: (id: number) => void;
+  onToggleHomepage: (id: number, current: boolean) => void;
+  onAddParticipant: (groupId: number, clientId: number) => void;
+  onRemoveParticipant: (groupId: number, clientId: number) => void;
+  groupSessions: GroupSession[];
+  onGenerateSessions: (groupId: number, from: string, to: string) => void;
+  onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
+  onDeleteSession: (id: number, groupId: number) => void;
+  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null }) => void;
+  onSendInvoice: (paymentId: number) => void;
+}) {
+  if (groups.length === 0) {
+    return (
+      <p className="text-sm text-gray-400 bg-white rounded-xl border border-gray-200 p-6 text-center">
+        Noch keine Gruppen angelegt.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {groups.map(group => {
+        const isSelected = selectedGroupId === group.id;
+        const pct = group.maxParticipants > 0
+          ? Math.round((group.participantCount / group.maxParticipants) * 100)
+          : 0;
+        const spotsLeft = group.maxParticipants - group.participantCount;
+        const scheduleLabel = group.schedule
+          ?.map(s => `${DAY_LABELS[s.dayOfWeek]} ${s.time}${s.frequency === 'biweekly' ? ' (2-wöch.)' : ''}`)
+          .join(', ');
+
+        return (
+          <div key={group.id} className={`bg-white rounded-xl border shadow-sm ${isSelected ? 'border-primary' : 'border-gray-200'}`}>
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <button onClick={() => onSelect(isSelected ? null : group.id)} className="text-left min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900 truncate">{group.label || 'Ohne Bezeichnung'}</h3>
+                    {group.showOnHomepage && (
+                      <span className="shrink-0 text-[10px] font-medium bg-secondary/10 text-secondary px-1.5 py-0.5 rounded">
+                        Homepage
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500 space-y-0.5">
+                    {scheduleLabel && <div className="flex items-center gap-1"><Repeat size={12} /> {scheduleLabel}</div>}
+                    {group.startDate && (
+                      <div className="flex items-center gap-1">
+                        <CalendarIcon size={12} />
+                        Ab {format(parseISO(group.startDate), 'd. MMM yyyy', { locale: de })}
+                        {group.endDate && ` bis ${format(parseISO(group.endDate), 'd. MMM yyyy', { locale: de })}`}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <Euro size={12} /> {(group.sessionCostCents / 100).toFixed(0)} € · {group.sessionDurationMinutes} Min.
+                    </div>
+                    {group.videoLink && (
+                      <a href={group.videoLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline" onClick={e => e.stopPropagation()}>
+                        <Video size={12} /> Video-Link
+                      </a>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
+                      <span>{group.participantCount} / {group.maxParticipants} Teilnehmer</span>
+                      <span className="text-xs text-gray-400">{spotsLeft > 0 ? `${spotsLeft} frei` : 'Voll'}</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${pct >= 100 ? 'bg-red-400' : pct >= 70 ? 'bg-amber-400' : 'bg-primary'}`}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </button>
+                <div className="flex gap-1 shrink-0">
+                  <button
+                    onClick={() => onToggleHomepage(group.id, group.showOnHomepage)}
+                    className={`p-1.5 rounded transition-colors ${
+                      group.showOnHomepage
+                        ? 'text-secondary hover:text-secondary/70 hover:bg-gray-100'
+                        : 'text-gray-400 hover:text-secondary hover:bg-gray-100'
+                    }`}
+                    title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}
+                  >
+                    <Home size={16} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Gruppe "${group.label || 'Ohne Bezeichnung'}" wirklich löschen?`)) {
+                        onDelete(group.id);
+                      }
+                    }}
+                    className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100"
+                    title="Löschen"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+            {isSelected && (
+              <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-4">
+                {/* Document checklist */}
+                <CollapsibleSection
+                  title="Dokumente"
+                  icon={<FileText size={18} className="text-gray-500" />}
+                >
+                  <DocumentChecklist contextType="group" contextId={group.id} />
+                </CollapsibleSection>
+
+                {/* Participants */}
+                <CollapsibleSection
+                  title="Teilnehmer"
+                  icon={<Users size={18} className="text-gray-500" />}
+                  defaultOpen={true}
+                >
+                  <ParticipantPanel
+                    group={group}
+                    clients={clients}
+                    onAdd={(clientId) => onAddParticipant(group.id, clientId)}
+                    onRemove={(clientId) => onRemoveParticipant(group.id, clientId)}
+                  />
+                </CollapsibleSection>
+
+                {/* Sessions */}
+                <GroupSessionPanel
+                  group={group}
+                  sessions={groupSessions}
+                  onGenerate={(from, to) => onGenerateSessions(group.id, from, to)}
+                  onUpdateSession={onUpdateSession}
+                  onDeleteSession={(id) => onDeleteSession(id, group.id)}
+                  onUpdatePayment={onUpdatePayment}
+                  onSendInvoice={onSendInvoice}
+                />
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1711,11 +2100,10 @@ export default function Admin() {
   }, []);
 
   const {
-    authenticated, rules, events, bookings, groups, loading, error,
+    authenticated, rules, events, bookings, loading, error,
     login, logout, fetchRules, addRule, updateRule, removeRule,
     toggleException, fetchEvents, addEvent, removeEvent,
     fetchBookings, updateBooking, sendEmail, sendDocument,
-    fetchGroups, addGroup, updateGroup, removeGroup,
   } = useAdminBooking();
 
   const {
@@ -1729,12 +2117,22 @@ export default function Admin() {
     fetchSessions, generateSessions, updateSession, removeSession, sendInvoice,
   } = useAdminTherapies();
 
+  const {
+    groups, groupSessions, error: groupsError,
+    fetchGroups, addGroup, updateGroup, removeGroup,
+    addParticipant, removeParticipant,
+    fetchGroupSessions, generateGroupSessions,
+    updateGroupSession, removeGroupSession,
+    updatePayment, sendGroupInvoice,
+  } = useAdminGroups();
+
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('rules');
-  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [showNewGroup, setShowNewGroup] = useState(false);
   const [editingClientId, setEditingClientId] = useState<number | null>(null);
   const [showNewClient, setShowNewClient] = useState(false);
   const [showNewTherapy, setShowNewTherapy] = useState(false);
@@ -1752,6 +2150,13 @@ export default function Admin() {
       fetchTherapies();
     }
   }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchClients, fetchTherapies]);
+
+  // Load group sessions when group selected
+  useEffect(() => {
+    if (selectedGroupId) {
+      fetchGroupSessions(selectedGroupId);
+    }
+  }, [selectedGroupId, fetchGroupSessions]);
 
   // Load sessions when therapy selected
   useEffect(() => {
@@ -1786,7 +2191,7 @@ export default function Admin() {
     setActiveTab('einzel');
   }, []);
 
-  const combinedError = error || clientsError || therapiesError;
+  const combinedError = error || clientsError || therapiesError || groupsError;
 
   if (!authenticated) {
     return (
@@ -2087,16 +2492,45 @@ export default function Admin() {
         )}
 
         {activeTab === 'groups' && (
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-4xl space-y-6">
+            {showNewGroup ? (
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Plus size={20} className="text-primary" />
+                  Neue Gruppe
+                </h2>
+                <GroupForm
+                  onSave={async (data) => {
+                    await addGroup(data);
+                    setShowNewGroup(false);
+                  }}
+                  onCancel={() => setShowNewGroup(false)}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowNewGroup(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-teal-600 text-sm font-medium"
+              >
+                <Plus size={16} /> Neue Gruppe
+              </button>
+            )}
+
             <GroupManager
               groups={groups}
-              editingGroupId={editingGroupId}
-              onAdd={async (g) => { await addGroup(g); setEditingGroupId(null); }}
-              onUpdate={async (id, g) => { await updateGroup(id, g); setEditingGroupId(null); }}
+              clients={clients}
+              selectedGroupId={selectedGroupId}
+              onSelect={setSelectedGroupId}
               onDelete={removeGroup}
               onToggleHomepage={(id, current) => updateGroup(id, { showOnHomepage: !current })}
-              onEditStart={setEditingGroupId}
-              onEditCancel={() => setEditingGroupId(null)}
+              onAddParticipant={addParticipant}
+              onRemoveParticipant={removeParticipant}
+              groupSessions={groupSessions}
+              onGenerateSessions={async (gid, from, to) => { await generateGroupSessions(gid, from, to); }}
+              onUpdateSession={(id, updates) => updateGroupSession(id, updates)}
+              onDeleteSession={(id, gid) => removeGroupSession(id, gid)}
+              onUpdatePayment={(pid, updates) => updatePayment(pid, updates, selectedGroupId ?? undefined)}
+              onSendInvoice={(pid) => sendGroupInvoice(pid, selectedGroupId ?? undefined)}
             />
           </div>
         )}

@@ -26,6 +26,7 @@ require_once __DIR__ . '/routes/public.php';
 require_once __DIR__ . '/routes/admin.php';
 require_once __DIR__ . '/routes/clients.php';
 require_once __DIR__ . '/routes/therapies.php';
+require_once __DIR__ . '/routes/groups.php';
 
 // Parse request
 $method = $_SERVER['REQUEST_METHOD'];
@@ -134,6 +135,11 @@ if ($method === 'GET' && $uri === '/admin/groups') {
     exit;
 }
 
+if ($method === 'GET' && preg_match('#^/admin/groups/(\d+)$#', $uri, $m)) {
+    handleGetGroup((int)$m[1]);
+    exit;
+}
+
 if ($method === 'POST' && $uri === '/admin/groups') {
     handleCreateGroup();
     exit;
@@ -146,6 +152,60 @@ if ($method === 'PUT' && preg_match('#^/admin/groups/(\d+)$#', $uri, $m)) {
 
 if ($method === 'DELETE' && preg_match('#^/admin/groups/(\d+)$#', $uri, $m)) {
     handleDeleteGroup((int)$m[1]);
+    exit;
+}
+
+// Admin: group participants
+if ($method === 'POST' && preg_match('#^/admin/groups/(\d+)/participants$#', $uri, $m)) {
+    handleAddParticipant((int)$m[1]);
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/groups/(\d+)/participants/(\d+)$#', $uri, $m)) {
+    handleRemoveParticipant((int)$m[1], (int)$m[2]);
+    exit;
+}
+
+// Admin: group schedule exceptions
+if ($method === 'POST' && preg_match('#^/admin/groups/(\d+)/exceptions$#', $uri, $m)) {
+    handleToggleGroupException((int)$m[1]);
+    exit;
+}
+
+// Admin: group sessions
+if ($method === 'GET' && preg_match('#^/admin/groups/(\d+)/sessions$#', $uri, $m)) {
+    handleGetGroupSessions((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/groups/(\d+)/sessions$#', $uri, $m)) {
+    handleCreateGroupSession((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/groups/(\d+)/sessions/generate$#', $uri, $m)) {
+    handleGenerateGroupSessions((int)$m[1]);
+    exit;
+}
+
+if ($method === 'PATCH' && preg_match('#^/admin/group-sessions/(\d+)$#', $uri, $m)) {
+    handleUpdateGroupSession((int)$m[1]);
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/group-sessions/(\d+)$#', $uri, $m)) {
+    handleDeleteGroupSession((int)$m[1]);
+    exit;
+}
+
+// Admin: group session payments
+if ($method === 'PATCH' && preg_match('#^/admin/group-session-payments/(\d+)$#', $uri, $m)) {
+    handleUpdateGroupPayment((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/group-session-payments/(\d+)/invoice$#', $uri, $m)) {
+    handleSendGroupInvoice((int)$m[1]);
     exit;
 }
 

@@ -58,8 +58,51 @@ export interface TherapyGroup {
   id: number;
   label: string;
   maxParticipants: number;
-  currentParticipants: number;
+  participantCount: number;
   showOnHomepage: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  status: 'active' | 'archived';
+  videoLink: string | null;
+  sessionCostCents: number;
+  sessionDurationMinutes: number;
+  notes: string | null;
+  createdAt: string;
+  schedule: TherapyScheduleRule[];
+  exceptions?: string[];
+  participants?: GroupParticipant[];
+}
+
+export interface GroupParticipant {
+  clientId: number;
+  clientName: string;
+  clientEmail: string;
+  joinedAt: string;
+  status: 'active' | 'left';
+}
+
+export interface GroupSession {
+  id: number;
+  groupId: number;
+  sessionDate: string;
+  sessionTime: string;
+  durationMinutes: number;
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+  notes: string | null;
+  createdAt: string;
+  payments: GroupSessionPayment[];
+}
+
+export interface GroupSessionPayment {
+  id: number;
+  groupSessionId: number;
+  clientId: number;
+  clientName: string;
+  paymentStatus: 'due' | 'paid';
+  paymentDueDate: string | null;
+  paymentPaidDate: string | null;
+  invoiceSent: boolean;
+  invoiceSentAt: string | null;
 }
 
 export interface Client {
