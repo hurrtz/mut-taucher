@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
+require_once __DIR__ . '/clients.php';
 
 // ─── Helper: format group row ────────────────────────────────────
 
@@ -88,16 +89,16 @@ function handleGetGroup(int $id): void {
 
     // Add participants
     $partStmt = $db->prepare(
-        'SELECT gp.client_id, c.name as client_name, c.email as client_email, gp.joined_at, gp.status
+        'SELECT gp.client_id, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix, c.email as client_email, gp.joined_at, gp.status
          FROM group_participants gp
          JOIN clients c ON gp.client_id = c.id
          WHERE gp.group_id = ?
-         ORDER BY gp.joined_at'
+         ORDER BY c.last_name, c.first_name'
     );
     $partStmt->execute([$id]);
     $result['participants'] = array_map(fn($p) => [
         'clientId'    => (int)$p['client_id'],
-        'clientName'  => $p['client_name'],
+        'clientName'  => composeClientName($p['client_title'], $p['client_first_name'], $p['client_last_name'], $p['client_suffix']),
         'clientEmail' => $p['client_email'],
         'joinedAt'    => $p['joined_at'],
         'status'      => $p['status'],
@@ -420,11 +421,11 @@ function handleGetGroupSessions(int $groupId): void {
     foreach ($sessions as $s) {
         // Get payment rows for this session
         $payStmt = $db->prepare(
-            'SELECT gsp.*, c.name as client_name
+            'SELECT gsp.*, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix
              FROM group_session_payments gsp
              JOIN clients c ON gsp.client_id = c.id
              WHERE gsp.group_session_id = ?
-             ORDER BY c.name'
+             ORDER BY c.last_name, c.first_name'
         );
         $payStmt->execute([$s['id']]);
         $payments = $payStmt->fetchAll();
@@ -442,7 +443,7 @@ function handleGetGroupSessions(int $groupId): void {
                 'id'              => (int)$p['id'],
                 'groupSessionId'  => (int)$p['group_session_id'],
                 'clientId'        => (int)$p['client_id'],
-                'clientName'      => $p['client_name'],
+                'clientName'      => composeClientName($p['client_title'], $p['client_first_name'], $p['client_last_name'], $p['client_suffix']),
                 'paymentStatus'   => $p['payment_status'],
                 'paymentDueDate'  => $p['payment_due_date'],
                 'paymentPaidDate' => $p['payment_paid_date'],
@@ -732,7 +733,8 @@ function handleSendGroupInvoice(int $paymentId): void {
     $stmt = $db->prepare(
         'SELECT gsp.*, gs.session_date, gs.session_time, gs.duration_minutes,
                 g.session_cost_cents, g.label as group_label,
-                c.name as client_name, c.email as client_email,
+                c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix,
+                c.email as client_email,
                 c.street as client_street, c.zip as client_zip,
                 c.city as client_city, c.country as client_country
          FROM group_session_payments gsp
@@ -750,7 +752,7 @@ function handleSendGroupInvoice(int $paymentId): void {
         return;
     }
 
-    $clientName = $payment['client_name'];
+    $clientName = composeClientName($payment['client_title'], $payment['client_first_name'], $payment['client_last_name'], $payment['client_suffix']);
     $dateFormatted = date('d.m.Y', strtotime($payment['session_date']));
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
     $siteUrl = $config['site_url'] ?? '';

@@ -10,7 +10,7 @@ export default function Booking() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<PublicSlot | null>(null);
-  const [bookingForm, setBookingForm] = useState({ name: '', email: '' });
+  const [bookingForm, setBookingForm] = useState({ firstName: '', lastName: '', email: '' });
   const [isSuccess, setIsSuccess] = useState(false);
 
   const monthStart = startOfMonth(currentMonth);
@@ -29,13 +29,14 @@ export default function Booking() {
 
   const handleBook = async (e: FormEvent) => {
     e.preventDefault();
-    if (!selectedSlot || !bookingForm.name || !bookingForm.email) return;
+    if (!selectedSlot || !bookingForm.firstName || !bookingForm.lastName || !bookingForm.email) return;
 
     const result = await bookSlot(
       { ruleId: selectedSlot.ruleId, eventId: selectedSlot.eventId },
       selectedSlot.date,
       selectedSlot.time,
-      bookingForm.name,
+      bookingForm.firstName,
+      bookingForm.lastName,
       bookingForm.email,
     );
 
@@ -45,7 +46,7 @@ export default function Booking() {
       setTimeout(() => {
         setIsSuccess(false);
         setSelectedSlot(null);
-        setBookingForm({ name: '', email: '' });
+        setBookingForm({ firstName: '', lastName: '', email: '' });
         // Refresh slots to reflect the booking
         fetchSlots(calendarStart, calendarEnd);
       }, 3000);
@@ -170,7 +171,7 @@ export default function Booking() {
                   <CheckCircle className="h-8 w-8 text-green-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Termin bestätigt!</h3>
-                <p className="text-gray-600">Vielen Dank, {bookingForm.name}.<br/>Eine Bestätigung wurde an {bookingForm.email} gesendet.</p>
+                <p className="text-gray-600">Vielen Dank, {bookingForm.firstName}.<br/>Eine Bestätigung wurde an {bookingForm.email} gesendet.</p>
               </div>
             ) : (
               <div className="space-y-6 animate-in slide-in-from-right duration-300">
@@ -221,17 +222,31 @@ export default function Booking() {
 
                 {selectedSlot && (
                   <form onSubmit={handleBook} className="space-y-4 pt-4 border-t border-gray-200">
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                      <input
-                        type="text"
-                        id="name"
-                        required
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                        value={bookingForm.name}
-                        onChange={e => setBookingForm({...bookingForm, name: e.target.value})}
-                        placeholder="Ihr Name"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">Vorname</label>
+                        <input
+                          type="text"
+                          id="firstName"
+                          required
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                          value={bookingForm.firstName}
+                          onChange={e => setBookingForm({...bookingForm, firstName: e.target.value})}
+                          placeholder="Vorname"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">Nachname</label>
+                        <input
+                          type="text"
+                          id="lastName"
+                          required
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                          value={bookingForm.lastName}
+                          onChange={e => setBookingForm({...bookingForm, lastName: e.target.value})}
+                          placeholder="Nachname"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>

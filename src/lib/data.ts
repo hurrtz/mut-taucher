@@ -107,7 +107,11 @@ export interface GroupSessionPayment {
 
 export interface Client {
   id: number;
-  name: string;
+  title: string | null;
+  firstName: string;
+  lastName: string;
+  suffix: string | null;
+  name: string; // composed by backend
   email: string;
   phone: string | null;
   street: string | null;

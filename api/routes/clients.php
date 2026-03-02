@@ -3,6 +3,13 @@
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
 
+/**
+ * Compose a display name from structured parts.
+ */
+function composeClientName(?string $title, string $firstName, string $lastName, ?string $suffix): string {
+    return trim(implode(' ', array_filter([$title, $firstName, $lastName, $suffix])));
+}
+
 // ─── Clients CRUD ───────────────────────────────────────────────
 
 /**
@@ -24,7 +31,11 @@ function handleGetClients(): void {
 
     $result = array_map(fn($c) => [
         'id'           => (int)$c['id'],
-        'name'         => $c['name'],
+        'title'        => $c['title'],
+        'firstName'    => $c['first_name'],
+        'lastName'     => $c['last_name'],
+        'suffix'       => $c['suffix'],
+        'name'         => composeClientName($c['title'], $c['first_name'], $c['last_name'], $c['suffix']),
         'email'        => $c['email'],
         'phone'        => $c['phone'],
         'street'       => $c['street'],
@@ -66,7 +77,11 @@ function handleGetClient(int $id): void {
 
     echo json_encode([
         'id'           => (int)$c['id'],
-        'name'         => $c['name'],
+        'title'        => $c['title'],
+        'firstName'    => $c['first_name'],
+        'lastName'     => $c['last_name'],
+        'suffix'       => $c['suffix'],
+        'name'         => composeClientName($c['title'], $c['first_name'], $c['last_name'], $c['suffix']),
         'email'        => $c['email'],
         'phone'        => $c['phone'],
         'street'       => $c['street'],
@@ -84,27 +99,31 @@ function handleGetClient(int $id): void {
 
 /**
  * POST /api/admin/clients
- * Body: { name, email, phone?, notes? }
+ * Body: { title?, firstName, lastName, suffix?, email, phone?, notes? }
  */
 function handleCreateClient(): void {
     requireAuth();
     $input = json_decode(file_get_contents('php://input'), true);
     $db = getDB();
 
-    $name = $input['name'] ?? '';
+    $firstName = $input['firstName'] ?? '';
+    $lastName = $input['lastName'] ?? '';
     $email = $input['email'] ?? '';
 
-    if (!$name || !$email) {
+    if (!$firstName || !$lastName || !$email) {
         http_response_code(400);
-        echo json_encode(['error' => 'Name und E-Mail sind erforderlich']);
+        echo json_encode(['error' => 'Vorname, Nachname und E-Mail sind erforderlich']);
         return;
     }
 
     $stmt = $db->prepare(
-        'INSERT INTO clients (name, email, phone, street, zip, city, country, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO clients (title, first_name, last_name, suffix, email, phone, street, zip, city, country, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
-        $name,
+        $input['title'] ?? null,
+        $firstName,
+        $lastName,
+        $input['suffix'] ?? null,
         $email,
         $input['phone'] ?? null,
         $input['street'] ?? null,
@@ -126,10 +145,13 @@ function handleUpdateClient(int $id): void {
     $db = getDB();
 
     $stmt = $db->prepare(
-        'UPDATE clients SET name = ?, email = ?, phone = ?, street = ?, zip = ?, city = ?, country = ?, notes = ?, status = ? WHERE id = ?'
+        'UPDATE clients SET title = ?, first_name = ?, last_name = ?, suffix = ?, email = ?, phone = ?, street = ?, zip = ?, city = ?, country = ?, notes = ?, status = ? WHERE id = ?'
     );
     $stmt->execute([
-        $input['name'] ?? '',
+        $input['title'] ?? null,
+        $input['firstName'] ?? '',
+        $input['lastName'] ?? '',
+        $input['suffix'] ?? null,
         $input['email'] ?? '',
         $input['phone'] ?? null,
         $input['street'] ?? null,
@@ -197,9 +219,14 @@ function handleMigrateBookingToClient(int $bookingId): void {
     }
 
     $stmt = $db->prepare(
-        'INSERT INTO clients (name, email, booking_id) VALUES (?, ?, ?)'
+        'INSERT INTO clients (first_name, last_name, email, booking_id) VALUES (?, ?, ?, ?)'
     );
-    $stmt->execute([$booking['client_name'], $booking['client_email'], $bookingId]);
+    $stmt->execute([
+        $booking['client_first_name'],
+        $booking['client_last_name'],
+        $booking['client_email'],
+        $bookingId,
+    ]);
 
     echo json_encode([
         'id' => (int)$db->lastInsertId(),

@@ -1102,7 +1102,7 @@ function ParticipantPanel({ group, clients, onAdd, onRemove }: {
           >
             <option value={0}>Klient:in auswählen...</option>
             {availableClients.map(c => (
-              <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+              <option key={c.id} value={c.id}>{c.lastName}, {c.firstName} ({c.email})</option>
             ))}
           </select>
           <button
@@ -1453,13 +1453,16 @@ function GroupManager({ groups, clients, selectedGroupId, onSelect, onDelete,
 
 function ClientForm({ initial, onSave, onCancel }: {
   initial?: Client;
-  onSave: (data: { name: string; email: string; phone?: string; street?: string; zip?: string; city?: string; country?: string; notes?: string; status?: 'active' | 'archived' }) => void;
+  onSave: (data: { title?: string; firstName: string; lastName: string; suffix?: string; email: string; phone?: string; street?: string; zip?: string; city?: string; country?: string; notes?: string; status?: 'active' | 'archived' }) => void;
   onCancel?: () => void;
 }) {
   const [form, setForm] = useState<{
-    name: string; email: string; phone: string; street: string; zip: string; city: string; country: string; notes: string; status: 'active' | 'archived';
+    title: string; firstName: string; lastName: string; suffix: string; email: string; phone: string; street: string; zip: string; city: string; country: string; notes: string; status: 'active' | 'archived';
   }>({
-    name: initial?.name ?? '',
+    title: initial?.title ?? '',
+    firstName: initial?.firstName ?? '',
+    lastName: initial?.lastName ?? '',
+    suffix: initial?.suffix ?? '',
     email: initial?.email ?? '',
     phone: initial?.phone ?? '',
     street: initial?.street ?? '',
@@ -1473,7 +1476,10 @@ function ClientForm({ initial, onSave, onCancel }: {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     onSave({
-      name: form.name,
+      title: form.title || undefined,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      suffix: form.suffix || undefined,
       email: form.email,
       phone: form.phone || undefined,
       street: form.street || undefined,
@@ -1483,32 +1489,64 @@ function ClientForm({ initial, onSave, onCancel }: {
       notes: form.notes || undefined,
       status: form.status,
     });
-    if (!initial) setForm({ name: '', email: '', phone: '', street: '', zip: '', city: '', country: 'Deutschland', notes: '', status: 'active' });
+    if (!initial) setForm({ title: '', firstName: '', lastName: '', suffix: '', email: '', phone: '', street: '', zip: '', city: '', country: 'Deutschland', notes: '', status: 'active' });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Anrede</label>
+          <select
+            value={form.title}
+            onChange={e => setForm({ ...form, title: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          >
+            <option value="">–</option>
+            <option value="Herr">Herr</option>
+            <option value="Frau">Frau</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Vorname</label>
           <input
             type="text"
-            value={form.name}
-            onChange={e => setForm({ ...form, name: e.target.value })}
+            value={form.firstName}
+            onChange={e => setForm({ ...form, firstName: e.target.value })}
             className="w-full border rounded-md px-3 py-2 text-sm"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nachname</label>
           <input
-            type="email"
-            value={form.email}
-            onChange={e => setForm({ ...form, email: e.target.value })}
+            type="text"
+            value={form.lastName}
+            onChange={e => setForm({ ...form, lastName: e.target.value })}
             className="w-full border rounded-md px-3 py-2 text-sm"
             required
           />
         </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Suffix</label>
+          <input
+            type="text"
+            value={form.suffix}
+            onChange={e => setForm({ ...form, suffix: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            placeholder="z.B. M.A."
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
+        <input
+          type="email"
+          value={form.email}
+          onChange={e => setForm({ ...form, email: e.target.value })}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+          required
+        />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
@@ -1618,7 +1656,7 @@ function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-gray-900">{c.name}</h3>
+                <h3 className="font-semibold text-gray-900">{c.lastName}, {c.firstName}</h3>
                 {c.status === 'archived' && (
                   <span className="text-[10px] font-medium bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Archiviert</span>
                 )}
@@ -1650,7 +1688,7 @@ function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
               </button>
               <button
                 onClick={() => {
-                  if (confirm(`Klient:in "${c.name}" wirklich löschen?`)) onDelete(c.id);
+                  if (confirm(`Klient:in "${c.firstName} ${c.lastName}" wirklich löschen?`)) onDelete(c.id);
                 }}
                 className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100"
                 title="Löschen"
@@ -1753,7 +1791,7 @@ function TherapyForm({ clients, initialClientId, onSave, onCancel }: {
         >
           <option value={0}>Bitte wählen...</option>
           {clients.map(c => (
-            <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+            <option key={c.id} value={c.id}>{c.lastName}, {c.firstName} ({c.email})</option>
           ))}
         </select>
       </div>

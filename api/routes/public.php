@@ -36,14 +36,15 @@ function handleGetSlots(): void {
 function handleCreateBooking(): void {
     $input = json_decode(file_get_contents('php://input'), true);
 
-    $ruleId  = $input['ruleId']  ?? null;
-    $eventId = $input['eventId'] ?? null;
-    $date    = $input['date']    ?? '';
-    $time    = $input['time']    ?? '';
-    $name    = trim($input['name']  ?? '');
-    $email   = trim($input['email'] ?? '');
+    $ruleId    = $input['ruleId']  ?? null;
+    $eventId   = $input['eventId'] ?? null;
+    $date      = $input['date']    ?? '';
+    $time      = $input['time']    ?? '';
+    $firstName = trim($input['firstName'] ?? '');
+    $lastName  = trim($input['lastName']  ?? '');
+    $email     = trim($input['email'] ?? '');
 
-    if ((!$ruleId && !$eventId) || !$date || !$time || !$name || !$email) {
+    if ((!$ruleId && !$eventId) || !$date || !$time || !$firstName || !$lastName || !$email) {
         http_response_code(400);
         echo json_encode(['error' => 'Alle Felder sind erforderlich']);
         return;
@@ -110,10 +111,10 @@ function handleCreateBooking(): void {
     // Insert booking
     try {
         $stmt = $db->prepare(
-            'INSERT INTO bookings (rule_id, event_id, booking_date, booking_time, duration_minutes, client_name, client_email)
-             VALUES (?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO bookings (rule_id, event_id, booking_date, booking_time, duration_minutes, client_first_name, client_last_name, client_email)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
-        $stmt->execute([$ruleId, $eventId, $date, $time, $durationMinutes, $name, $email]);
+        $stmt->execute([$ruleId, $eventId, $date, $time, $durationMinutes, $firstName, $lastName, $email]);
 
         $bookingId = $db->lastInsertId();
 
@@ -123,7 +124,7 @@ function handleCreateBooking(): void {
             $config = require __DIR__ . '/../config.php';
             $mailer = new Mailer();
 
-            $clientName = $name;
+            $clientName = "$firstName $lastName";
             $dateFormatted = date('d.m.Y', strtotime($date));
             $duration = $durationMinutes;
             $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
@@ -135,7 +136,7 @@ function handleCreateBooking(): void {
 
             $mailer->send(
                 $email,
-                $name,
+                $clientName,
                 'Terminbestätigung — ' . ($config['therapist_name'] ?? 'Mut-Taucher'),
                 $htmlBody
             );

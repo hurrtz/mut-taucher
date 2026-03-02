@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
+require_once __DIR__ . '/clients.php';
 
 // ─── Therapies CRUD ─────────────────────────────────────────────
 
@@ -14,7 +15,7 @@ function handleGetTherapies(): void {
     $status = $_GET['status'] ?? 'active';
 
     $stmt = $db->prepare(
-        'SELECT t.*, c.name as client_name, c.email as client_email
+        'SELECT t.*, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix, c.email as client_email
          FROM therapies t
          JOIN clients c ON t.client_id = c.id
          WHERE t.status = ?
@@ -34,7 +35,7 @@ function handleGetTherapies(): void {
         $result[] = [
             'id'                     => (int)$t['id'],
             'clientId'               => (int)$t['client_id'],
-            'clientName'             => $t['client_name'],
+            'clientName'             => composeClientName($t['client_title'], $t['client_first_name'], $t['client_last_name'], $t['client_suffix']),
             'clientEmail'            => $t['client_email'],
             'label'                  => $t['label'],
             'startDate'              => $t['start_date'],
@@ -64,7 +65,7 @@ function handleGetTherapy(int $id): void {
     $db = getDB();
 
     $stmt = $db->prepare(
-        'SELECT t.*, c.name as client_name, c.email as client_email
+        'SELECT t.*, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix, c.email as client_email
          FROM therapies t
          JOIN clients c ON t.client_id = c.id
          WHERE t.id = ?'
@@ -93,7 +94,7 @@ function handleGetTherapy(int $id): void {
     echo json_encode([
         'id'                     => (int)$t['id'],
         'clientId'               => (int)$t['client_id'],
-        'clientName'             => $t['client_name'],
+        'clientName'             => composeClientName($t['client_title'], $t['client_first_name'], $t['client_last_name'], $t['client_suffix']),
         'clientEmail'            => $t['client_email'],
         'label'                  => $t['label'],
         'startDate'              => $t['start_date'],
@@ -531,7 +532,8 @@ function handleSendInvoice(int $sessionId): void {
 
     $stmt = $db->prepare(
         'SELECT s.*, t.session_cost_cents, t.label as therapy_label,
-                c.name as client_name, c.email as client_email,
+                c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix,
+                c.email as client_email,
                 c.street as client_street, c.zip as client_zip,
                 c.city as client_city, c.country as client_country
          FROM therapy_sessions s
@@ -548,7 +550,7 @@ function handleSendInvoice(int $sessionId): void {
         return;
     }
 
-    $clientName = $session['client_name'];
+    $clientName = composeClientName($session['client_title'], $session['client_first_name'], $session['client_last_name'], $session['client_suffix']);
     $dateFormatted = date('d.m.Y', strtotime($session['session_date']));
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
     $siteUrl = $config['site_url'] ?? '';

@@ -41,13 +41,14 @@ export function usePublicBooking() {
     slot: { ruleId: number | null; eventId?: number | null },
     date: string,
     time: string,
-    name: string,
+    firstName: string,
+    lastName: string,
     email: string,
   ): Promise<BookingResult | null> => {
     setBooking(true);
     setError(null);
     try {
-      const body: Record<string, unknown> = { date, time, name, email };
+      const body: Record<string, unknown> = { date, time, firstName, lastName, email };
       if (slot.eventId) {
         body.eventId = slot.eventId;
       } else {

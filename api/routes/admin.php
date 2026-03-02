@@ -299,19 +299,21 @@ function handleGetBookings(): void {
     $bookings = $stmt->fetchAll();
 
     $result = array_map(fn($b) => [
-        'id'             => (int)$b['id'],
-        'ruleId'         => $b['rule_id'] ? (int)$b['rule_id'] : null,
-        'eventId'        => $b['event_id'] ? (int)$b['event_id'] : null,
-        'ruleLabel'      => $b['rule_label'] ?? $b['event_label'] ?? '',
-        'date'           => $b['booking_date'],
-        'time'           => $b['booking_time'],
+        'id'              => (int)$b['id'],
+        'ruleId'          => $b['rule_id'] ? (int)$b['rule_id'] : null,
+        'eventId'         => $b['event_id'] ? (int)$b['event_id'] : null,
+        'ruleLabel'       => $b['rule_label'] ?? $b['event_label'] ?? '',
+        'date'            => $b['booking_date'],
+        'time'            => $b['booking_time'],
         'durationMinutes' => (int)$b['duration_minutes'],
-        'clientName'     => $b['client_name'],
-        'clientEmail'    => $b['client_email'],
-        'status'         => $b['status'],
-        'introEmailSent' => (bool)$b['intro_email_sent'],
-        'reminderSent'   => (bool)$b['reminder_sent'],
-        'createdAt'      => $b['created_at'],
+        'clientFirstName' => $b['client_first_name'],
+        'clientLastName'  => $b['client_last_name'],
+        'clientName'      => trim($b['client_first_name'] . ' ' . $b['client_last_name']),
+        'clientEmail'     => $b['client_email'],
+        'status'          => $b['status'],
+        'introEmailSent'  => (bool)$b['intro_email_sent'],
+        'reminderSent'    => (bool)$b['reminder_sent'],
+        'createdAt'       => $b['created_at'],
     ], $bookings);
 
     echo json_encode(array_values($result));
@@ -385,7 +387,7 @@ function handleSendEmail(int $bookingId): void {
         return;
     }
 
-    $clientName = $booking['client_name'];
+    $clientName = trim($booking['client_first_name'] . ' ' . $booking['client_last_name']);
     $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
     $time = $booking['booking_time'];
     $duration = (int)$booking['duration_minutes'];
@@ -456,7 +458,7 @@ function handleDocumentSend(): void {
     $clientCountry = '';
 
     if ($contextType === 'client') {
-        $stmt = $db->prepare('SELECT name, email, street, zip, city, country FROM clients WHERE id = ?');
+        $stmt = $db->prepare('SELECT title, first_name, last_name, suffix, email, street, zip, city, country FROM clients WHERE id = ?');
         $stmt->execute([$contextId]);
         $row = $stmt->fetch();
         if (!$row) {
@@ -464,14 +466,14 @@ function handleDocumentSend(): void {
             echo json_encode(['error' => 'Klient:in nicht gefunden']);
             return;
         }
-        $clientName = $row['name'];
+        $clientName = composeClientName($row['title'], $row['first_name'], $row['last_name'], $row['suffix']);
         $clientEmail = $row['email'];
         $clientStreet = $row['street'] ?? '';
         $clientZip = $row['zip'] ?? '';
         $clientCity = $row['city'] ?? '';
         $clientCountry = $row['country'] ?? '';
     } elseif ($contextType === 'erstgespraech') {
-        $stmt = $db->prepare('SELECT client_name, client_email FROM bookings WHERE id = ?');
+        $stmt = $db->prepare('SELECT client_first_name, client_last_name, client_email FROM bookings WHERE id = ?');
         $stmt->execute([$contextId]);
         $row = $stmt->fetch();
         if (!$row) {
@@ -479,11 +481,11 @@ function handleDocumentSend(): void {
             echo json_encode(['error' => 'Buchung nicht gefunden']);
             return;
         }
-        $clientName = $row['client_name'];
+        $clientName = trim($row['client_first_name'] . ' ' . $row['client_last_name']);
         $clientEmail = $row['client_email'];
     } elseif ($contextType === 'therapy') {
         $stmt = $db->prepare(
-            'SELECT c.name, c.email, c.street, c.zip, c.city, c.country FROM therapies t JOIN clients c ON t.client_id = c.id WHERE t.id = ?'
+            'SELECT c.title, c.first_name, c.last_name, c.suffix, c.email, c.street, c.zip, c.city, c.country FROM therapies t JOIN clients c ON t.client_id = c.id WHERE t.id = ?'
         );
         $stmt->execute([$contextId]);
         $row = $stmt->fetch();
@@ -492,7 +494,7 @@ function handleDocumentSend(): void {
             echo json_encode(['error' => 'Therapie nicht gefunden']);
             return;
         }
-        $clientName = $row['name'];
+        $clientName = composeClientName($row['title'], $row['first_name'], $row['last_name'], $row['suffix']);
         $clientEmail = $row['email'];
         $clientStreet = $row['street'] ?? '';
         $clientZip = $row['zip'] ?? '';

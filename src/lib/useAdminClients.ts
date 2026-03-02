@@ -16,7 +16,7 @@ export function useAdminClients() {
     }
   }, []);
 
-  const addClient = useCallback(async (client: { name: string; email: string; phone?: string; street?: string; zip?: string; city?: string; country?: string; notes?: string }) => {
+  const addClient = useCallback(async (client: { title?: string; firstName: string; lastName: string; suffix?: string; email: string; phone?: string; street?: string; zip?: string; city?: string; country?: string; notes?: string }) => {
     setError(null);
     try {
       const result = await apiFetch<{ id: number }>('/admin/clients', {

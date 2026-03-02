@@ -11,7 +11,9 @@ export interface AdminBooking {
   date: string;
   time: string;
   durationMinutes: number;
-  clientName: string;
+  clientFirstName: string;
+  clientLastName: string;
+  clientName: string; // composed by backend
   clientEmail: string;
   status: 'confirmed' | 'cancelled';
   introEmailSent: boolean;
