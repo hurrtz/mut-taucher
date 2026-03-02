@@ -13,8 +13,16 @@ import {
 
 const PLACEHOLDER_LABELS: Record<string, string> = {
   client_name: 'Klient:in Name',
+  client_street: 'Klient:in Straße',
+  client_zip: 'Klient:in PLZ',
+  client_city: 'Klient:in Ort',
+  client_country: 'Klient:in Land',
   date: 'Datum',
   therapist_name: 'Therapeut:in Name',
+  therapist_street: 'Therapeut:in Straße',
+  therapist_zip: 'Therapeut:in PLZ',
+  therapist_city: 'Therapeut:in Ort',
+  therapist_tax_id: 'Steuernummer',
   invoice_number: 'Rechnungsnummer',
   amount: 'Betrag',
   duration_minutes: 'Dauer (Min.)',

@@ -531,7 +531,9 @@ function handleSendInvoice(int $sessionId): void {
 
     $stmt = $db->prepare(
         'SELECT s.*, t.session_cost_cents, t.label as therapy_label,
-                c.name as client_name, c.email as client_email
+                c.name as client_name, c.email as client_email,
+                c.street as client_street, c.zip as client_zip,
+                c.city as client_city, c.country as client_country
          FROM therapy_sessions s
          JOIN therapies t ON s.therapy_id = t.id
          JOIN clients c ON t.client_id = c.id
@@ -565,6 +567,10 @@ function handleSendInvoice(int $sessionId): void {
         'therapyLabel'     => $therapyLabel,
         'sessionDate'      => $dateFormatted,
         'sessionTime'      => $session['session_time'],
+        'clientStreet'     => $session['client_street'] ?? '',
+        'clientZip'        => $session['client_zip'] ?? '',
+        'clientCity'       => $session['client_city'] ?? '',
+        'clientCountry'    => $session['client_country'] ?? '',
     ]);
 
     // Render invoice cover email

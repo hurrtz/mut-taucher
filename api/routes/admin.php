@@ -450,8 +450,13 @@ function handleDocumentSend(): void {
     $clientName = '';
     $clientEmail = '';
 
+    $clientStreet = '';
+    $clientZip = '';
+    $clientCity = '';
+    $clientCountry = '';
+
     if ($contextType === 'client') {
-        $stmt = $db->prepare('SELECT name, email FROM clients WHERE id = ?');
+        $stmt = $db->prepare('SELECT name, email, street, zip, city, country FROM clients WHERE id = ?');
         $stmt->execute([$contextId]);
         $row = $stmt->fetch();
         if (!$row) {
@@ -461,6 +466,10 @@ function handleDocumentSend(): void {
         }
         $clientName = $row['name'];
         $clientEmail = $row['email'];
+        $clientStreet = $row['street'] ?? '';
+        $clientZip = $row['zip'] ?? '';
+        $clientCity = $row['city'] ?? '';
+        $clientCountry = $row['country'] ?? '';
     } elseif ($contextType === 'erstgespraech') {
         $stmt = $db->prepare('SELECT client_name, client_email FROM bookings WHERE id = ?');
         $stmt->execute([$contextId]);
@@ -474,7 +483,7 @@ function handleDocumentSend(): void {
         $clientEmail = $row['client_email'];
     } elseif ($contextType === 'therapy') {
         $stmt = $db->prepare(
-            'SELECT c.name, c.email FROM therapies t JOIN clients c ON t.client_id = c.id WHERE t.id = ?'
+            'SELECT c.name, c.email, c.street, c.zip, c.city, c.country FROM therapies t JOIN clients c ON t.client_id = c.id WHERE t.id = ?'
         );
         $stmt->execute([$contextId]);
         $row = $stmt->fetch();
@@ -485,6 +494,10 @@ function handleDocumentSend(): void {
         }
         $clientName = $row['name'];
         $clientEmail = $row['email'];
+        $clientStreet = $row['street'] ?? '';
+        $clientZip = $row['zip'] ?? '';
+        $clientCity = $row['city'] ?? '';
+        $clientCountry = $row['country'] ?? '';
     } elseif ($contextType === 'group') {
         // Groups don't have a single client — document sends are recorded but not emailed
         $clientName = '';
@@ -502,7 +515,12 @@ function handleDocumentSend(): void {
         $dateFormatted = date('d.m.Y');
 
         $pdfGen = new PdfGenerator();
-        $pdfContent = $pdfGen->generate($doc['template'], $clientName, $dateFormatted);
+        $pdfContent = $pdfGen->generate($doc['template'], $clientName, $dateFormatted, [
+            'clientStreet'  => $clientStreet,
+            'clientZip'     => $clientZip,
+            'clientCity'    => $clientCity,
+            'clientCountry' => $clientCountry,
+        ]);
 
         $documentName = $doc['label'];
         ob_start();

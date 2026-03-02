@@ -4,10 +4,18 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 class PdfGenerator {
     private string $therapistName;
+    private string $therapistStreet;
+    private string $therapistZip;
+    private string $therapistCity;
+    private string $therapistTaxId;
 
     public function __construct() {
         $config = require __DIR__ . '/../config.php';
-        $this->therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+        $this->therapistName   = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+        $this->therapistStreet = $config['therapist_street'] ?? '';
+        $this->therapistZip    = $config['therapist_zip'] ?? '';
+        $this->therapistCity   = $config['therapist_city'] ?? '';
+        $this->therapistTaxId  = $config['therapist_tax_id'] ?? '';
     }
 
     /**
@@ -33,8 +41,16 @@ class PdfGenerator {
     private function replacePlaceholders(string $html, string $clientName, string $date, array $extra = []): string {
         $replacements = [
             '{{client_name}}'      => htmlspecialchars($clientName),
+            '{{client_street}}'    => htmlspecialchars($extra['clientStreet'] ?? ''),
+            '{{client_zip}}'       => htmlspecialchars($extra['clientZip'] ?? ''),
+            '{{client_city}}'      => htmlspecialchars($extra['clientCity'] ?? ''),
+            '{{client_country}}'   => htmlspecialchars($extra['clientCountry'] ?? ''),
             '{{date}}'             => htmlspecialchars($date),
             '{{therapist_name}}'   => htmlspecialchars($this->therapistName),
+            '{{therapist_street}}' => htmlspecialchars($this->therapistStreet),
+            '{{therapist_zip}}'    => htmlspecialchars($this->therapistZip),
+            '{{therapist_city}}'   => htmlspecialchars($this->therapistCity),
+            '{{therapist_tax_id}}' => htmlspecialchars($this->therapistTaxId),
             '{{invoice_number}}'   => htmlspecialchars($extra['invoiceNumber'] ?? ''),
             '{{amount}}'           => htmlspecialchars($extra['amountFormatted'] ?? ''),
             '{{duration_minutes}}' => htmlspecialchars((string)($extra['durationMinutes'] ?? '')),
@@ -70,6 +86,10 @@ class PdfGenerator {
     public function replacePlaceholdersSample(string $html): string {
         $today = date('d.m.Y');
         return $this->replacePlaceholders($html, 'Max Mustermann', $today, [
+            'clientStreet'   => 'Musterstraße 1',
+            'clientZip'      => '10115',
+            'clientCity'     => 'Berlin',
+            'clientCountry'  => 'Deutschland',
             'invoiceNumber'  => 'RE-2026-0042',
             'amountFormatted'=> '95,00 €',
             'durationMinutes'=> '50',

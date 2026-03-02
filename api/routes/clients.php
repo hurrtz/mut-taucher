@@ -27,6 +27,10 @@ function handleGetClients(): void {
         'name'         => $c['name'],
         'email'        => $c['email'],
         'phone'        => $c['phone'],
+        'street'       => $c['street'],
+        'zip'          => $c['zip'],
+        'city'         => $c['city'],
+        'country'      => $c['country'],
         'notes'        => $c['notes'],
         'status'       => $c['status'],
         'bookingId'    => $c['booking_id'] ? (int)$c['booking_id'] : null,
@@ -65,6 +69,10 @@ function handleGetClient(int $id): void {
         'name'         => $c['name'],
         'email'        => $c['email'],
         'phone'        => $c['phone'],
+        'street'       => $c['street'],
+        'zip'          => $c['zip'],
+        'city'         => $c['city'],
+        'country'      => $c['country'],
         'notes'        => $c['notes'],
         'status'       => $c['status'],
         'bookingId'    => $c['booking_id'] ? (int)$c['booking_id'] : null,
@@ -93,9 +101,18 @@ function handleCreateClient(): void {
     }
 
     $stmt = $db->prepare(
-        'INSERT INTO clients (name, email, phone, notes) VALUES (?, ?, ?, ?)'
+        'INSERT INTO clients (name, email, phone, street, zip, city, country, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
-    $stmt->execute([$name, $email, $input['phone'] ?? null, $input['notes'] ?? null]);
+    $stmt->execute([
+        $name,
+        $email,
+        $input['phone'] ?? null,
+        $input['street'] ?? null,
+        $input['zip'] ?? null,
+        $input['city'] ?? null,
+        $input['country'] ?? 'Deutschland',
+        $input['notes'] ?? null,
+    ]);
 
     echo json_encode(['id' => (int)$db->lastInsertId(), 'message' => 'Klient:in angelegt']);
 }
@@ -109,12 +126,16 @@ function handleUpdateClient(int $id): void {
     $db = getDB();
 
     $stmt = $db->prepare(
-        'UPDATE clients SET name = ?, email = ?, phone = ?, notes = ?, status = ? WHERE id = ?'
+        'UPDATE clients SET name = ?, email = ?, phone = ?, street = ?, zip = ?, city = ?, country = ?, notes = ?, status = ? WHERE id = ?'
     );
     $stmt->execute([
         $input['name'] ?? '',
         $input['email'] ?? '',
         $input['phone'] ?? null,
+        $input['street'] ?? null,
+        $input['zip'] ?? null,
+        $input['city'] ?? null,
+        $input['country'] ?? 'Deutschland',
         $input['notes'] ?? null,
         $input['status'] ?? 'active',
         $id,

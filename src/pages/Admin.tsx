@@ -1453,15 +1453,19 @@ function GroupManager({ groups, clients, selectedGroupId, onSelect, onDelete,
 
 function ClientForm({ initial, onSave, onCancel }: {
   initial?: Client;
-  onSave: (data: { name: string; email: string; phone?: string; notes?: string; status?: 'active' | 'archived' }) => void;
+  onSave: (data: { name: string; email: string; phone?: string; street?: string; zip?: string; city?: string; country?: string; notes?: string; status?: 'active' | 'archived' }) => void;
   onCancel?: () => void;
 }) {
   const [form, setForm] = useState<{
-    name: string; email: string; phone: string; notes: string; status: 'active' | 'archived';
+    name: string; email: string; phone: string; street: string; zip: string; city: string; country: string; notes: string; status: 'active' | 'archived';
   }>({
     name: initial?.name ?? '',
     email: initial?.email ?? '',
     phone: initial?.phone ?? '',
+    street: initial?.street ?? '',
+    zip: initial?.zip ?? '',
+    city: initial?.city ?? '',
+    country: initial?.country ?? 'Deutschland',
     notes: initial?.notes ?? '',
     status: initial?.status ?? 'active',
   });
@@ -1472,10 +1476,14 @@ function ClientForm({ initial, onSave, onCancel }: {
       name: form.name,
       email: form.email,
       phone: form.phone || undefined,
+      street: form.street || undefined,
+      zip: form.zip || undefined,
+      city: form.city || undefined,
+      country: form.country || undefined,
       notes: form.notes || undefined,
       status: form.status,
     });
-    if (!initial) setForm({ name: '', email: '', phone: '', notes: '', status: 'active' });
+    if (!initial) setForm({ name: '', email: '', phone: '', street: '', zip: '', city: '', country: 'Deutschland', notes: '', status: 'active' });
   };
 
   return (
@@ -1508,6 +1516,44 @@ function ClientForm({ initial, onSave, onCancel }: {
           type="tel"
           value={form.phone}
           onChange={e => setForm({ ...form, phone: e.target.value })}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Straße</label>
+        <input
+          type="text"
+          value={form.street}
+          onChange={e => setForm({ ...form, street: e.target.value })}
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">PLZ</label>
+          <input
+            type="text"
+            value={form.zip}
+            onChange={e => setForm({ ...form, zip: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Ort</label>
+          <input
+            type="text"
+            value={form.city}
+            onChange={e => setForm({ ...form, city: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Land</label>
+        <input
+          type="text"
+          value={form.country}
+          onChange={e => setForm({ ...form, country: e.target.value })}
           className="w-full border rounded-md px-3 py-2 text-sm"
         />
       </div>

@@ -732,7 +732,9 @@ function handleSendGroupInvoice(int $paymentId): void {
     $stmt = $db->prepare(
         'SELECT gsp.*, gs.session_date, gs.session_time, gs.duration_minutes,
                 g.session_cost_cents, g.label as group_label,
-                c.name as client_name, c.email as client_email
+                c.name as client_name, c.email as client_email,
+                c.street as client_street, c.zip as client_zip,
+                c.city as client_city, c.country as client_country
          FROM group_session_payments gsp
          JOIN group_sessions gs ON gsp.group_session_id = gs.id
          JOIN therapy_groups g ON gs.group_id = g.id
@@ -767,6 +769,10 @@ function handleSendGroupInvoice(int $paymentId): void {
         'therapyLabel'     => $therapyLabel,
         'sessionDate'      => $dateFormatted,
         'sessionTime'      => $payment['session_time'],
+        'clientStreet'     => $payment['client_street'] ?? '',
+        'clientZip'        => $payment['client_zip'] ?? '',
+        'clientCity'       => $payment['client_city'] ?? '',
+        'clientCountry'    => $payment['client_country'] ?? '',
     ]);
 
     // Render invoice cover email
