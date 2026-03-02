@@ -3,6 +3,8 @@ import { useAdminBooking, type AdminBooking } from '../lib/useAdminBooking';
 import { useAdminClients } from '../lib/useAdminClients';
 import { useAdminTherapies } from '../lib/useAdminTherapies';
 import { useAdminGroups } from '../lib/useAdminGroups';
+import { useAdminTemplates } from '../lib/useAdminTemplates';
+import TemplateEditor from '../components/TemplateEditor';
 import { useDocumentSends, DOCUMENT_DEFINITIONS, CATEGORY_LABELS } from '../lib/useDocumentSends';
 import { generateSlots } from '../lib/useBooking';
 import type { RecurringRule, DayConfig, Event, TherapyGroup, Client, Therapy, TherapySession, TherapyScheduleRule, GroupSession, DocumentDefinition } from '../lib/data';
@@ -2078,7 +2080,7 @@ function TherapyList({ therapies, sessions, selectedTherapyId, onSelect, onDelet
 
 // ─── Main Admin Page ─────────────────────────────────────────────
 
-type TabKey = 'rules' | 'erstgespraeche' | 'einzel' | 'kunden' | 'groups';
+type TabKey = 'rules' | 'erstgespraeche' | 'einzel' | 'kunden' | 'groups' | 'dokumente';
 
 export default function Admin() {
   // Block indexing of admin page
@@ -2120,6 +2122,11 @@ export default function Admin() {
     updatePayment, sendGroupInvoice,
   } = useAdminGroups();
 
+  const {
+    templates, activeTemplate, saving: templateSaving, error: templatesError,
+    fetchTemplates, fetchTemplate, updateTemplate,
+  } = useAdminTemplates();
+
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
@@ -2142,8 +2149,9 @@ export default function Admin() {
       fetchGroups();
       fetchClients();
       fetchTherapies();
+      fetchTemplates();
     }
-  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchClients, fetchTherapies]);
+  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchClients, fetchTherapies, fetchTemplates]);
 
   // Load group sessions when group selected
   useEffect(() => {
@@ -2185,7 +2193,7 @@ export default function Admin() {
     setActiveTab('einzel');
   }, []);
 
-  const combinedError = error || clientsError || therapiesError || groupsError;
+  const combinedError = error || clientsError || therapiesError || groupsError || templatesError;
 
   if (!authenticated) {
     return (
@@ -2266,6 +2274,7 @@ export default function Admin() {
               ['einzel', Video, 'Einzeltherapie', therapies.length],
               ['groups', Users, 'Gruppentherapie', groups.length],
               ['kunden', Users, 'Kunden', clients.length],
+              ['dokumente', FileText, 'Vorlagen', templates.length],
             ] as const).map(([key, Icon, label, count]) => (
               <button
                 key={key}
@@ -2525,6 +2534,48 @@ export default function Admin() {
               onUpdatePayment={(pid, updates) => updatePayment(pid, updates, selectedGroupId ?? undefined)}
               onSendInvoice={(pid) => sendGroupInvoice(pid, selectedGroupId ?? undefined)}
             />
+          </div>
+        )}
+
+        {activeTab === 'dokumente' && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Sidebar: template list */}
+            <div className="lg:col-span-1 space-y-1">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Vorlagen</h3>
+              {templates.map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => fetchTemplate(t.key)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+                    activeTemplate?.key === t.key
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Editor */}
+            <div className="lg:col-span-3">
+              {activeTemplate ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                  <h2 className="text-lg font-semibold mb-4 text-gray-900">{activeTemplate.label}</h2>
+                  <TemplateEditor
+                    key={activeTemplate.key}
+                    htmlContent={activeTemplate.htmlContent}
+                    placeholders={activeTemplate.placeholders}
+                    saving={templateSaving}
+                    onSave={(html) => updateTemplate(activeTemplate.key, html)}
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+                  Vorlage aus der Liste auswählen
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

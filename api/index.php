@@ -27,6 +27,7 @@ require_once __DIR__ . '/routes/admin.php';
 require_once __DIR__ . '/routes/clients.php';
 require_once __DIR__ . '/routes/therapies.php';
 require_once __DIR__ . '/routes/groups.php';
+require_once __DIR__ . '/routes/templates.php';
 
 // Parse request
 $method = $_SERVER['REQUEST_METHOD'];
@@ -310,6 +311,22 @@ if ($method === 'GET' && $uri === '/admin/documents/status') {
 
 if ($method === 'GET' && $uri === '/admin/documents/registry') {
     handleDocumentRegistry();
+    exit;
+}
+
+// Admin: document templates
+if ($method === 'GET' && $uri === '/admin/templates') {
+    handleGetTemplates();
+    exit;
+}
+
+if ($method === 'GET' && preg_match('#^/admin/templates/([a-z_]+)$#', $uri, $m)) {
+    handleGetTemplate($m[1]);
+    exit;
+}
+
+if ($method === 'PUT' && preg_match('#^/admin/templates/([a-z_]+)$#', $uri, $m)) {
+    handleUpdateTemplate($m[1]);
     exit;
 }
 
