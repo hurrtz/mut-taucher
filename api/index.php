@@ -29,6 +29,7 @@ require_once __DIR__ . '/routes/therapies.php';
 require_once __DIR__ . '/routes/groups.php';
 require_once __DIR__ . '/routes/templates.php';
 require_once __DIR__ . '/routes/client_history.php';
+require_once __DIR__ . '/routes/workbook.php';
 
 // Parse request
 $method = $_SERVER['REQUEST_METHOD'];
@@ -415,6 +416,32 @@ if ($method === 'PUT' && preg_match('#^/admin/templates/([a-z_]+)$#', $uri, $m))
 
 if ($method === 'POST' && $uri === '/admin/templates/upload-image') {
     handleUploadImage();
+    exit;
+}
+
+// Admin: workbook materials
+if ($method === 'GET' && $uri === '/admin/workbook') {
+    handleGetWorkbookMaterials();
+    exit;
+}
+
+if ($method === 'POST' && $uri === '/admin/workbook') {
+    handleUploadWorkbookMaterial();
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/workbook/(\d+)$#', $uri, $m)) {
+    handleDeleteWorkbookMaterial((int)$m[1]);
+    exit;
+}
+
+if ($method === 'GET' && preg_match('#^/admin/workbook/(\d+)/download$#', $uri, $m)) {
+    handleDownloadWorkbookMaterial((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/workbook/(\d+)/send$#', $uri, $m)) {
+    handleSendWorkbookMaterial((int)$m[1]);
     exit;
 }
 

@@ -11,9 +11,15 @@ function requireAuth(): array {
 
     $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     if (!preg_match('/^Bearer\s+(.+)$/i', $header, $matches)) {
-        http_response_code(401);
-        echo json_encode(['error' => 'Token fehlt']);
-        exit;
+        // Fallback: accept token as query parameter (for iframe/img src)
+        $queryToken = $_GET['token'] ?? '';
+        if ($queryToken) {
+            $matches = [null, $queryToken];
+        } else {
+            http_response_code(401);
+            echo json_encode(['error' => 'Token fehlt']);
+            exit;
+        }
     }
 
     $payload = jwtDecode($matches[1], $config['jwt_secret']);

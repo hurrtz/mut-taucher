@@ -185,6 +185,16 @@ export interface DocumentDefinition {
   signedCounterpart?: string;
 }
 
+export interface WorkbookMaterial {
+  id: number;
+  name: string;
+  groupName: string | null;
+  filename: string;
+  mimeType: string;
+  fileSize: number;
+  createdAt: string;
+}
+
 export interface Service {
   id: string;
   title: string;

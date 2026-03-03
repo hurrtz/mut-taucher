@@ -5,7 +5,11 @@ import { useAdminClients } from '../lib/useAdminClients';
 import { useAdminTherapies } from '../lib/useAdminTherapies';
 import { useAdminGroups } from '../lib/useAdminGroups';
 import { useAdminTemplates } from '../lib/useAdminTemplates';
+import { useAdminWorkbook } from '../lib/useAdminWorkbook';
+import { getToken } from '../lib/api';
 import TemplateEditor from '../components/TemplateEditor';
+import WorkbookUploadModal from './components/WorkbookUploadModal';
+import WorkbookShareModal from './components/WorkbookShareModal';
 import RuleForm from './components/RuleForm';
 import RuleCard from './components/RuleCard';
 import EventForm, { EventList } from './components/EventForm';
@@ -24,14 +28,14 @@ import { Link } from 'react-router-dom';
 import { Card, Input, Button, Alert, Spin, Space, Typography, Row, Col, Badge, Tabs, Modal } from 'antd';
 import {
   CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
-  VideoCameraOutlined,
+  VideoCameraOutlined, BookOutlined,
   PlusOutlined, EditOutlined, ScheduleOutlined, UserAddOutlined,
-  SendOutlined,
+  SendOutlined, DeleteOutlined,
 } from '@ant-design/icons';
 
 const { Title } = Typography;
 
-type TabKey = 'rules' | 'erstgespraeche' | 'einzel' | 'kunden' | 'groups' | 'dokumente';
+type TabKey = 'rules' | 'erstgespraeche' | 'einzel' | 'kunden' | 'groups' | 'dokumente' | 'arbeitsmappe';
 
 export default function AdminPage() {
   // Block indexing of admin page
@@ -82,6 +86,11 @@ export default function AdminPage() {
     fetchTemplates, fetchTemplate, updateTemplate, previewTemplate, uploadImage,
   } = useAdminTemplates();
 
+  const {
+    materials, error: workbookError,
+    fetchMaterials, uploadMaterial, removeMaterial, sendMaterial,
+  } = useAdminWorkbook();
+
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
@@ -97,6 +106,9 @@ export default function AdminPage() {
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(null);
+  const [showWorkbookUpload, setShowWorkbookUpload] = useState(false);
+  const [showWorkbookShare, setShowWorkbookShare] = useState(false);
   // Load data on auth
   useEffect(() => {
     if (authenticated) {
@@ -110,8 +122,9 @@ export default function AdminPage() {
       fetchArchivedTherapies();
       fetchTemplates();
       fetchBlockedDays();
+      fetchMaterials();
     }
-  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchArchivedGroups, fetchClients, fetchTherapies, fetchArchivedTherapies, fetchTemplates, fetchBlockedDays]);
+  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchArchivedGroups, fetchClients, fetchTherapies, fetchArchivedTherapies, fetchTemplates, fetchBlockedDays, fetchMaterials]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -132,7 +145,7 @@ export default function AdminPage() {
     }
   }, [migrateBookingToClient]);
 
-  const combinedError = error || clientsError || therapiesError || groupsError || templatesError;
+  const combinedError = error || clientsError || therapiesError || groupsError || templatesError || workbookError;
 
   if (!authenticated) {
     return (
@@ -180,6 +193,7 @@ export default function AdminPage() {
     { key: 'groups', icon: <TeamOutlined />, label: 'Gruppentherapie', badge: groups.length },
     { key: 'kunden', icon: <UserOutlined />, label: 'Patienten', badge: clients.length },
     { key: 'dokumente', icon: <FileTextOutlined />, label: 'Vorlagen', badge: templates.length },
+    { key: 'arbeitsmappe', icon: <BookOutlined />, label: 'Arbeitsmappe', badge: materials.length },
   ];
 
   const sectionTitles: Record<TabKey, string> = {
@@ -189,6 +203,7 @@ export default function AdminPage() {
     groups: 'Gruppentherapie',
     kunden: 'Patienten',
     dokumente: 'Vorlagen',
+    arbeitsmappe: 'Arbeitsmappe',
   };
 
   return (
@@ -220,6 +235,11 @@ export default function AdminPage() {
           {activeTab === 'kunden' && (
             <Button type="primary" icon={<UserAddOutlined />} onClick={() => setShowNewClient(true)}>
               Neue:r Patient:in
+            </Button>
+          )}
+          {activeTab === 'arbeitsmappe' && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowWorkbookUpload(true)}>
+              Neues Dokument hochladen
             </Button>
           )}
         </div>
@@ -488,7 +508,7 @@ export default function AdminPage() {
                     type={activeTemplate?.key === t.key ? 'primary' : 'text'}
                     ghost={activeTemplate?.key === t.key}
                     block
-                    style={{ textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
+                    style={{ justifyContent: 'flex-start', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
                     onClick={() => fetchTemplate(t.key)}
                   >
                     {t.label}
@@ -520,6 +540,127 @@ export default function AdminPage() {
             </Col>
           </Row>
         )}
+
+        {activeTab === 'arbeitsmappe' && (() => {
+          const selectedMaterial = materials.find(m => m.id === selectedMaterialId);
+          const existingGroups = [...new Set(materials.map(m => m.groupName).filter((g): g is string => !!g))];
+          const grouped = materials.reduce<Record<string, typeof materials>>((acc, m) => {
+            const key = m.groupName || '';
+            (acc[key] ??= []).push(m);
+            return acc;
+          }, {});
+          const ungrouped = grouped[''] || [];
+          const groupNames = Object.keys(grouped).filter(k => k !== '').sort((a, b) => a.localeCompare(b, 'de'));
+
+          return (
+            <>
+              <Row gutter={24}>
+                <Col xs={24} lg={6}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {ungrouped.map(m => (
+                      <Button
+                        key={m.id}
+                        type={selectedMaterialId === m.id ? 'primary' : 'text'}
+                        ghost={selectedMaterialId === m.id}
+                        block
+                        style={{ justifyContent: 'flex-start', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
+                        onClick={() => setSelectedMaterialId(prev => prev === m.id ? null : m.id)}
+                      >
+                        {m.name}
+                      </Button>
+                    ))}
+                    {groupNames.map(g => (
+                      <div key={g}>
+                        <Typography.Text type="secondary" style={{ display: 'block', padding: '12px 16px 4px', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                          {g}
+                        </Typography.Text>
+                        {grouped[g].map(m => (
+                          <Button
+                            key={m.id}
+                            type={selectedMaterialId === m.id ? 'primary' : 'text'}
+                            ghost={selectedMaterialId === m.id}
+                            block
+                            style={{ justifyContent: 'flex-start', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
+                            onClick={() => setSelectedMaterialId(prev => prev === m.id ? null : m.id)}
+                          >
+                            {m.name}
+                          </Button>
+                        ))}
+                      </div>
+                    ))}
+                    {materials.length === 0 && (
+                      <Typography.Text type="secondary" style={{ padding: 16 }}>
+                        Noch keine Materialien hochgeladen.
+                      </Typography.Text>
+                    )}
+                  </div>
+                </Col>
+
+                <Col xs={24} lg={18}>
+                  {selectedMaterial ? (
+                    <Card
+                      title={selectedMaterial.name}
+                      extra={
+                        <Space>
+                          <Button icon={<SendOutlined />} onClick={() => setShowWorkbookShare(true)}>
+                            Versenden
+                          </Button>
+                          <Button
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => {
+                              if (confirm(`"${selectedMaterial.name}" wirklich löschen?`)) {
+                                removeMaterial(selectedMaterial.id);
+                                setSelectedMaterialId(null);
+                              }
+                            }}
+                          />
+                        </Space>
+                      }
+                    >
+                      {selectedMaterial.mimeType === 'application/pdf' ? (
+                        <iframe
+                          src={`/api/admin/workbook/${selectedMaterial.id}/download?token=${getToken()}`}
+                          style={{ width: '100%', height: 600, border: 'none' }}
+                          title={selectedMaterial.name}
+                        />
+                      ) : (
+                        <img
+                          src={`/api/admin/workbook/${selectedMaterial.id}/download?token=${getToken()}`}
+                          alt={selectedMaterial.name}
+                          style={{ maxWidth: '100%', height: 'auto' }}
+                        />
+                      )}
+                    </Card>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 256 }}>
+                      <Typography.Text type="secondary">Material aus der Liste auswählen</Typography.Text>
+                    </div>
+                  )}
+                </Col>
+              </Row>
+
+              <WorkbookUploadModal
+                open={showWorkbookUpload}
+                onClose={() => setShowWorkbookUpload(false)}
+                onUpload={uploadMaterial}
+                existingGroups={existingGroups}
+              />
+
+              {selectedMaterial && (
+                <WorkbookShareModal
+                  open={showWorkbookShare}
+                  onClose={() => setShowWorkbookShare(false)}
+                  materialName={selectedMaterial.name}
+                  onSend={(clientIds) => sendMaterial(selectedMaterial.id, clientIds)}
+                  therapies={therapies}
+                  groups={groups}
+                  clients={clients}
+                />
+              )}
+            </>
+          );
+        })()}
       </div>
     </AdminLayout>
   );
