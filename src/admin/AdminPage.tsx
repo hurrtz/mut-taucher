@@ -289,17 +289,14 @@ export default function AdminPage() {
                 </CollapsibleSection>
 
                 {/* Active Rules */}
-                <div>
-                  <Space style={{ marginBottom: 12 }}>
-                    <SyncOutlined style={{ fontSize: 20, color: '#9ca3af' }} />
-                    <Typography.Text strong style={{ fontSize: 16 }}>Aktive Regeln ({rules.length})</Typography.Text>
-                  </Space>
+                <Card
+                  size="small"
+                  title={<span><SyncOutlined style={{ color: '#9ca3af', marginRight: 8 }} />Aktive Regeln ({rules.length})</span>}
+                >
                   {rules.length === 0 && !loading ? (
-                    <Card size="small">
-                      <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center' }}>
-                        Noch keine Regeln angelegt.
-                      </Typography.Text>
-                    </Card>
+                    <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center' }}>
+                      Noch keine Regeln angelegt.
+                    </Typography.Text>
                   ) : (
                     <Space direction="vertical" size="small" style={{ width: '100%' }}>
                       {rules.map(rule => (
@@ -318,19 +315,17 @@ export default function AdminPage() {
                       ))}
                     </Space>
                   )}
-                </div>
+                </Card>
               </Space>
             </Col>
 
             {/* Right: Calendar Preview */}
             <Col xs={24} lg={16}>
-              <Card size="small">
-                <CalendarPreview
-                  rules={rules}
-                  events={events}
-                  onToggleException={toggleException}
-                />
-              </Card>
+              <CalendarPreview
+                rules={rules}
+                events={events}
+                onToggleException={toggleException}
+              />
             </Col>
           </Row>
         )}

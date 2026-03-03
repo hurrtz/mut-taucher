@@ -113,7 +113,7 @@ export default function RuleForm({ initial, onSave, onCancel }: {
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
 
         {/* Bezeichnung */}
-        <Form.Item label="Bezeichnung (optional)" colon={false}>
+        <Form.Item label="Bezeichnung (optional)" colon={false} style={{ marginBottom: 0 }}>
           <Input
             value={form.label}
             onChange={e => setForm({ ...form, label: e.target.value })}
@@ -122,35 +122,42 @@ export default function RuleForm({ initial, onSave, onCancel }: {
         </Form.Item>
 
         {/* Tage */}
-        <Form.Item label="Tage" colon={false}>
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+        <Form.Item label="Tage" colon={false} style={{ marginBottom: 0 }}>
+          <Space size="small" wrap>
             {[1, 2, 3, 4, 5, 6, 7].map(day => (
-              <Space key={day} size="small" align="center">
-                <Button
-                  type={form.days[day].enabled ? 'primary' : 'default'}
-                  onClick={() => toggleDay(day)}
-                  style={{ width: 40, padding: 0 }}
-                >
-                  {DAY_LABELS[day]}
-                </Button>
-                {form.days[day].enabled && (
+              <Button
+                key={day}
+                type={form.days[day].enabled ? 'primary' : 'default'}
+                onClick={() => toggleDay(day)}
+                style={{ width: 40, padding: 0 }}
+              >
+                {DAY_LABELS[day]}
+              </Button>
+            ))}
+          </Space>
+          {Object.entries(form.days).some(([, v]) => v.enabled) && (
+            <Space direction="vertical" size="small" style={{ width: '100%', marginTop: 8 }}>
+              {[1, 2, 3, 4, 5, 6, 7].filter(day => form.days[day].enabled).map(day => (
+                <Space key={day} size="small" align="center">
+                  <span style={{ width: 30, fontSize: 13, fontWeight: 500 }}>{DAY_LABELS[day]}</span>
                   <Select
                     value={form.days[day].frequency}
                     onChange={(val: 'weekly' | 'biweekly') => setFrequency(day, val)}
                     style={{ width: 160 }}
+                    size="small"
                     options={[
                       { value: 'weekly', label: 'Jede Woche' },
                       { value: 'biweekly', label: 'Jede 2. Woche' },
                     ]}
                   />
-                )}
-              </Space>
-            ))}
-          </Space>
+                </Space>
+              ))}
+            </Space>
+          )}
         </Form.Item>
 
         {/* Uhrzeit */}
-        <Form.Item label="Uhrzeit" colon={false}>
+        <Form.Item label="Uhrzeit" colon={false} style={{ marginBottom: 0 }}>
           <TimePicker
             format="HH:mm"
             value={form.time ? dayjs(form.time, 'HH:mm') : null}
@@ -161,7 +168,7 @@ export default function RuleForm({ initial, onSave, onCancel }: {
         </Form.Item>
 
         {/* Dauer */}
-        <Form.Item label="Dauer" colon={false}>
+        <Form.Item label="Dauer" colon={false} style={{ marginBottom: 0 }}>
           <Space direction="vertical" size="small">
             <Radio.Group
               value={form.durationMinutes}
@@ -187,51 +194,45 @@ export default function RuleForm({ initial, onSave, onCancel }: {
         </Form.Item>
 
         {/* Datum */}
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="Startdatum" colon={false}>
-              <DatePicker
-                format="YYYY-MM-DD"
-                value={form.startDate ? dayjs(form.startDate, 'YYYY-MM-DD') : null}
-                onChange={(val: Dayjs | null) => setForm({ ...form, startDate: val ? val.format('YYYY-MM-DD') : '' })}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="Enddatum" colon={false}>
-              <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                <Checkbox
-                  checked={form.indefinite}
-                  onChange={e => setForm({ ...form, indefinite: e.target.checked })}
-                >
-                  Unbegrenzt
-                </Checkbox>
-                {!form.indefinite && (
-                  <DatePicker
-                    format="YYYY-MM-DD"
-                    value={form.endDate ? dayjs(form.endDate, 'YYYY-MM-DD') : null}
-                    onChange={(val: Dayjs | null) => setForm({ ...form, endDate: val ? val.format('YYYY-MM-DD') : '' })}
-                    style={{ width: '100%' }}
-                  />
-                )}
-              </Space>
-            </Form.Item>
-          </Col>
-        </Row>
+        <Form.Item label="Startdatum" colon={false} style={{ marginBottom: 0 }}>
+          <DatePicker
+            format="YYYY-MM-DD"
+            value={form.startDate ? dayjs(form.startDate, 'YYYY-MM-DD') : null}
+            onChange={(val: Dayjs | null) => setForm({ ...form, startDate: val ? val.format('YYYY-MM-DD') : '' })}
+            style={{ width: '100%' }}
+          />
+        </Form.Item>
+
+        <Form.Item label="Enddatum" colon={false} style={{ marginBottom: 0 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <DatePicker
+              format="YYYY-MM-DD"
+              value={form.endDate ? dayjs(form.endDate, 'YYYY-MM-DD') : null}
+              onChange={(val: Dayjs | null) => setForm({ ...form, endDate: val ? val.format('YYYY-MM-DD') : '' })}
+              style={{ width: '100%' }}
+              disabled={form.indefinite}
+            />
+            <Checkbox
+              checked={form.indefinite}
+              onChange={e => setForm({ ...form, indefinite: e.target.checked })}
+            >
+              Unbegrenzt
+            </Checkbox>
+          </Space>
+        </Form.Item>
 
         {/* Actions */}
-        <Space>
+        <Space style={{ width: '100%' }} direction="vertical">
           <Button
             type="primary"
             htmlType="submit"
             disabled={selectedDayCount === 0}
-            style={{ flex: 1 }}
+            block
           >
-            {initial ? 'Speichern' : 'Regel anlegen'}
+            {initial ? 'Speichern' : 'Regeltermin anlegen'}
           </Button>
           {onCancel && (
-            <Button onClick={onCancel}>
+            <Button onClick={onCancel} block>
               Abbrechen
             </Button>
           )}

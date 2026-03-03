@@ -28,6 +28,7 @@ export default function RuleCard({ rule, onEdit, onDelete, onToggleException }: 
   return (
     <Card
       size="small"
+      type="inner"
       extra={
         <Space size={0}>
           <Button type="text" icon={<EditOutlined />} onClick={onEdit} title="Bearbeiten" />
