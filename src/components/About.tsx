@@ -1,4 +1,4 @@
-import { Award, Compass, Heart } from 'lucide-react';
+import { Award, Compass, Heart, Sun } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import aboutImage from '@/assets/about.jpg';
 
@@ -27,7 +27,7 @@ export default function About() {
             </h2>
             
             <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-              Willkommen bei Mut-Taucher. Ich bin Systemische Therapeutin aus Leidenschaft und begleite Menschen auf ihrem Weg zu mehr innerer Stärke und Klarheit.
+              Willkommen bei <span className="text-primary font-semibold">Mut Taucher</span>. Ich bin Systemische Therapeutin aus Leidenschaft und begleite Menschen auf ihrem Weg zu mehr innerer Stärke und Klarheit.
             </p>
             
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
@@ -59,7 +59,19 @@ export default function About() {
                 </div>
               </div>
 
-              <div className="flex items-start space-x-4 p-4 bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow sm:col-span-2">
+              <div className="flex items-start space-x-4 p-4 bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <div className="flex-shrink-0">
+                  <Sun className="h-6 w-6 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-text">Ressourcenorientiert</h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Auch in schwierigen Zeiten tragen Sie Stärken in sich — gemeinsam machen wir sie sichtbar und nutzbar.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-4 p-4 bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
                 <div className="flex-shrink-0">
                   <Award className="h-6 w-6 text-accent" />
                 </div>
