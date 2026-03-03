@@ -23,26 +23,17 @@ export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: 
   return (
     <Space direction="vertical" size="small" style={{ width: '100%' }}>
       {clients.map(c => (
-        <Card key={c.id} size="small">
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontWeight: 600, color: 'rgba(0,0,0,0.88)' }}>{c.lastName}, {c.firstName}</span>
-                {c.status === 'archived' && (
-                  <Tag>Archiviert</Tag>
-                )}
-              </div>
-              <div style={{ fontSize: 14, color: 'rgba(0,0,0,0.65)' }}>{c.email}</div>
-              {c.phone && <div style={{ fontSize: 14, color: 'rgba(0,0,0,0.45)' }}>{c.phone}</div>}
-              <div style={{ marginTop: 4, fontSize: 12, color: 'rgba(0,0,0,0.35)' }}>
-                {c.therapyCount > 0 && <>{c.therapyCount} Einzeltherapie{c.therapyCount !== 1 ? 'n' : ''}</>}
-                {c.therapyCount > 0 && c.groupCount > 0 && ' · '}
-                {c.groupCount > 0 && <>{c.groupCount} Gruppe{c.groupCount !== 1 ? 'n' : ''}</>}
-                {c.therapyCount === 0 && c.groupCount === 0 && 'Keine Therapien'}
-                {c.bookingId && ' · aus Erstgespräch'}
-              </div>
-            </div>
-            <Space size={0} style={{ flexShrink: 0 }}>
+        <Card
+          key={c.id}
+          size="small"
+          title={
+            <Space>
+              <span>{c.lastName}, {c.firstName}</span>
+              {c.status === 'archived' && <Tag>Archiviert</Tag>}
+            </Space>
+          }
+          extra={
+            <Space size={0}>
               <Link to={`/admin/client/${c.id}`} title="Verlauf">
                 <Button type="text" icon={<HistoryOutlined />} />
               </Link>
@@ -73,6 +64,18 @@ export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: 
                 title="Löschen"
               />
             </Space>
+          }
+        >
+          <div style={{ fontSize: 13 }}>
+            <div style={{ color: 'rgba(0,0,0,0.65)' }}>{c.email}</div>
+            {c.phone && <div style={{ color: 'rgba(0,0,0,0.45)' }}>{c.phone}</div>}
+            <div style={{ marginTop: 4, fontSize: 12, color: 'rgba(0,0,0,0.35)' }}>
+              {c.therapyCount > 0 && <>{c.therapyCount} Einzeltherapie{c.therapyCount !== 1 ? 'n' : ''}</>}
+              {c.therapyCount > 0 && c.groupCount > 0 && ' · '}
+              {c.groupCount > 0 && <>{c.groupCount} Gruppe{c.groupCount !== 1 ? 'n' : ''}</>}
+              {c.therapyCount === 0 && c.groupCount === 0 && 'Keine Therapien'}
+              {c.bookingId && ' · aus Erstgespräch'}
+            </div>
           </div>
           {c.notes && (
             <div style={{ marginTop: 8, fontSize: 12, color: 'rgba(0,0,0,0.45)', background: '#fafafa', borderRadius: 4, padding: 8 }}>
