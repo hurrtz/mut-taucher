@@ -1,6 +1,6 @@
 import { useState, useLayoutEffect, type FormEvent } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
-import { ConfigProvider, Layout, Menu, Typography, Button, FloatButton, Card, Input, Alert } from 'antd';
+import { ConfigProvider, Layout, Menu, Typography, Button, FloatButton, Card, Input, Alert, theme } from 'antd';
 import {
   BarChartOutlined, LogoutOutlined,
   CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
@@ -23,6 +23,7 @@ const MENU_ITEMS = [
 ];
 
 export default function AdminLayout() {
+  const { token } = theme.useToken();
   const { authenticated, login, logout } = useAdminBooking();
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,7 +55,7 @@ export default function AdminLayout() {
   return (
     <ConfigProvider theme={adminTheme} locale={deDE}>
       <Layout style={{ minHeight: '100vh' }}>
-        <Sider width={220} breakpoint="lg" collapsedWidth={0} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
+        <Sider width={220} breakpoint="lg" collapsedWidth={0} style={{ background: token.colorBgContainer, borderRight: `1px solid ${token.colorBorderSecondary}` }}>
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div style={{ padding: '20px 24px 12px' }}>
               <Typography.Title level={4} style={{ margin: 0 }}>Administration</Typography.Title>
@@ -66,14 +67,14 @@ export default function AdminLayout() {
               items={MENU_ITEMS}
               style={{ flex: 1, borderRight: 'none' }}
             />
-            <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
+            <div style={{ padding: '12px 16px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
               <Button type="text" danger icon={<LogoutOutlined />} onClick={logout} block style={{ textAlign: 'left' }}>
                 Logout
               </Button>
             </div>
           </div>
         </Sider>
-        <Content style={{ background: '#f8fafc', padding: 24 }}>
+        <Content style={{ background: token.colorBgLayout, padding: 24 }}>
           <Outlet />
         </Content>
       </Layout>
@@ -83,6 +84,7 @@ export default function AdminLayout() {
 }
 
 function LoginForm({ onLogin }: { onLogin: (password: string) => Promise<boolean> }) {
+  const { token } = theme.useToken();
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -97,7 +99,7 @@ function LoginForm({ onLogin }: { onLogin: (password: string) => Promise<boolean
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: token.colorBgLayout }}>
       <Card style={{ width: 380 }}>
         <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>Admin Login</Typography.Title>
         <form onSubmit={handleSubmit}>
@@ -105,7 +107,7 @@ function LoginForm({ onLogin }: { onLogin: (password: string) => Promise<boolean
           {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
           <Button type="primary" htmlType="submit" loading={submitting} block size="large">Login</Button>
           <div style={{ textAlign: 'center', marginTop: 16 }}>
-            <Link to="/" style={{ color: '#8c8c8c', fontSize: 14 }}>Zurück zur Website</Link>
+            <Link to="/" style={{ color: token.colorTextSecondary, fontSize: 14 }}>Zurück zur Website</Link>
           </div>
         </form>
       </Card>

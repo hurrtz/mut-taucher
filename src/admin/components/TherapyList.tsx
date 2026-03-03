@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Therapy, TherapySession } from '../../lib/data';
-import { DAY_LABELS } from '../constants';
+import { DAY_LABELS, SESSION_STATUS_LABELS, SESSION_STATUS_COLORS } from '../constants';
+import { useAdminStyles } from '../styles';
 import { DocumentCollapse } from './DocumentChecklist';
 import { therapyHasInteraction } from '../utils';
 import { format, parseISO, addMonths } from 'date-fns';
@@ -30,20 +31,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
   const [editDate, setEditDate] = useState('');
   const [editTime, setEditTime] = useState('');
   const [editDuration, setEditDuration] = useState(60);
-
-  const statusLabels: Record<string, string> = {
-    scheduled: 'Geplant',
-    completed: 'Abgeschlossen',
-    cancelled: 'Abgesagt',
-    no_show: 'Nicht erschienen',
-  };
-
-  const statusTagColors: Record<string, string> = {
-    scheduled: 'blue',
-    completed: 'green',
-    cancelled: 'default',
-    no_show: 'red',
-  };
+  const styles = useAdminStyles();
 
   const totalDue = sessions.filter(s => s.paymentStatus === 'due' && s.status !== 'cancelled').length;
   const totalPaid = sessions.filter(s => s.paymentStatus === 'paid').length;
@@ -59,18 +47,18 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
               title="Offen"
               value={(amountDue / 100).toFixed(0)}
               suffix="€"
-              valueStyle={{ color: '#1677ff' }}
+              valueStyle={{ color: styles.token.colorPrimary }}
             />
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>{totalDue} Sitzungen</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{totalDue} Sitzungen</Typography.Text>
           </Col>
           <Col span={8} style={{ textAlign: 'center' }}>
             <Statistic
               title="Bezahlt"
               value={(amountPaid / 100).toFixed(0)}
               suffix="€"
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: styles.token.colorSuccess }}
             />
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>{totalPaid} Sitzungen</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{totalPaid} Sitzungen</Typography.Text>
           </Col>
           <Col span={8} style={{ textAlign: 'center' }}>
             <Statistic
@@ -78,7 +66,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
               value={((amountDue + amountPaid) / 100).toFixed(0)}
               suffix="€"
             />
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>{sessions.length} Sitzungen</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{sessions.length} Sitzungen</Typography.Text>
           </Col>
         </Row>
       </Card>
@@ -141,7 +129,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
                       {format(parseISO(s.sessionDate), 'd. MMM yyyy', { locale: de })}
                     </Typography.Text>
                     <Typography.Text type="secondary">{s.sessionTime} Uhr</Typography.Text>
-                    <Tag color={statusTagColors[s.status]}>{statusLabels[s.status]}</Tag>
+                    <Tag color={SESSION_STATUS_COLORS[s.status]}>{SESSION_STATUS_LABELS[s.status]}</Tag>
                     <Tag color={s.paymentStatus === 'paid' ? 'green' : 'gold'}>
                       {s.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
                     </Tag>
@@ -180,7 +168,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
                         paymentStatus: s.paymentStatus === 'paid' ? 'due' : 'paid',
                         paymentPaidDate: s.paymentStatus === 'paid' ? null : format(new Date(), 'yyyy-MM-dd'),
                       })}
-                      style={{ color: s.paymentStatus === 'paid' ? '#52c41a' : undefined }}
+                      style={{ color: s.paymentStatus === 'paid' ? styles.token.colorSuccess : undefined }}
                     />
                   </Tooltip>
                   <Tooltip title={s.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}>
@@ -189,7 +177,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
                       icon={s.invoiceSent ? <CheckCircleOutlined /> : <FileTextOutlined />}
                       onClick={() => onSendInvoice(s.id)}
                       disabled={s.invoiceSent}
-                      style={{ color: s.invoiceSent ? '#52c41a' : undefined }}
+                      style={{ color: s.invoiceSent ? styles.token.colorSuccess : undefined }}
                     />
                   </Tooltip>
                   <Tooltip title="Sitzung löschen">
@@ -209,7 +197,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
                 </Space>
               </div>
               {s.notes && (
-                <Typography.Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+                <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM, marginTop: 4, display: 'block' }}>
                   {s.notes}
                 </Typography.Text>
               )}
@@ -265,6 +253,8 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
   onDeleteSession: (id: number, therapyId: number) => void;
   onSendInvoice: (id: number) => void;
 }) {
+  const styles = useAdminStyles();
+
   useEffect(() => {
     fetchSessions(therapy.id);
   }, [therapy.id, fetchSessions]);
@@ -327,20 +317,20 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
         ) : undefined
       }
     >
-      <div style={{ fontSize: 12 }}>
+      <div style={{ fontSize: styles.token.fontSizeSM }}>
         {scheduleLabel && (
-          <Space size={4} style={{ display: 'flex', color: '#888' }}>
+          <Space size={4} style={{ display: 'flex', color: styles.token.colorTextSecondary }}>
             <SyncOutlined /> <span>{scheduleLabel}</span>
           </Space>
         )}
-        <Space size={4} style={{ display: 'flex', color: '#888' }}>
+        <Space size={4} style={{ display: 'flex', color: styles.token.colorTextSecondary }}>
           <CalendarOutlined />
           <span>
             Ab {format(parseISO(therapy.startDate), 'd. MMM yyyy', { locale: de })}
             {therapy.endDate && ` bis ${format(parseISO(therapy.endDate), 'd. MMM yyyy', { locale: de })}`}
           </span>
         </Space>
-        <Space size={4} style={{ display: 'flex', color: '#888' }}>
+        <Space size={4} style={{ display: 'flex', color: styles.token.colorTextSecondary }}>
           <EuroCircleOutlined /> <span>{(therapy.sessionCostCents / 100).toFixed(0)} € · {therapy.sessionDurationMinutes} Min.</span>
         </Space>
         {therapy.videoLink && (
@@ -348,7 +338,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
             href={therapy.videoLink}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: 12 }}
+            style={{ fontSize: styles.token.fontSizeSM }}
           >
             <Space size={4}>
               <VideoCameraOutlined /> <span>Video-Link</span>
@@ -357,7 +347,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
         )}
       </div>
 
-      <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ borderTop: `1px solid ${styles.token.colorBorderSecondary}`, paddingTop: 12, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <SessionPanel
           therapy={therapy}
           sessions={sessions}

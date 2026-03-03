@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { TherapyGroup, Client, GroupSession } from '../../lib/data';
-import { DAY_LABELS } from '../constants';
+import { DAY_LABELS, SESSION_STATUS_LABELS, SESSION_STATUS_COLORS } from '../constants';
+import { useAdminStyles } from '../styles';
 import { DocumentCollapse } from './DocumentChecklist';
 import { groupHasInteraction } from '../utils';
 import { format, parseISO, addMonths } from 'date-fns';
@@ -30,6 +31,7 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
   onBulkPay?: (groupId: number, clientId: number, count?: number | null) => void;
   onSendBundleInvoice?: (groupId: number, clientId: number, paymentMode: 'full' | 'half_first' | 'half_second') => void;
 }) {
+  const styles = useAdminStyles();
   const [selectedClientId, setSelectedClientId] = useState(0);
   const [bulkPayClient, setBulkPayClient] = useState<{ id: number; name: string; unpaid: number } | null>(null);
   const [bulkPayCount, setBulkPayCount] = useState(1);
@@ -144,7 +146,7 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
                         <Button
                           type="text"
                           icon={<CheckCircleOutlined />}
-                          style={{ color: '#52c41a' }}
+                          style={{ color: styles.token.colorSuccess }}
                           disabled
                         />
                       </Tooltip>
@@ -250,6 +252,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
   onDeleteSession: (id: number) => void;
   onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }) => void;
 }) {
+  const styles = useAdminStyles();
   const [genFrom, setGenFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [genTo, setGenTo] = useState(format(addMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [expandedSessionId, setExpandedSessionId] = useState<number | null>(null);
@@ -257,18 +260,6 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
   const [editDate, setEditDate] = useState('');
   const [editTime, setEditTime] = useState('');
   const [editDuration, setEditDuration] = useState(90);
-
-  const statusLabels: Record<string, string> = {
-    scheduled: 'Geplant',
-    completed: 'Abgeschlossen',
-    cancelled: 'Abgesagt',
-  };
-
-  const statusTagColors: Record<string, string> = {
-    scheduled: 'blue',
-    completed: 'green',
-    cancelled: 'default',
-  };
 
   const allPayments = sessions.flatMap(s => s.payments);
   const totalDue = allPayments.filter(p => p.paymentStatus === 'due').length;
@@ -285,18 +276,18 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
               title="Offen"
               value={(amountDue / 100).toFixed(0)}
               suffix="€"
-              valueStyle={{ color: '#1677ff' }}
+              valueStyle={{ color: styles.token.colorPrimary }}
             />
-            <Text type="secondary" style={{ fontSize: 12 }}>{totalDue} Zahlungen</Text>
+            <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{totalDue} Zahlungen</Text>
           </Col>
           <Col span={8} style={{ textAlign: 'center' }}>
             <Statistic
               title="Bezahlt"
               value={(amountPaid / 100).toFixed(0)}
               suffix="€"
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: styles.token.colorSuccess }}
             />
-            <Text type="secondary" style={{ fontSize: 12 }}>{totalPaid} Zahlungen</Text>
+            <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{totalPaid} Zahlungen</Text>
           </Col>
           <Col span={8} style={{ textAlign: 'center' }}>
             <Statistic
@@ -304,7 +295,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
               value={((amountDue + amountPaid) / 100).toFixed(0)}
               suffix="€"
             />
-            <Text type="secondary" style={{ fontSize: 12 }}>{sessions.length} Sitzungen</Text>
+            <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{sessions.length} Sitzungen</Text>
           </Col>
         </Row>
       </Card>
@@ -371,9 +362,9 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                         {format(parseISO(s.sessionDate), 'd. MMM yyyy', { locale: de })}
                       </Text>
                       <Text type="secondary">{s.sessionTime} Uhr</Text>
-                      <Tag color={statusTagColors[s.status]}>{statusLabels[s.status]}</Tag>
+                      <Tag color={SESSION_STATUS_COLORS[s.status]}>{SESSION_STATUS_LABELS[s.status]}</Tag>
                       {totalCount > 0 && (
-                        <Text type="secondary" style={{ fontSize: 12 }}>{paidCount}/{totalCount} bezahlt</Text>
+                        <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{paidCount}/{totalCount} bezahlt</Text>
                       )}
                     </div>
                   )}
@@ -419,13 +410,13 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                   </Space>
                 </div>
                 {isExpanded && (
-                  <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ borderTop: `1px solid ${styles.token.colorBorderSecondary}`, paddingTop: 8, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {s.payments.length === 0 ? (
-                      <Text type="secondary" style={{ fontSize: 12 }}>Keine Zahlungen (keine Teilnehmer).</Text>
+                      <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>Keine Zahlungen (keine Teilnehmer).</Text>
                     ) : (
                       s.payments.map(p => (
-                        <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa', borderRadius: 4, padding: '4px 8px' }}>
-                          <Text strong style={{ fontSize: 12 }}>{p.clientName}</Text>
+                        <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: styles.token.colorBgLayout, borderRadius: 4, padding: '4px 8px' }}>
+                          <Text strong style={{ fontSize: styles.token.fontSizeSM }}>{p.clientName}</Text>
                           <Space size={4}>
                             <Tag color={p.paymentStatus === 'paid' ? 'green' : 'gold'} style={{ marginInlineEnd: 0 }}>
                               {p.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
@@ -434,7 +425,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                               <Button
                                 type="text"
                                 icon={<EuroCircleOutlined />}
-                                style={{ color: p.paymentStatus === 'paid' ? '#52c41a' : undefined }}
+                                style={{ color: p.paymentStatus === 'paid' ? styles.token.colorSuccess : undefined }}
                                 onClick={() => onUpdatePayment(p.id, {
                                   paymentStatus: p.paymentStatus === 'paid' ? 'due' : 'paid',
                                   paymentPaidDate: p.paymentStatus === 'paid' ? null : format(new Date(), 'yyyy-MM-dd'),
@@ -520,6 +511,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
   onBulkPay?: (groupId: number, clientId: number, count?: number | null) => void;
   onSendBundleInvoice?: (groupId: number, clientId: number, paymentMode: 'full' | 'half_first' | 'half_second') => void;
 }) {
+  const styles = useAdminStyles();
   useEffect(() => { fetchSessions(group.id); }, [group.id, fetchSessions]);
 
   const pct = group.maxParticipants > 0
@@ -559,7 +551,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
                   type="text"
                   icon={<HomeOutlined />}
                   onClick={() => onToggleHomepage(group.id, group.showOnHomepage)}
-                  style={{ color: group.showOnHomepage ? '#f43f5e' : undefined }}
+                  style={{ color: group.showOnHomepage ? styles.token.colorError : undefined }}
                 />
               </Tooltip>
             )}
@@ -597,14 +589,14 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
         ) : undefined
       }
     >
-      <div style={{ fontSize: 12 }}>
+      <div style={{ fontSize: styles.token.fontSizeSM }}>
         {scheduleLabel && (
-          <Space size={4} style={{ display: 'flex', color: '#888' }}>
+          <Space size={4} style={{ display: 'flex', color: styles.token.colorTextSecondary }}>
             <SyncOutlined /> <span>{scheduleLabel}</span>
           </Space>
         )}
         {group.startDate && (
-          <Space size={4} style={{ display: 'flex', color: '#888' }}>
+          <Space size={4} style={{ display: 'flex', color: styles.token.colorTextSecondary }}>
             <CalendarOutlined />
             <span>
               Ab {format(parseISO(group.startDate), 'd. MMM yyyy', { locale: de })}
@@ -612,11 +604,11 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
             </span>
           </Space>
         )}
-        <Space size={4} style={{ display: 'flex', color: '#888' }}>
+        <Space size={4} style={{ display: 'flex', color: styles.token.colorTextSecondary }}>
           <EuroCircleOutlined /> <span>{(group.sessionCostCents / 100).toFixed(0)} € · {group.sessionDurationMinutes} Min.</span>
         </Space>
         {group.videoLink && (
-          <a href={group.videoLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>
+          <a href={group.videoLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: styles.token.fontSizeSM }}>
             <Space size={4}>
               <VideoCameraOutlined /> <span>Video-Link</span>
             </Space>
@@ -627,7 +619,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
       <div style={{ marginTop: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <Text style={{ fontSize: 13 }}>{group.participantCount} / {group.maxParticipants} Teilnehmer</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>{spotsLeft > 0 ? `${spotsLeft} frei` : 'Voll'}</Text>
+          <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{spotsLeft > 0 ? `${spotsLeft} frei` : 'Voll'}</Text>
         </div>
         <Progress
           percent={Math.min(pct, 100)}
@@ -637,7 +629,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
         />
       </div>
 
-      <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ borderTop: `1px solid ${styles.token.colorBorderSecondary}`, paddingTop: 12, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <Collapse
           defaultActiveKey={[]}
           items={[{

@@ -11,16 +11,10 @@ import {
   UploadOutlined, FormOutlined, DownloadOutlined, EditOutlined,
   DeleteOutlined, LoadingOutlined, TeamOutlined,
 } from '@ant-design/icons';
-import { Card, Button, Tag, Space, Typography, Spin, Input, Modal, Alert } from 'antd';
+import { Card, Button, Tag, Space, Typography, Spin, Input, Modal, Alert, theme } from 'antd';
+import { SESSION_STATUS_LABELS } from '../admin/constants';
 
 const { Text, Title } = Typography;
-
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Geplant',
-  completed: 'Abgeschlossen',
-  cancelled: 'Abgesagt',
-  no_show: 'Nicht erschienen',
-};
 
 const EVENT_ICONS: Record<string, ReactNode> = {
   session: <CalendarOutlined />,
@@ -49,6 +43,7 @@ function formatCents(cents: number): string {
 }
 
 export function ClientHistoryPanel({ clientId }: { clientId: number }) {
+  const { token } = theme.useToken();
   const [client, setClient] = useState<Client | null>(null);
   const [clientLoading, setClientLoading] = useState(true);
 
@@ -113,7 +108,7 @@ export function ClientHistoryPanel({ clientId }: { clientId: number }) {
             </div>
           )}
         </div>
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0', fontSize: 12, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${token.colorBorderSecondary}`, fontSize: token.fontSizeSM, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
           {client.therapyCount > 0 && <Text type="secondary">{client.therapyCount} Einzeltherapie{client.therapyCount !== 1 ? 'n' : ''}</Text>}
           {client.groupCount > 0 && <Text type="secondary">{client.groupCount} Gruppe{client.groupCount !== 1 ? 'n' : ''}</Text>}
           <Text type="secondary">Seit {formatDate(client.createdAt)}</Text>
@@ -146,7 +141,7 @@ export function ClientHistoryPanel({ clientId }: { clientId: number }) {
         />
 
         {events.length < total && (
-          <div style={{ padding: 16, borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+          <div style={{ padding: 16, borderTop: `1px solid ${token.colorBorderSecondary}`, textAlign: 'center' }}>
             <Button
               type="link"
               onClick={() => fetchTimeline(50, events.length, true)}
@@ -328,6 +323,7 @@ function Timeline({ events, onUpdateNote, onDeleteNote, onDeleteDocument }: {
   onDeleteNote: (noteId: number) => Promise<void>;
   onDeleteDocument: (docId: number) => Promise<void>;
 }) {
+  const { token } = theme.useToken();
   // Group events by date
   const grouped = events.reduce<Record<string, TimelineEvent[]>>((acc, ev) => {
     (acc[ev.date] ??= []).push(ev);
@@ -337,8 +333,8 @@ function Timeline({ events, onUpdateNote, onDeleteNote, onDeleteDocument }: {
   return (
     <div>
       {Object.entries(grouped).map(([date, dayEvents]) => (
-        <div key={date} style={{ padding: 16, borderBottom: '1px solid #f0f0f0' }}>
-          <Text type="secondary" style={{ fontSize: 12, fontWeight: 500, display: 'block', marginBottom: 12 }}>
+        <div key={date} style={{ padding: 16, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+          <Text type="secondary" style={{ fontSize: token.fontSizeSM, fontWeight: 500, display: 'block', marginBottom: 12 }}>
             {formatDate(date)}
           </Text>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -403,7 +399,7 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
   const { type, data } = event;
 
   if (type === 'session') {
-    const status = STATUS_LABELS[data.status as string] ?? data.status;
+    const status = SESSION_STATUS_LABELS[data.status as string] ?? data.status;
     return (
       <div style={{ fontSize: 14 }}>
         <Text strong>Sitzung:</Text>{' '}
@@ -416,7 +412,7 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
   }
 
   if (type === 'group_session') {
-    const status = STATUS_LABELS[data.status as string] ?? data.status;
+    const status = SESSION_STATUS_LABELS[data.status as string] ?? data.status;
     return (
       <div style={{ fontSize: 14 }}>
         <Text strong>Gruppensitzung:</Text>{' '}
