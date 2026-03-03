@@ -36,7 +36,7 @@ function handleGetTemplate(string $key): void {
     $db = getDB();
 
     $stmt = $db->prepare(
-        'SELECT template_key, label, html_content, placeholders, updated_at FROM document_templates WHERE template_key = ?'
+        'SELECT template_key, label, group_name, html_content, placeholders, updated_at FROM document_templates WHERE template_key = ?'
     );
     $stmt->execute([$key]);
     $row = $stmt->fetch();
@@ -50,6 +50,7 @@ function handleGetTemplate(string $key): void {
     echo json_encode([
         'key'          => $row['template_key'],
         'label'        => $row['label'],
+        'groupName'    => $row['group_name'],
         'htmlContent'  => $row['html_content'],
         'placeholders' => json_decode($row['placeholders'], true),
         'updatedAt'    => $row['updated_at'],

@@ -98,11 +98,14 @@ export function useAdminTemplates() {
         method: 'PATCH',
         body: JSON.stringify({ groupName }),
       });
+      if (activeTemplate?.key === key) {
+        setActiveTemplate({ ...activeTemplate, groupName });
+      }
       await fetchTemplates();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Gruppe');
     }
-  }, [fetchTemplates]);
+  }, [activeTemplate, fetchTemplates]);
 
   const previewTemplate = useCallback(async (key: string, htmlContent: string) => {
     setError(null);
