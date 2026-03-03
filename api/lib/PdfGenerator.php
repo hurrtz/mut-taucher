@@ -19,6 +19,23 @@ class PdfGenerator {
     }
 
     /**
+     * Resolve which template key to use for a given sending point.
+     * Checks template_mappings for a mapped template_key, falls back to $fallback.
+     */
+    public function resolveTemplateKey(string $sendingPoint, string $fallback): string {
+        try {
+            require_once __DIR__ . '/../db.php';
+            $db = getDB();
+            $stmt = $db->prepare('SELECT template_key FROM template_mappings WHERE sending_point = ? AND template_key IS NOT NULL');
+            $stmt->execute([$sendingPoint]);
+            $row = $stmt->fetch();
+            return ($row && $row['template_key']) ? $row['template_key'] : $fallback;
+        } catch (\Exception $e) {
+            return $fallback;
+        }
+    }
+
+    /**
      * Load template HTML from database.
      * Returns html_content or null if not found.
      */
@@ -71,6 +88,9 @@ class PdfGenerator {
             '{{therapy_label}}'     => htmlspecialchars($extra['therapyLabel'] ?? ''),
             '{{session_date}}'      => htmlspecialchars($extra['sessionDate'] ?? ''),
             '{{session_time}}'      => htmlspecialchars($extra['sessionTime'] ?? ''),
+            '{{session_count}}'     => htmlspecialchars((string)($extra['sessionCount'] ?? '')),
+            '{{total_amount}}'      => htmlspecialchars($extra['totalAmount'] ?? ''),
+            '{{payment_label}}'     => htmlspecialchars($extra['paymentLabel'] ?? ''),
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $html);
@@ -119,6 +139,9 @@ class PdfGenerator {
             'therapyLabel'   => 'Einzeltherapie',
             'sessionDate'    => $today,
             'sessionTime'    => '10:00',
+            'sessionCount'   => '10',
+            'totalAmount'    => '950,00 €',
+            'paymentLabel'   => 'Gesamtbetrag',
         ]);
     }
 
@@ -190,6 +213,9 @@ class PdfGenerator {
             'datenschutz_digital'       => 'Datenschutzrisiken digitaler Kommunikation',
             'email_einwilligung'        => 'Einwilligung zur E-Mail-Kommunikation',
             'rechnung'                  => 'Rechnung',
+            'rechnung_erstgespraech'    => 'Rechnung — Erstgespräch',
+            'rechnung_einzeltherapie'   => 'Rechnung — Einzeltherapie',
+            'rechnung_gruppentherapie'  => 'Rechnung — Gruppentherapie',
         ];
 
         $title = $titles[$type] ?? $type;

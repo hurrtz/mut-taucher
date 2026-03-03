@@ -27,6 +27,7 @@ export interface RecurringRule {
   endDate: string | null;     // null = indefinite
   exceptions: string[];       // cancelled ISO dates
   category: EventCategory;
+  priceCents: number | null;
 }
 
 export interface Event {
@@ -36,6 +37,7 @@ export interface Event {
   time: string;               // "HH:MM"
   durationMinutes: number;
   category: EventCategory;
+  priceCents: number | null;
 }
 
 export interface Slot {
@@ -84,6 +86,7 @@ export interface GroupParticipant {
   clientEmail: string;
   joinedAt: string;
   status: 'active' | 'left';
+  invoiceStatus: 'none' | 'full_sent' | 'half1_sent' | 'half2_sent';
 }
 
 export interface GroupSession {

@@ -7,15 +7,16 @@ import {
 } from 'antd';
 import {
   MailOutlined, CheckCircleOutlined, ClockCircleOutlined, UserAddOutlined,
-  CloseOutlined, CalendarOutlined,
+  CloseOutlined, CalendarOutlined, FileTextOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
 
-export default function BookingList({ bookings, onUpdate, onSendEmail, onMigrateToClient }: {
+export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInvoice, onMigrateToClient }: {
   bookings: AdminBooking[];
   onUpdate: (id: number, updates: Partial<AdminBooking>) => void;
   onSendEmail: (id: number, type: 'intro' | 'reminder') => void;
+  onSendInvoice: (bookingId: number) => void;
   onMigrateToClient: (bookingId: number) => void;
 }) {
   if (bookings.length === 0) {
@@ -58,6 +59,16 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onMigrate
                       : <ClockCircleOutlined />}
                     disabled={b.reminderSent}
                     onClick={() => onSendEmail(b.id, 'reminder')}
+                  />
+                </Tooltip>
+                <Tooltip title={b.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}>
+                  <Button
+                    type="text"
+                    icon={b.invoiceSent
+                      ? <CheckCircleOutlined style={{ color: '#4ade80' }} />
+                      : <FileTextOutlined />}
+                    disabled={b.invoiceSent}
+                    onClick={() => onSendInvoice(b.id)}
                   />
                 </Tooltip>
                 <Tooltip title="Patient:in anlegen">

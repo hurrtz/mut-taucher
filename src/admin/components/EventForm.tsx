@@ -29,6 +29,7 @@ export default function EventForm({ onSave }: { onSave: (data: Omit<Event, 'id'>
     durationMinutes: 60,
     customDuration: '' as string | number,
     category: 'erstgespraech' as EventCategory,
+    priceCents: null as number | null,
   });
 
   const handleSubmit = () => {
@@ -40,6 +41,7 @@ export default function EventForm({ onSave }: { onSave: (data: Omit<Event, 'id'>
       time: form.time,
       durationMinutes: duration,
       category: form.category,
+      priceCents: form.priceCents,
     });
     setForm({
       label: '',
@@ -48,6 +50,7 @@ export default function EventForm({ onSave }: { onSave: (data: Omit<Event, 'id'>
       durationMinutes: 60,
       customDuration: '',
       category: 'erstgespraech',
+      priceCents: null,
     });
   };
 
@@ -67,6 +70,18 @@ export default function EventForm({ onSave }: { onSave: (data: Omit<Event, 'id'>
           onChange={(val: EventCategory) => setForm({ ...form, category: val })}
           options={CATEGORY_OPTIONS}
           style={{ width: '100%' }}
+        />
+      </Form.Item>
+
+      <Form.Item label="Preis (€)" style={{ marginBottom: 0 }}>
+        <InputNumber
+          min={0}
+          step={0.5}
+          value={form.priceCents != null ? form.priceCents / 100 : undefined}
+          onChange={val => setForm({ ...form, priceCents: val != null ? Math.round(val * 100) : null })}
+          placeholder="z.B. 95"
+          style={{ width: '100%' }}
+          addonAfter="€"
         />
       </Form.Item>
 

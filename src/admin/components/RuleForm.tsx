@@ -25,6 +25,7 @@ export interface RuleFormData {
   endDate: string;
   indefinite: boolean;
   category: EventCategory;
+  priceCents: number | null;
 }
 
 import { format } from 'date-fns';
@@ -41,6 +42,7 @@ export const emptyForm = (): RuleFormData => ({
   endDate: '',
   indefinite: true,
   category: 'erstgespraech',
+  priceCents: null,
 });
 
 export function ruleToForm(rule: RecurringRule): RuleFormData {
@@ -60,6 +62,7 @@ export function ruleToForm(rule: RecurringRule): RuleFormData {
     endDate: rule.endDate ?? '',
     indefinite: !rule.endDate,
     category: rule.category ?? 'erstgespraech',
+    priceCents: rule.priceCents ?? null,
   };
 }
 
@@ -90,6 +93,7 @@ export default function RuleForm({ initial, onSave, onCancel }: {
       startDate: form.startDate,
       endDate: form.indefinite ? null : (form.endDate || null),
       category: form.category,
+      priceCents: form.priceCents,
     });
     if (!initial) setForm(emptyForm());
   };
@@ -130,6 +134,19 @@ export default function RuleForm({ initial, onSave, onCancel }: {
             onChange={(val: EventCategory) => setForm({ ...form, category: val })}
             options={CATEGORY_OPTIONS}
             style={{ width: '100%' }}
+          />
+        </Form.Item>
+
+        {/* Preis */}
+        <Form.Item label="Preis (€)" colon={false} style={{ marginBottom: 0 }}>
+          <InputNumber
+            min={0}
+            step={0.5}
+            value={form.priceCents != null ? form.priceCents / 100 : undefined}
+            onChange={val => setForm({ ...form, priceCents: val != null ? Math.round(val * 100) : null })}
+            placeholder="z.B. 95"
+            style={{ width: '100%' }}
+            addonAfter="€"
           />
         </Form.Item>
 

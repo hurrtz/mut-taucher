@@ -46,6 +46,9 @@ export interface AdminBooking {
   status: 'confirmed' | 'cancelled';
   introEmailSent: boolean;
   reminderSent: boolean;
+  invoiceSent: boolean;
+  invoiceSentAt: string | null;
+  priceCents: number | null;
   createdAt: string;
 }
 
@@ -59,6 +62,7 @@ interface ApiRule {
   days: DayConfig[];
   exceptions: string[];
   category: EventCategory;
+  priceCents: number | null;
 }
 
 // Convert API rule format to frontend RecurringRule format
@@ -73,6 +77,7 @@ function apiRuleToRule(r: ApiRule): RecurringRule {
     days: r.days,
     exceptions: r.exceptions,
     category: r.category ?? 'erstgespraech',
+    priceCents: r.priceCents ?? null,
   };
 }
 
@@ -267,6 +272,20 @@ export function useAdminBooking() {
     }
   }, []);
 
+  // ─── Booking Invoice ─────────────────────────────────────────
+
+  const sendBookingInvoice = useCallback(async (bookingId: number) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}/invoice`, { method: 'POST' });
+      setBookings(prev => prev.map(b =>
+        b.id === bookingId ? { ...b, invoiceSent: true, invoiceSentAt: new Date().toISOString() } : b
+      ));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Rechnungsversand');
+    }
+  }, []);
+
   // ─── Calendar Sessions ─────────────────────────────────────────
 
   const fetchCalendarSessions = useCallback(async (from: string, to: string) => {
@@ -377,6 +396,7 @@ export function useAdminBooking() {
     fetchBookings,
     updateBooking,
     sendEmail,
+    sendBookingInvoice,
     fetchCalendarSessions,
     fetchBlockedDays,
     blockDay,

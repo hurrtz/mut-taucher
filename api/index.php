@@ -123,6 +123,11 @@ if ($method === 'POST' && preg_match('#^/admin/bookings/(\d+)/email$#', $uri, $m
     exit;
 }
 
+if ($method === 'POST' && preg_match('#^/admin/bookings/(\d+)/invoice$#', $uri, $m)) {
+    handleSendBookingInvoice((int)$m[1]);
+    exit;
+}
+
 if ($method === 'POST' && preg_match('#^/admin/bookings/(\d+)/migrate-to-client$#', $uri, $m)) {
     handleMigrateBookingToClient((int)$m[1]);
     exit;
@@ -210,6 +215,11 @@ if ($method === 'POST' && $uri === '/admin/group-session-payments/bulk-pay') {
 
 if ($method === 'POST' && preg_match('#^/admin/group-session-payments/(\d+)/invoice$#', $uri, $m)) {
     handleSendGroupInvoice((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/groups/(\d+)/participants/(\d+)/invoice$#', $uri, $m)) {
+    handleSendGroupBundleInvoice((int)$m[1], (int)$m[2]);
     exit;
 }
 

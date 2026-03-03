@@ -16,7 +16,7 @@ function formatGroupRow(array $g, PDO $db): array {
 
     // Active participants
     $partStmt = $db->prepare(
-        'SELECT gp.client_id, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix, c.email as client_email, gp.joined_at, gp.status
+        'SELECT gp.client_id, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix, c.email as client_email, gp.joined_at, gp.status, gp.invoice_status
          FROM group_participants gp
          JOIN clients c ON gp.client_id = c.id
          WHERE gp.group_id = ? AND gp.status = \'active\'
@@ -45,11 +45,12 @@ function formatGroupRow(array $g, PDO $db): array {
             'time'      => $s['time'],
         ], $schedule),
         'participants'           => array_map(fn($p) => [
-            'clientId'    => (int)$p['client_id'],
-            'clientName'  => composeClientName($p['client_title'], $p['client_first_name'], $p['client_last_name'], $p['client_suffix']),
-            'clientEmail' => $p['client_email'],
-            'joinedAt'    => $p['joined_at'],
-            'status'      => $p['status'],
+            'clientId'      => (int)$p['client_id'],
+            'clientName'    => composeClientName($p['client_title'], $p['client_first_name'], $p['client_last_name'], $p['client_suffix']),
+            'clientEmail'   => $p['client_email'],
+            'joinedAt'      => $p['joined_at'],
+            'status'        => $p['status'],
+            'invoiceStatus' => $p['invoice_status'] ?? 'none',
         ], $participants),
     ];
 }
@@ -100,7 +101,7 @@ function handleGetGroup(int $id): void {
 
     // Add participants
     $partStmt = $db->prepare(
-        'SELECT gp.client_id, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix, c.email as client_email, gp.joined_at, gp.status
+        'SELECT gp.client_id, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix, c.email as client_email, gp.joined_at, gp.status, gp.invoice_status
          FROM group_participants gp
          JOIN clients c ON gp.client_id = c.id
          WHERE gp.group_id = ?
@@ -108,11 +109,12 @@ function handleGetGroup(int $id): void {
     );
     $partStmt->execute([$id]);
     $result['participants'] = array_map(fn($p) => [
-        'clientId'    => (int)$p['client_id'],
-        'clientName'  => composeClientName($p['client_title'], $p['client_first_name'], $p['client_last_name'], $p['client_suffix']),
-        'clientEmail' => $p['client_email'],
-        'joinedAt'    => $p['joined_at'],
-        'status'      => $p['status'],
+        'clientId'      => (int)$p['client_id'],
+        'clientName'    => composeClientName($p['client_title'], $p['client_first_name'], $p['client_last_name'], $p['client_suffix']),
+        'clientEmail'   => $p['client_email'],
+        'joinedAt'      => $p['joined_at'],
+        'status'        => $p['status'],
+        'invoiceStatus' => $p['invoice_status'] ?? 'none',
     ], $partStmt->fetchAll());
 
     echo json_encode($result);
@@ -898,4 +900,156 @@ function handleSendGroupInvoice(int $paymentId): void {
     archiveSentDocument((int)$payment['client_id'], "Rechnung {$invoiceNumber}", $pdfContent, $pdfFilename);
 
     echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber]);
+}
+
+/**
+ * POST /api/admin/groups/:id/participants/:clientId/invoice
+ * Generates and sends a bundled invoice for all group sessions for a participant.
+ * Body: { paymentMode: 'full' | 'half_first' | 'half_second' }
+ */
+function handleSendGroupBundleInvoice(int $groupId, int $clientId): void {
+    requireAuth();
+    require_once __DIR__ . '/../lib/Mailer.php';
+    require_once __DIR__ . '/../lib/PdfGenerator.php';
+    $config = require __DIR__ . '/../config.php';
+    $db = getDB();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $paymentMode = $input['paymentMode'] ?? 'full';
+
+    if (!in_array($paymentMode, ['full', 'half_first', 'half_second'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'paymentMode muss full, half_first oder half_second sein']);
+        return;
+    }
+
+    // Get participant + invoice status
+    $partStmt = $db->prepare(
+        'SELECT gp.invoice_status, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix,
+                c.email as client_email, c.street as client_street, c.zip as client_zip, c.city as client_city, c.country as client_country
+         FROM group_participants gp
+         JOIN clients c ON gp.client_id = c.id
+         WHERE gp.group_id = ? AND gp.client_id = ?'
+    );
+    $partStmt->execute([$groupId, $clientId]);
+    $participant = $partStmt->fetch();
+
+    if (!$participant) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Teilnehmer:in nicht gefunden']);
+        return;
+    }
+
+    $currentStatus = $participant['invoice_status'] ?? 'none';
+
+    // Validate state transitions
+    if (($paymentMode === 'full' || $paymentMode === 'half_first') && $currentStatus !== 'none') {
+        http_response_code(400);
+        echo json_encode(['error' => 'Gesamtrechnung / 1. Teilzahlung nur möglich wenn noch keine Rechnung gesendet']);
+        return;
+    }
+    if ($paymentMode === 'half_second' && $currentStatus !== 'half1_sent') {
+        http_response_code(400);
+        echo json_encode(['error' => '2. Teilzahlung nur möglich nach 1. Teilzahlung']);
+        return;
+    }
+
+    // Get group info
+    $groupStmt = $db->prepare('SELECT * FROM therapy_groups WHERE id = ?');
+    $groupStmt->execute([$groupId]);
+    $group = $groupStmt->fetch();
+
+    if (!$group) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Gruppe nicht gefunden']);
+        return;
+    }
+
+    // Count non-cancelled sessions
+    $sessionCountStmt = $db->prepare(
+        "SELECT COUNT(*) FROM group_sessions WHERE group_id = ? AND status != 'cancelled'"
+    );
+    $sessionCountStmt->execute([$groupId]);
+    $sessionCount = (int)$sessionCountStmt->fetchColumn();
+
+    $costPerSession = (int)$group['session_cost_cents'];
+    $totalCents = $sessionCount * $costPerSession;
+
+    // Calculate amount based on payment mode
+    if ($paymentMode === 'full') {
+        $amountCents = $totalCents;
+        $paymentLabel = 'Gesamtbetrag';
+        $newStatus = 'full_sent';
+        $invoiceSuffix = '';
+    } elseif ($paymentMode === 'half_first') {
+        $amountCents = (int)ceil($totalCents / 2);
+        $paymentLabel = '1. Teilzahlung';
+        $newStatus = 'half1_sent';
+        $invoiceSuffix = '-T1';
+    } else {
+        $amountCents = $totalCents - (int)ceil($totalCents / 2);
+        $paymentLabel = '2. Teilzahlung';
+        $newStatus = 'half2_sent';
+        $invoiceSuffix = '-T2';
+    }
+
+    $amountFormatted = number_format($amountCents / 100, 2, ',', '.') . ' €';
+    $totalFormatted = number_format($totalCents / 100, 2, ',', '.') . ' €';
+    $clientName = composeClientName($participant['client_title'], $participant['client_first_name'], $participant['client_last_name'], $participant['client_suffix']);
+    $dateFormatted = date('d.m.Y');
+    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $siteUrl = $config['site_url'] ?? '';
+    $invoiceNumber = 'RE-' . date('Y') . '-G' . $groupId . '-' . $clientId . $invoiceSuffix;
+
+    // Generate invoice PDF
+    $pdfGen = new PdfGenerator();
+    $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_gruppentherapie', 'rechnung');
+    $pdfContent = $pdfGen->generate($templateKey, $clientName, $dateFormatted, [
+        'invoiceNumber'    => $invoiceNumber,
+        'amountFormatted'  => $amountFormatted,
+        'durationMinutes'  => (int)$group['session_duration_minutes'],
+        'therapyLabel'     => $group['label'],
+        'sessionDate'      => $dateFormatted,
+        'sessionTime'      => '',
+        'clientStreet'     => $participant['client_street'] ?? '',
+        'clientZip'        => $participant['client_zip'] ?? '',
+        'clientCity'       => $participant['client_city'] ?? '',
+        'clientCountry'    => $participant['client_country'] ?? '',
+        'sessionCount'     => $sessionCount,
+        'totalAmount'      => $totalFormatted,
+        'paymentLabel'     => $paymentLabel,
+    ]);
+
+    // Render invoice cover email
+    $documentName = 'Rechnung';
+    ob_start();
+    include __DIR__ . '/../templates/email/invoice_cover.php';
+    $htmlBody = ob_get_clean();
+
+    try {
+        $mailer = new Mailer();
+        $pdfFilename = "Rechnung_{$invoiceNumber}.pdf";
+        $mailer->sendWithPdf(
+            $participant['client_email'],
+            $clientName,
+            "Rechnung {$invoiceNumber} — {$therapistName}",
+            $htmlBody,
+            $pdfContent,
+            $pdfFilename
+        );
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Rechnung konnte nicht gesendet werden: ' . $e->getMessage()]);
+        return;
+    }
+
+    // Update invoice status
+    $db->prepare(
+        'UPDATE group_participants SET invoice_status = ? WHERE group_id = ? AND client_id = ?'
+    )->execute([$newStatus, $groupId, $clientId]);
+
+    // Archive invoice PDF to client documents
+    require_once __DIR__ . '/client_history.php';
+    archiveSentDocument($clientId, "Rechnung {$invoiceNumber}", $pdfContent, $pdfFilename);
+
+    echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber, 'invoiceStatus' => $newStatus]);
 }

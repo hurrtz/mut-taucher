@@ -574,7 +574,8 @@ function handleSendInvoice(int $sessionId): void {
 
     // Generate invoice PDF
     $pdfGen = new PdfGenerator();
-    $pdfContent = $pdfGen->generate('rechnung', $clientName, $dateFormatted, [
+    $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_einzeltherapie', 'rechnung');
+    $pdfContent = $pdfGen->generate($templateKey, $clientName, $dateFormatted, [
         'invoiceNumber'    => $invoiceNumber,
         'amountFormatted'  => $amountFormatted,
         'durationMinutes'  => $durationMinutes,

@@ -216,6 +216,19 @@ export function useAdminGroups() {
     }
   }, [fetchGroupSessions]);
 
+  const sendGroupBundleInvoice = useCallback(async (groupId: number, clientId: number, paymentMode: 'full' | 'half_first' | 'half_second') => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/groups/${groupId}/participants/${clientId}/invoice`, {
+        method: 'POST',
+        body: JSON.stringify({ paymentMode }),
+      });
+      await fetchGroups();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Rechnungsversand');
+    }
+  }, [fetchGroups]);
+
   const sendGroupInvoice = useCallback(async (paymentId: number, groupId?: number) => {
     setError(null);
     try {
@@ -247,5 +260,6 @@ export function useAdminGroups() {
     updatePayment,
     bulkPayGroupPayments,
     sendGroupInvoice,
+    sendGroupBundleInvoice,
   };
 }

@@ -55,6 +55,7 @@ function handleGetRules(): void {
             ], $rule['days']),
             'exceptions'      => $rule['exceptions'],
             'category'        => $rule['category'] ?? 'erstgespraech',
+            'priceCents'      => $rule['price_cents'] !== null ? (int)$rule['price_cents'] : null,
         ];
     }, $rules);
 
@@ -73,8 +74,8 @@ function handleCreateRule(): void {
     $db->beginTransaction();
     try {
         $stmt = $db->prepare(
-            'INSERT INTO recurring_rules (label, time, duration_minutes, start_date, end_date, category)
-             VALUES (?, ?, ?, ?, ?, ?)'
+            'INSERT INTO recurring_rules (label, time, duration_minutes, start_date, end_date, category, price_cents)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $input['label'] ?? '',
@@ -83,6 +84,7 @@ function handleCreateRule(): void {
             $input['startDate'],
             $input['endDate'] ?: null,
             $input['category'] ?? 'erstgespraech',
+            isset($input['priceCents']) ? (int)$input['priceCents'] : null,
         ]);
         $ruleId = $db->lastInsertId();
 
@@ -113,7 +115,7 @@ function handleUpdateRule(int $id): void {
     $db->beginTransaction();
     try {
         $stmt = $db->prepare(
-            'UPDATE recurring_rules SET label = ?, time = ?, duration_minutes = ?, start_date = ?, end_date = ?, category = ?
+            'UPDATE recurring_rules SET label = ?, time = ?, duration_minutes = ?, start_date = ?, end_date = ?, category = ?, price_cents = ?
              WHERE id = ?'
         );
         $stmt->execute([
@@ -123,6 +125,7 @@ function handleUpdateRule(int $id): void {
             $input['startDate'],
             $input['endDate'] ?: null,
             $input['category'] ?? 'erstgespraech',
+            isset($input['priceCents']) ? (int)$input['priceCents'] : null,
             $id,
         ]);
 
@@ -219,6 +222,7 @@ function handleGetEvents(): void {
         'time'            => $e['time'],
         'durationMinutes' => (int)$e['duration_minutes'],
         'category'        => $e['category'] ?? 'erstgespraech',
+        'priceCents'      => $e['price_cents'] !== null ? (int)$e['price_cents'] : null,
     ], $events);
 
     echo json_encode(array_values($result));
@@ -243,7 +247,7 @@ function handleCreateEvent(): void {
     }
 
     $stmt = $db->prepare(
-        'INSERT INTO events (label, event_date, time, duration_minutes, category) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO events (label, event_date, time, duration_minutes, category, price_cents) VALUES (?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $input['label'] ?? '',
@@ -251,6 +255,7 @@ function handleCreateEvent(): void {
         $time,
         $input['durationMinutes'] ?? 60,
         $input['category'] ?? 'erstgespraech',
+        isset($input['priceCents']) ? (int)$input['priceCents'] : null,
     ]);
 
     echo json_encode(['id' => (int)$db->lastInsertId(), 'message' => 'Einzeltermin angelegt']);
@@ -287,7 +292,9 @@ function handleGetBookings(): void {
 
     $db = getDB();
 
-    $sql = 'SELECT b.*, r.label as rule_label, e.label as event_label FROM bookings b
+    $sql = 'SELECT b.*, r.label as rule_label, e.label as event_label,
+                   r.price_cents as rule_price_cents, e.price_cents as event_price_cents
+            FROM bookings b
             LEFT JOIN recurring_rules r ON b.rule_id = r.id
             LEFT JOIN events e ON b.event_id = e.id';
     $params = [];
@@ -318,6 +325,9 @@ function handleGetBookings(): void {
         'status'          => $b['status'],
         'introEmailSent'  => (bool)$b['intro_email_sent'],
         'reminderSent'    => (bool)$b['reminder_sent'],
+        'invoiceSent'     => (bool)$b['invoice_sent'],
+        'invoiceSentAt'   => $b['invoice_sent_at'],
+        'priceCents'      => $b['rule_price_cents'] !== null ? (int)$b['rule_price_cents'] : ($b['event_price_cents'] !== null ? (int)$b['event_price_cents'] : null),
         'createdAt'       => $b['created_at'],
     ], $bookings);
 
@@ -997,4 +1007,90 @@ function handleSendCancellationEmails(): void {
     }
 
     echo json_encode(['results' => $results]);
+}
+
+// ─── Booking Invoice ─────────────────────────────────────────────
+
+/**
+ * POST /api/admin/bookings/:id/invoice
+ * Generates and sends an invoice PDF for a booking (Erstgespräch).
+ */
+function handleSendBookingInvoice(int $bookingId): void {
+    requireAuth();
+    require_once __DIR__ . '/../lib/Mailer.php';
+    require_once __DIR__ . '/../lib/PdfGenerator.php';
+    $config = require __DIR__ . '/../config.php';
+    $db = getDB();
+
+    $stmt = $db->prepare(
+        'SELECT b.*, r.price_cents as rule_price_cents, e.price_cents as event_price_cents
+         FROM bookings b
+         LEFT JOIN recurring_rules r ON b.rule_id = r.id
+         LEFT JOIN events e ON b.event_id = e.id
+         WHERE b.id = ?'
+    );
+    $stmt->execute([$bookingId]);
+    $booking = $stmt->fetch();
+
+    if (!$booking) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Buchung nicht gefunden']);
+        return;
+    }
+
+    $clientName = trim($booking['client_first_name'] . ' ' . $booking['client_last_name']);
+    $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
+    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $siteUrl = $config['site_url'] ?? '';
+
+    // Price: from rule/event, or default 9500 (95€)
+    $amountCents = $booking['rule_price_cents'] !== null
+        ? (int)$booking['rule_price_cents']
+        : ($booking['event_price_cents'] !== null ? (int)$booking['event_price_cents'] : 9500);
+    $amountFormatted = number_format($amountCents / 100, 2, ',', '.') . ' €';
+    $durationMinutes = (int)$booking['duration_minutes'];
+    $therapyLabel = 'Erstgespräch';
+    $invoiceNumber = 'RE-' . date('Y') . '-E' . str_pad($bookingId, 5, '0', STR_PAD_LEFT);
+
+    // Generate invoice PDF
+    $pdfGen = new PdfGenerator();
+    $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_erstgespraech', 'rechnung');
+    $pdfContent = $pdfGen->generate($templateKey, $clientName, $dateFormatted, [
+        'invoiceNumber'    => $invoiceNumber,
+        'amountFormatted'  => $amountFormatted,
+        'durationMinutes'  => $durationMinutes,
+        'therapyLabel'     => $therapyLabel,
+        'sessionDate'      => $dateFormatted,
+        'sessionTime'      => $booking['booking_time'],
+    ]);
+
+    // Render invoice cover email
+    $documentName = 'Rechnung';
+    ob_start();
+    include __DIR__ . '/../templates/email/invoice_cover.php';
+    $htmlBody = ob_get_clean();
+
+    try {
+        $mailer = new Mailer();
+        $pdfFilename = "Rechnung_{$invoiceNumber}.pdf";
+        $mailer->sendWithPdf(
+            $booking['client_email'],
+            $clientName,
+            "Rechnung {$invoiceNumber} — {$therapistName}",
+            $htmlBody,
+            $pdfContent,
+            $pdfFilename
+        );
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Rechnung konnte nicht gesendet werden: ' . $e->getMessage()]);
+        return;
+    }
+
+    // Mark invoice as sent
+    $db->prepare(
+        'UPDATE bookings SET invoice_sent = 1, invoice_sent_at = NOW() WHERE id = ?'
+    )->execute([$bookingId]);
+
+    echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber]);
 }

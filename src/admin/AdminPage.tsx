@@ -91,7 +91,7 @@ export default function AdminPage() {
     pendingCancellations, loading, error,
     login, logout, fetchRules, addRule, updateRule, removeRule,
     toggleException, fetchEvents, addEvent, removeEvent,
-    fetchBookings, updateBooking, sendEmail,
+    fetchBookings, updateBooking, sendEmail, sendBookingInvoice,
     fetchCalendarSessions, fetchBlockedDays, blockDay, unblockDay, cancelCalendarSession,
     sendCancellationEmails, clearPendingCancellations,
   } = useAdminBooking();
@@ -113,7 +113,7 @@ export default function AdminPage() {
     addParticipant, removeParticipant,
     fetchGroupSessions, generateGroupSessions,
     updateGroupSession, removeGroupSession,
-    updatePayment, bulkPayGroupPayments, sendGroupInvoice,
+    updatePayment, bulkPayGroupPayments, sendGroupBundleInvoice,
   } = useAdminGroups();
 
   const {
@@ -453,6 +453,7 @@ export default function AdminPage() {
               bookings={bookings}
               onUpdate={updateBooking}
               onSendEmail={sendEmail}
+              onSendInvoice={sendBookingInvoice}
               onMigrateToClient={handleMigrateToClient}
             />
           </div>
@@ -579,7 +580,7 @@ export default function AdminPage() {
               onDeleteSession={(id, gid) => removeGroupSession(id, gid)}
               onUpdatePayment={(pid, updates, gid) => updatePayment(pid, updates, gid)}
               onBulkPay={bulkPayGroupPayments}
-              onSendInvoice={(pid, gid) => sendGroupInvoice(pid, gid)}
+              onSendBundleInvoice={sendGroupBundleInvoice}
               showNewForm={false}
               newForm={null}
             />

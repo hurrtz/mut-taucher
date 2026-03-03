@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons';
 import {
   Card, Button, Tag, Space, Typography, Modal, Select, Statistic,
-  Row, Col, DatePicker, Progress, Collapse, InputNumber, Switch,
+  Row, Col, DatePicker, Progress, Collapse, InputNumber, Switch, Dropdown,
 } from 'antd';
 import type { ReactNode } from 'react';
 
@@ -21,13 +21,14 @@ const { Text } = Typography;
 
 // ─── Participant Panel ───────────────────────────────────────────
 
-function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay }: {
+function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay, onSendBundleInvoice }: {
   group: TherapyGroup;
   clients: Client[];
   sessions: GroupSession[];
   onAdd: (clientId: number) => void;
   onRemove: (clientId: number) => void;
   onBulkPay?: (groupId: number, clientId: number, count?: number | null) => void;
+  onSendBundleInvoice?: (groupId: number, clientId: number, paymentMode: 'full' | 'half_first' | 'half_second') => void;
 }) {
   const [selectedClientId, setSelectedClientId] = useState(0);
   const [bulkPayClient, setBulkPayClient] = useState<{ id: number; name: string; unpaid: number } | null>(null);
@@ -67,6 +68,24 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {activeParticipants.map(p => {
             const unpaidCount = unpaidByClient.get(p.clientId) ?? 0;
+            const invoiceStatus = p.invoiceStatus ?? 'none';
+            const invoiceStatusLabels: Record<string, { label: string; color: string }> = {
+              none: { label: 'Keine Rechnung', color: 'default' },
+              full_sent: { label: 'Gesamtrechnung', color: 'green' },
+              half1_sent: { label: '1. Teilzahlung', color: 'blue' },
+              half2_sent: { label: 'Voll berechnet', color: 'green' },
+            };
+            const canSendFull = invoiceStatus === 'none';
+            const canSendHalf1 = invoiceStatus === 'none';
+            const canSendHalf2 = invoiceStatus === 'half1_sent';
+            const invoiceDone = invoiceStatus === 'full_sent' || invoiceStatus === 'half2_sent';
+
+            const invoiceMenuItems = [
+              { key: 'full', label: 'Gesamtrechnung', disabled: !canSendFull },
+              { key: 'half_first', label: '1. Teilzahlung (50%)', disabled: !canSendHalf1 },
+              { key: 'half_second', label: '2. Teilzahlung (50%)', disabled: !canSendHalf2 },
+            ];
+
             return (
               <Card size="small" key={p.clientId} styles={{ body: { padding: '8px 12px' } }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -75,6 +94,11 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
                     <Text type="secondary">{p.clientEmail}</Text>
                     {unpaidCount > 0 && (
                       <Tag color="gold">{unpaidCount} offen</Tag>
+                    )}
+                    {invoiceStatus !== 'none' && (
+                      <Tag color={invoiceStatusLabels[invoiceStatus].color}>
+                        {invoiceStatusLabels[invoiceStatus].label}
+                      </Tag>
                     )}
                   </div>
                   <Space size={0}>
@@ -88,6 +112,38 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
                           setBulkPayCount(unpaidCount);
                           setPayAll(true);
                         }}
+                      />
+                    )}
+                    {onSendBundleInvoice && !invoiceDone && (
+                      <Dropdown
+                        menu={{
+                          items: invoiceMenuItems,
+                          onClick: ({ key }) => {
+                            const mode = key as 'full' | 'half_first' | 'half_second';
+                            Modal.confirm({
+                              title: 'Rechnung senden?',
+                              content: `${invoiceMenuItems.find(i => i.key === key)?.label} an ${p.clientName} senden?`,
+                              okText: 'Senden',
+                              cancelText: 'Abbrechen',
+                              onOk: () => onSendBundleInvoice(group.id, p.clientId, mode),
+                            });
+                          },
+                        }}
+                      >
+                        <Button
+                          type="text"
+                          icon={<FileTextOutlined />}
+                          title="Rechnung senden"
+                        />
+                      </Dropdown>
+                    )}
+                    {invoiceDone && (
+                      <Button
+                        type="text"
+                        icon={<CheckCircleOutlined />}
+                        style={{ color: '#52c41a' }}
+                        title="Rechnung gesendet"
+                        disabled
                       />
                     )}
                     <Button
@@ -181,14 +237,13 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
 
 // ─── Group Session Panel ─────────────────────────────────────────
 
-function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDeleteSession, onUpdatePayment, onSendInvoice }: {
+function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDeleteSession, onUpdatePayment }: {
   group: TherapyGroup;
   sessions: GroupSession[];
   onGenerate: (from: string, to: string) => void;
   onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
   onDeleteSession: (id: number) => void;
   onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }) => void;
-  onSendInvoice: (paymentId: number) => void;
 }) {
   const [genFrom, setGenFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [genTo, setGenTo] = useState(format(addMonths(new Date(), 3), 'yyyy-MM-dd'));
@@ -319,14 +374,6 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                                 paymentPaidDate: p.paymentStatus === 'paid' ? null : format(new Date(), 'yyyy-MM-dd'),
                               })}
                             />
-                            <Button
-                              type="text"
-                              icon={p.invoiceSent ? <CheckCircleOutlined /> : <FileTextOutlined />}
-                              style={{ color: p.invoiceSent ? '#52c41a' : undefined }}
-                              disabled={p.invoiceSent}
-                              title={p.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}
-                              onClick={() => onSendInvoice(p.id)}
-                            />
                             <Select
                               value={p.attendanceStatus ?? undefined}
                               onChange={(val) => onUpdatePayment(p.id, { attendanceStatus: val ?? null })}
@@ -388,7 +435,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
 function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchive,
   onToggleHomepage, onAddParticipant, onRemoveParticipant,
   onGenerateSessions, onUpdateSession, onDeleteSession,
-  onUpdatePayment, onBulkPay, onSendInvoice }: {
+  onUpdatePayment, onBulkPay, onSendBundleInvoice }: {
   group: TherapyGroup;
   clients: Client[];
   sessions: GroupSession[];
@@ -403,7 +450,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
   onDeleteSession: (id: number, groupId: number) => void;
   onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }, groupId: number) => void;
   onBulkPay?: (groupId: number, clientId: number, count?: number | null) => void;
-  onSendInvoice: (paymentId: number, groupId: number) => void;
+  onSendBundleInvoice?: (groupId: number, clientId: number, paymentMode: 'full' | 'half_first' | 'half_second') => void;
 }) {
   useEffect(() => { fetchSessions(group.id); }, [group.id, fetchSessions]);
 
@@ -528,6 +575,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
                 onAdd={(clientId) => onAddParticipant(group.id, clientId)}
                 onRemove={(clientId) => onRemoveParticipant(group.id, clientId)}
                 onBulkPay={onBulkPay}
+                onSendBundleInvoice={onSendBundleInvoice}
               />
             ),
           }]}
@@ -540,7 +588,6 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
           onUpdateSession={onUpdateSession}
           onDeleteSession={(id) => onDeleteSession(id, group.id)}
           onUpdatePayment={(pid, updates) => onUpdatePayment(pid, updates, group.id)}
-          onSendInvoice={(pid) => onSendInvoice(pid, group.id)}
         />
 
         <DocumentCollapse contextType="group" contextId={group.id} />
@@ -554,7 +601,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
 export default function GroupManager({ groups, archivedGroups, clients, groupSessionsByGroup, fetchGroupSessions,
   onDelete, onArchive, onToggleHomepage, onAddParticipant, onRemoveParticipant,
   onGenerateSessions, onUpdateSession, onDeleteSession,
-  onUpdatePayment, onBulkPay, onSendInvoice,
+  onUpdatePayment, onBulkPay, onSendBundleInvoice,
   showNewForm, newForm }: {
   groups: TherapyGroup[];
   archivedGroups: TherapyGroup[];
@@ -571,7 +618,7 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
   onDeleteSession: (id: number, groupId: number) => void;
   onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }, groupId: number) => void;
   onBulkPay?: (groupId: number, clientId: number, count?: number | null) => void;
-  onSendInvoice: (paymentId: number, groupId: number) => void;
+  onSendBundleInvoice?: (groupId: number, clientId: number, paymentMode: 'full' | 'half_first' | 'half_second') => void;
   showNewForm: boolean;
   newForm: ReactNode;
 }) {
@@ -605,7 +652,8 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
                 onDeleteSession={onDeleteSession}
                 onUpdatePayment={onUpdatePayment}
                 onBulkPay={onBulkPay}
-                onSendInvoice={onSendInvoice}
+
+                onSendBundleInvoice={onSendBundleInvoice}
               />
             ))
           )}
@@ -636,7 +684,8 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
                   onDeleteSession={onDeleteSession}
                   onUpdatePayment={onUpdatePayment}
                   onBulkPay={onBulkPay}
-                  onSendInvoice={onSendInvoice}
+  
+                  onSendBundleInvoice={onSendBundleInvoice}
                 />
               ),
             }))}
