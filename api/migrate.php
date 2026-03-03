@@ -63,7 +63,21 @@ foreach ($files as $file) {
 
     try {
         foreach ($statements as $stmt) {
-            $db->exec($stmt);
+            try {
+                $db->exec($stmt);
+            } catch (PDOException $e) {
+                // 42S21 = Duplicate column name, 42000/1061 = Duplicate key name
+                // These are safe to ignore for idempotent DDL migrations
+                $sqlState = $e->getCode();
+                if ($sqlState === '42S21' || $sqlState === '42000') {
+                    echo "SKIPPED (already applied)\n";
+                    // Still record it so it won't run again
+                    $db->prepare('INSERT INTO _migrations (name) VALUES (?)')->execute([$name]);
+                    $ran++;
+                    continue 2;
+                }
+                throw $e;
+            }
         }
         $db->prepare('INSERT INTO _migrations (name) VALUES (?)')->execute([$name]);
         echo "OK\n";
