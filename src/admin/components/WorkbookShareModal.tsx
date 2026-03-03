@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Modal, Button, Checkbox, Typography, message, Space } from 'antd';
-import { SendOutlined } from '@ant-design/icons';
+import { Modal, Button, Checkbox, Typography, message, Space, Divider } from 'antd';
+import { SendOutlined, TeamOutlined } from '@ant-design/icons';
 import type { Therapy, TherapyGroup, Client } from '../../lib/data';
 
 const { Text } = Typography;
@@ -25,18 +25,27 @@ export default function WorkbookShareModal({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [sending, setSending] = useState(false);
 
+  // Active groups with their active participant client IDs
+  const activeGroups = useMemo(() => {
+    return groups
+      .filter(g => g.status !== 'archived' && g.participants?.some(p => p.status === 'active'))
+      .map(g => ({
+        id: g.id,
+        label: g.label,
+        clientIds: g.participants!.filter(p => p.status === 'active').map(p => p.clientId),
+      }));
+  }, [groups]);
+
   // Compute active recipients: clients with active therapy or active group participation
   const recipients = useMemo(() => {
     const activeClientIds = new Set<number>();
 
-    // Clients in non-archived therapies
     for (const t of therapies) {
       if (t.status !== 'archived') {
         activeClientIds.add(t.clientId);
       }
     }
 
-    // Active participants in non-archived groups
     for (const g of groups) {
       if (g.status !== 'archived' && g.participants) {
         for (const p of g.participants) {
@@ -58,6 +67,19 @@ export default function WorkbookShareModal({
     } else {
       setSelected(new Set(recipients.map(r => r.id)));
     }
+  };
+
+  const toggleGroup = (clientIds: number[]) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      const allSelected = clientIds.every(id => next.has(id));
+      if (allSelected) {
+        for (const id of clientIds) next.delete(id);
+      } else {
+        for (const id of clientIds) next.add(id);
+      }
+      return next;
+    });
   };
 
   const toggle = (id: number) => {
@@ -113,6 +135,24 @@ export default function WorkbookShareModal({
         <Text type="secondary">Keine aktiven Patient:innen gefunden.</Text>
       ) : (
         <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          {activeGroups.length > 0 && (
+            <>
+              <Text type="secondary" style={{ fontSize: 12 }}>Gruppentherapien</Text>
+              {activeGroups.map(g => (
+                <Checkbox
+                  key={g.id}
+                  checked={g.clientIds.every(id => selected.has(id))}
+                  indeterminate={g.clientIds.some(id => selected.has(id)) && !g.clientIds.every(id => selected.has(id))}
+                  onChange={() => toggleGroup(g.clientIds)}
+                >
+                  <TeamOutlined style={{ marginRight: 4 }} />
+                  {g.label} <Text type="secondary">({g.clientIds.length} Teiln.)</Text>
+                </Checkbox>
+              ))}
+              <Divider style={{ margin: '8px 0' }} />
+            </>
+          )}
+
           <Checkbox
             checked={selected.size === recipients.length}
             indeterminate={selected.size > 0 && selected.size < recipients.length}
