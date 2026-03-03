@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type FormEvent, type ReactNode } from 'react';
+import AdminLayout from '../admin/AdminLayout';
 import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { useClientHistory, type TimelineEvent } from '../lib/useClientHistory';
@@ -6,9 +7,13 @@ import type { Client } from '../lib/data';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
-  ArrowLeft, Calendar, CreditCard, FileText, Upload, StickyNote,
-  Download, Pencil, Trash2, Loader2, Users,
-} from 'lucide-react';
+  ArrowLeftOutlined, CalendarOutlined, DollarOutlined, FileTextOutlined,
+  UploadOutlined, FormOutlined, DownloadOutlined, EditOutlined,
+  DeleteOutlined, LoadingOutlined, TeamOutlined,
+} from '@ant-design/icons';
+import { Card, Button, Tag, Space, Typography, Spin, Input, Modal, Alert } from 'antd';
+
+const { Text, Title } = Typography;
 
 const STATUS_LABELS: Record<string, string> = {
   scheduled: 'Geplant',
@@ -17,22 +22,22 @@ const STATUS_LABELS: Record<string, string> = {
   no_show: 'Nicht erschienen',
 };
 
-const EVENT_ICONS: Record<string, typeof Calendar> = {
-  session: Calendar,
-  group_session: Users,
-  payment: CreditCard,
-  document_sent: FileText,
-  document_received: Upload,
-  note: StickyNote,
+const EVENT_ICONS: Record<string, ReactNode> = {
+  session: <CalendarOutlined />,
+  group_session: <TeamOutlined />,
+  payment: <DollarOutlined />,
+  document_sent: <FileTextOutlined />,
+  document_received: <UploadOutlined />,
+  note: <FormOutlined />,
 };
 
-const EVENT_COLORS: Record<string, string> = {
-  session: 'text-blue-600 bg-blue-50',
-  group_session: 'text-purple-600 bg-purple-50',
-  payment: 'text-green-600 bg-green-50',
-  document_sent: 'text-orange-600 bg-orange-50',
-  document_received: 'text-teal-600 bg-teal-50',
-  note: 'text-yellow-700 bg-yellow-50',
+const EVENT_COLORS: Record<string, { color: string; background: string }> = {
+  session: { color: '#2563eb', background: '#eff6ff' },
+  group_session: { color: '#9333ea', background: '#faf5ff' },
+  payment: { color: '#16a34a', background: '#f0fdf4' },
+  document_sent: { color: '#ea580c', background: '#fff7ed' },
+  document_received: { color: '#0d9488', background: '#f0fdfa' },
+  note: { color: '#a16207', background: '#fefce8' },
 };
 
 function formatDate(dateStr: string): string {
@@ -73,62 +78,71 @@ export default function ClientDetail() {
 
   if (clientLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={32} />
-      </div>
+      <AdminLayout>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Spin size="large" />
+        </div>
+      </AdminLayout>
     );
   }
 
   if (!client) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
-        <p className="text-gray-600">Klient:in nicht gefunden.</p>
-        <Link to="/admin" className="text-primary hover:underline">← Zurück zur Übersicht</Link>
-      </div>
+      <AdminLayout>
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <Text type="secondary">Klient:in nicht gefunden.</Text>
+          <Link to="/admin">
+            <Button type="link" icon={<ArrowLeftOutlined />}>Zurück zur Übersicht</Button>
+          </Link>
+        </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+    <AdminLayout>
+      <div style={{ maxWidth: 768, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Link to="/admin" className="text-gray-400 hover:text-primary">
-            <ArrowLeft size={20} />
+        <Space align="center">
+          <Link to="/admin">
+            <Button type="text" icon={<ArrowLeftOutlined />} />
           </Link>
-          <h1 className="text-xl font-serif font-bold text-gray-900">
+          <Title level={4} style={{ margin: 0 }}>
             {client.name}
-          </h1>
+          </Title>
           {client.status === 'archived' && (
-            <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded">Archiviert</span>
+            <Tag>Archiviert</Tag>
           )}
-        </div>
+        </Space>
 
         {/* Contact info card */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <Card size="small">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, fontSize: 14 }}>
             <div>
-              <span className="text-gray-500">E-Mail:</span>{' '}
-              <a href={`mailto:${client.email}`} className="text-primary hover:underline">{client.email}</a>
+              <Text type="secondary">E-Mail: </Text>
+              <a href={`mailto:${client.email}`}>{client.email}</a>
             </div>
             {client.phone && (
               <div>
-                <span className="text-gray-500">Telefon:</span> {client.phone}
+                <Text type="secondary">Telefon: </Text>
+                <Text>{client.phone}</Text>
               </div>
             )}
             {(client.street || client.city) && (
-              <div className="sm:col-span-2">
-                <span className="text-gray-500">Adresse:</span>{' '}
-                {[client.street, [client.zip, client.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Text type="secondary">Adresse: </Text>
+                <Text>
+                  {[client.street, [client.zip, client.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
+                </Text>
               </div>
             )}
           </div>
-          <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400 flex flex-wrap gap-x-3">
-            {client.therapyCount > 0 && <span>{client.therapyCount} Einzeltherapie{client.therapyCount !== 1 ? 'n' : ''}</span>}
-            {client.groupCount > 0 && <span>{client.groupCount} Gruppe{client.groupCount !== 1 ? 'n' : ''}</span>}
-            <span>Seit {formatDate(client.createdAt)}</span>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0', fontSize: 12, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            {client.therapyCount > 0 && <Text type="secondary">{client.therapyCount} Einzeltherapie{client.therapyCount !== 1 ? 'n' : ''}</Text>}
+            {client.groupCount > 0 && <Text type="secondary">{client.groupCount} Gruppe{client.groupCount !== 1 ? 'n' : ''}</Text>}
+            <Text type="secondary">Seit {formatDate(client.createdAt)}</Text>
           </div>
-        </div>
+        </Card>
 
         {/* Add note */}
         <NoteForm onSubmit={addNote} />
@@ -137,17 +151,15 @@ export default function ClientDetail() {
         <DocumentUploadForm onUpload={uploadDocument} />
 
         {/* Timeline */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Verlauf</h2>
-          </div>
-
+        <Card size="small" title="Verlauf">
           {error && (
-            <div className="p-4 text-sm text-red-600">{error}</div>
+            <Alert message={error} type="error" style={{ marginBottom: 16 }} />
           )}
 
           {events.length === 0 && !loading && (
-            <p className="p-4 text-sm text-gray-400 text-center">Noch keine Einträge vorhanden.</p>
+            <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: 16 }}>
+              Noch keine Einträge vorhanden.
+            </Text>
           )}
 
           <Timeline
@@ -158,25 +170,25 @@ export default function ClientDetail() {
           />
 
           {events.length < total && (
-            <div className="p-4 border-t border-gray-100 text-center">
-              <button
+            <div style={{ padding: 16, borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+              <Button
+                type="link"
                 onClick={() => fetchTimeline(50, events.length, true)}
                 disabled={loading}
-                className="text-sm text-primary hover:underline disabled:opacity-50"
               >
                 {loading ? 'Laden…' : 'Mehr laden…'}
-              </button>
+              </Button>
             </div>
           )}
 
           {loading && events.length === 0 && (
-            <div className="p-6 flex justify-center">
-              <Loader2 className="animate-spin text-gray-400" size={24} />
+            <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
+              <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
             </div>
           )}
-        </div>
+        </Card>
       </div>
-    </div>
+    </AdminLayout>
   );
 }
 
@@ -199,25 +211,29 @@ function NoteForm({ onSubmit }: { onSubmit: (content: string) => Promise<void> }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-gray-700 mb-2">Notiz hinzufügen</h3>
-      <div className="flex gap-2">
-        <textarea
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          placeholder="Notiz eingeben…"
-          rows={2}
-          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-        />
-        <button
-          type="submit"
-          disabled={!content.trim() || submitting}
-          className="self-end px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {submitting ? <Loader2 className="animate-spin" size={16} /> : 'Speichern'}
-        </button>
-      </div>
-    </form>
+    <Card size="small">
+      <form onSubmit={handleSubmit}>
+        <Text strong style={{ display: 'block', marginBottom: 8 }}>Notiz hinzufügen</Text>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Input.TextArea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder="Notiz eingeben…"
+            rows={2}
+            style={{ flex: 1 }}
+          />
+          <Button
+            type="primary"
+            htmlType="submit"
+            disabled={!content.trim()}
+            loading={submitting}
+            style={{ alignSelf: 'flex-end' }}
+          >
+            Speichern
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -244,31 +260,33 @@ function DocumentUploadForm({ onUpload }: { onUpload: (file: File, label: string
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-gray-700 mb-2">Dokument hochladen</h3>
-      <div className="flex flex-wrap gap-2 items-end">
-        <input
-          ref={fileRef}
-          type="file"
-          onChange={e => setFile(e.target.files?.[0] ?? null)}
-          className="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-        />
-        <input
-          type="text"
-          value={label}
-          onChange={e => setLabel(e.target.value)}
-          placeholder="Bezeichnung"
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-        />
-        <button
-          type="submit"
-          disabled={!file || !label.trim() || submitting}
-          className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {submitting ? <Loader2 className="animate-spin" size={16} /> : 'Hochladen'}
-        </button>
-      </div>
-    </form>
+    <Card size="small">
+      <form onSubmit={handleSubmit}>
+        <Text strong style={{ display: 'block', marginBottom: 8 }}>Dokument hochladen</Text>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end' }}>
+          <input
+            ref={fileRef}
+            type="file"
+            onChange={e => setFile(e.target.files?.[0] ?? null)}
+            style={{ fontSize: 14 }}
+          />
+          <Input
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            placeholder="Bezeichnung"
+            style={{ width: 200 }}
+          />
+          <Button
+            type="primary"
+            htmlType="submit"
+            disabled={!file || !label.trim()}
+            loading={submitting}
+          >
+            Hochladen
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -287,13 +305,13 @@ function Timeline({ events, onUpdateNote, onDeleteNote, onDeleteDocument }: {
   }, {});
 
   return (
-    <div className="divide-y divide-gray-100">
+    <div>
       {Object.entries(grouped).map(([date, dayEvents]) => (
-        <div key={date} className="p-4">
-          <div className="text-xs font-medium text-gray-500 mb-3">
+        <div key={date} style={{ padding: 16, borderBottom: '1px solid #f0f0f0' }}>
+          <Text type="secondary" style={{ fontSize: 12, fontWeight: 500, display: 'block', marginBottom: 12 }}>
             {formatDate(date)}
-          </div>
-          <div className="space-y-3">
+          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {dayEvents.map((ev, i) => (
               <TimelineItem
                 key={`${ev.type}-${i}`}
@@ -316,15 +334,25 @@ function TimelineItem({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
   onDeleteNote: (noteId: number) => Promise<void>;
   onDeleteDocument: (docId: number) => Promise<void>;
 }) {
-  const Icon = EVENT_ICONS[event.type] ?? Calendar;
-  const colors = EVENT_COLORS[event.type] ?? 'text-gray-600 bg-gray-50';
+  const icon = EVENT_ICONS[event.type] ?? <CalendarOutlined />;
+  const colors = EVENT_COLORS[event.type] ?? { color: '#6b7280', background: '#f9fafb' };
 
   return (
-    <div className="flex gap-3 items-start">
-      <div className={`p-1.5 rounded-lg shrink-0 ${colors}`}>
-        <Icon size={14} />
+    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <div style={{
+        padding: 6,
+        borderRadius: 8,
+        flexShrink: 0,
+        color: colors.color,
+        background: colors.background,
+        fontSize: 14,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        {icon}
       </div>
-      <div className="flex-1 min-w-0">
+      <div style={{ flex: 1, minWidth: 0 }}>
         <EventContent
           event={event}
           onUpdateNote={onUpdateNote}
@@ -347,12 +375,12 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
   if (type === 'session') {
     const status = STATUS_LABELS[data.status as string] ?? data.status;
     return (
-      <div className="text-sm">
-        <span className="font-medium text-gray-900">Sitzung:</span>{' '}
-        <span className="text-gray-700">{data.therapyLabel as string}</span>
-        {event.time !== '00:00' && <span className="text-gray-500"> {event.time}</span>}
-        <span className="text-gray-500"> — {status}</span>
-        {data.notes ? <p className="text-xs text-gray-500 mt-1">{String(data.notes)}</p> : null}
+      <div style={{ fontSize: 14 }}>
+        <Text strong>Sitzung:</Text>{' '}
+        <Text>{data.therapyLabel as string}</Text>
+        {event.time !== '00:00' && <Text type="secondary"> {event.time}</Text>}
+        <Text type="secondary"> — {status}</Text>
+        {data.notes ? <p style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{String(data.notes)}</p> : null}
       </div>
     );
   }
@@ -360,11 +388,11 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
   if (type === 'group_session') {
     const status = STATUS_LABELS[data.status as string] ?? data.status;
     return (
-      <div className="text-sm">
-        <span className="font-medium text-gray-900">Gruppensitzung:</span>{' '}
-        <span className="text-gray-700">{data.groupLabel as string}</span>
-        {event.time !== '00:00' && <span className="text-gray-500"> {event.time}</span>}
-        <span className="text-gray-500"> — {status}</span>
+      <div style={{ fontSize: 14 }}>
+        <Text strong>Gruppensitzung:</Text>{' '}
+        <Text>{data.groupLabel as string}</Text>
+        {event.time !== '00:00' && <Text type="secondary"> {event.time}</Text>}
+        <Text type="secondary"> — {status}</Text>
       </div>
     );
   }
@@ -373,10 +401,10 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
     const amount = formatCents(data.amountCents as number);
     const label = (data.therapyLabel ?? data.groupLabel ?? 'Sitzung') as string;
     return (
-      <div className="text-sm">
-        <span className="font-medium text-green-700">Zahlung:</span>{' '}
-        <span className="text-gray-700">{amount}</span>
-        <span className="text-gray-500"> — {label}</span>
+      <div style={{ fontSize: 14 }}>
+        <Text strong style={{ color: '#15803d' }}>Zahlung:</Text>{' '}
+        <Text>{amount}</Text>
+        <Text type="secondary"> — {label}</Text>
       </div>
     );
   }
@@ -385,26 +413,35 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
     const docId = data.id as number;
     const isSent = type === 'document_sent';
     return (
-      <div className="text-sm flex items-center gap-2 flex-wrap">
-        <span className="font-medium text-gray-900">
+      <div style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <Text strong>
           {isSent ? 'Dokument gesendet:' : 'Dokument empfangen:'}
-        </span>
-        <span className="text-gray-700">{data.label as string}</span>
+        </Text>
+        <Text>{data.label as string}</Text>
         <a
           href={`/api/admin/client-documents/${docId}/download`}
-          className="text-primary hover:underline inline-flex items-center gap-0.5"
           target="_blank"
           rel="noopener noreferrer"
         >
-          <Download size={12} />
+          <DownloadOutlined />
         </a>
         {!isSent && (
-          <button
-            onClick={() => { if (confirm('Dokument wirklich löschen?')) onDeleteDocument(docId); }}
-            className="text-gray-400 hover:text-red-500"
-          >
-            <Trash2 size={12} />
-          </button>
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            size="small"
+            onClick={() => {
+              Modal.confirm({
+                title: 'Dokument löschen',
+                content: 'Dokument wirklich löschen?',
+                okText: 'Löschen',
+                okType: 'danger',
+                cancelText: 'Abbrechen',
+                onOk: () => onDeleteDocument(docId),
+              });
+            }}
+          />
         )}
       </div>
     );
@@ -421,7 +458,7 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
     );
   }
 
-  return <div className="text-sm text-gray-500">Unbekannter Eintrag</div>;
+  return <Text type="secondary" style={{ fontSize: 14 }}>Unbekannter Eintrag</Text>;
 }
 
 function NoteEvent({ noteId, content, onUpdate, onDelete }: {
@@ -447,49 +484,57 @@ function NoteEvent({ noteId, content, onUpdate, onDelete }: {
 
   if (editing) {
     return (
-      <div className="space-y-2">
-        <textarea
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Input.TextArea
           value={editContent}
           onChange={e => setEditContent(e.target.value)}
           rows={2}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
-        <div className="flex gap-2">
-          <button
+        <Space>
+          <Button
+            type="primary"
+            size="small"
             onClick={handleSave}
-            disabled={saving}
-            className="px-3 py-1 bg-primary text-white rounded text-xs font-medium hover:bg-primary/90 disabled:opacity-50"
+            loading={saving}
           >
-            {saving ? 'Speichern…' : 'Speichern'}
-          </button>
-          <button
+            Speichern
+          </Button>
+          <Button
+            size="small"
             onClick={() => { setEditing(false); setEditContent(content); }}
-            className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium hover:bg-gray-200"
           >
             Abbrechen
-          </button>
-        </div>
+          </Button>
+        </Space>
       </div>
     );
   }
 
   return (
-    <div className="text-sm flex items-start gap-2">
-      <div className="flex-1">
-        <span className="font-medium text-gray-900">Notiz:</span>{' '}
-        <span className="text-gray-700">{content}</span>
+    <div style={{ fontSize: 14, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+      <div style={{ flex: 1 }}>
+        <Text strong>Notiz:</Text>{' '}
+        <Text>{content}</Text>
       </div>
-      <div className="flex gap-1 shrink-0">
-        <button onClick={() => setEditing(true)} className="text-gray-400 hover:text-primary">
-          <Pencil size={12} />
-        </button>
-        <button
-          onClick={() => { if (confirm('Notiz wirklich löschen?')) onDelete(noteId); }}
-          className="text-gray-400 hover:text-red-500"
-        >
-          <Trash2 size={12} />
-        </button>
-      </div>
+      <Space size={4} style={{ flexShrink: 0 }}>
+        <Button type="text" icon={<EditOutlined />} size="small" onClick={() => setEditing(true)} />
+        <Button
+          type="text"
+          danger
+          icon={<DeleteOutlined />}
+          size="small"
+          onClick={() => {
+            Modal.confirm({
+              title: 'Notiz löschen',
+              content: 'Notiz wirklich löschen?',
+              okText: 'Löschen',
+              okType: 'danger',
+              cancelText: 'Abbrechen',
+              onOk: () => onDelete(noteId),
+            });
+          }}
+        />
+      </Space>
     </div>
   );
 }

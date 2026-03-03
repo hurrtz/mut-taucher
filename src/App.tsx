@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Article from './pages/Article';
@@ -7,10 +7,23 @@ import Datenschutz from './pages/Datenschutz';
 import Impressum from './pages/Impressum';
 import AGB from './pages/AGB';
 import UeberMich from './pages/UeberMich';
-import Admin from './pages/Admin';
-import ClientDetail from './pages/ClientDetail';
 import ConsentBanner from './components/ConsentBanner';
 import { trackPageView } from './lib/analytics';
+
+const Admin = lazy(() => import('./pages/Admin'));
+const ClientDetail = lazy(() => import('./pages/ClientDetail'));
+
+function AdminSuspense({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-400 text-sm">Laden...</div>
+      </div>
+    }>
+      {children}
+    </Suspense>
+  );
+}
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -61,8 +74,8 @@ function App() {
         <Route path="/datenschutz" element={<Datenschutz />} />
         <Route path="/impressum" element={<Impressum />} />
         <Route path="/agb" element={<AGB />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/client/:id" element={<ClientDetail />} />
+        <Route path="/admin" element={<AdminSuspense><Admin /></AdminSuspense>} />
+        <Route path="/admin/client/:id" element={<AdminSuspense><ClientDetail /></AdminSuspense>} />
       </Routes>
       <ConsentBanner />
     </Router>
