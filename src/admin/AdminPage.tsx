@@ -212,10 +212,10 @@ export default function AdminPage() {
             <Title level={3} style={{ margin: 0 }}>Administration</Title>
             <Space size="small">
               <Link to="/">
-                <Button type="text" icon={<HomeOutlined />} size="small">Website</Button>
+                <Button type="text" icon={<HomeOutlined />}>Website</Button>
               </Link>
               <a href="https://app.eu.amplitude.com/analytics/mut-taucher-395196/home" target="_blank" rel="noopener noreferrer">
-                <Button type="text" icon={<BarChartOutlined />} size="small">Analytics <LinkOutlined style={{ fontSize: 10 }} /></Button>
+                <Button type="text" icon={<BarChartOutlined />}>Analytics <LinkOutlined style={{ fontSize: 10 }} /></Button>
               </a>
             </Space>
           </Space>
