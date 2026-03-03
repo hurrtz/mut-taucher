@@ -11,7 +11,7 @@ import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import { Extension } from '@tiptap/react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import {
   Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, TableIcon, Plus, Trash2, Loader2, Save, Eye,
@@ -80,9 +80,14 @@ interface TemplateEditorProps {
   onSave: (html: string) => void;
   onPreview: (html: string) => void;
   onUploadImage: (file: File) => Promise<string>;
+  hideActions?: boolean;
 }
 
-export default function TemplateEditor({ htmlContent, placeholders, saving, previewing, onSave, onPreview, onUploadImage }: TemplateEditorProps) {
+export interface TemplateEditorHandle {
+  getHTML: () => string;
+}
+
+const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorProps>(function TemplateEditor({ htmlContent, placeholders, saving, previewing, onSave, onPreview, onUploadImage, hideActions }, ref) {
   const [selectedPlaceholder, setSelectedPlaceholder] = useState('');
   const [showImagePanel, setShowImagePanel] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
@@ -175,6 +180,10 @@ export default function TemplateEditor({ htmlContent, placeholders, saving, prev
     if (!editor) return;
     onPreview(editor.getHTML());
   };
+
+  useImperativeHandle(ref, () => ({
+    getHTML: () => editor?.getHTML() ?? '',
+  }), [editor]);
 
   if (!editor) return null;
 
@@ -464,27 +473,31 @@ export default function TemplateEditor({ htmlContent, placeholders, saving, prev
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={handlePreview}
-          disabled={previewing}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 text-sm font-medium cursor-pointer"
-        >
-          {previewing ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
-          Vorschau
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-teal-600 disabled:opacity-50 text-sm font-medium cursor-pointer"
-        >
-          {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-          Speichern
-        </button>
-      </div>
+      {!hideActions && (
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={handlePreview}
+            disabled={previewing}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 text-sm font-medium cursor-pointer"
+          >
+            {previewing ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
+            Vorschau
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-teal-600 disabled:opacity-50 text-sm font-medium cursor-pointer"
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            Speichern
+          </button>
+        </div>
+      )}
     </div>
   );
-}
+});
+
+export default TemplateEditor;
 
 function ToolbarButton({ active, onClick, title, children }: {
   active: boolean;

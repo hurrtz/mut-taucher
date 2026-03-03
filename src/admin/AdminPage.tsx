@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useCallback, type FormEvent } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, type FormEvent } from 'react';
 import AdminLayout, { AdminShell } from './AdminLayout';
 import { useAdminBooking } from '../lib/useAdminBooking';
 import { useAdminClients } from '../lib/useAdminClients';
@@ -7,7 +7,7 @@ import { useAdminGroups } from '../lib/useAdminGroups';
 import { useAdminTemplates } from '../lib/useAdminTemplates';
 import { useAdminWorkbook } from '../lib/useAdminWorkbook';
 import { getToken } from '../lib/api';
-import TemplateEditor from '../components/TemplateEditor';
+import TemplateEditor, { type TemplateEditorHandle } from '../components/TemplateEditor';
 import TemplateCreateModal from './components/TemplateCreateModal';
 import TemplateMappingModal from './components/TemplateMappingModal';
 import WorkbookUploadModal from './components/WorkbookUploadModal';
@@ -27,19 +27,21 @@ import GroupForm from './components/GroupForm';
 import GroupManager from './components/GroupManager';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, Input, Button, Alert, Spin, Space, Typography, Row, Col, Badge, Tabs, Modal, AutoComplete } from 'antd';
+import { Card, Input, Button, Alert, Spin, Space, Typography, Row, Col, Badge, Tabs, Modal, AutoComplete, Form, Tooltip } from 'antd';
 import {
   CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
   VideoCameraOutlined, BookOutlined,
   PlusOutlined, ScheduleOutlined, UserAddOutlined,
-  SendOutlined, DeleteOutlined, SettingOutlined,
+  SendOutlined, DeleteOutlined, SettingOutlined, EyeOutlined, SaveOutlined, FolderOutlined,
 } from '@ant-design/icons';
 
 const { Title } = Typography;
 
 type TabKey = 'rules' | 'erstgespraeche' | 'einzel' | 'kunden' | 'groups' | 'dokumente' | 'arbeitsmappe';
 
-function TemplateGroupField({ templateKey, groupName, existingGroups, onUpdate }: {
+function TemplateGroupModal({ open, onClose, templateKey, groupName, existingGroups, onUpdate }: {
+  open: boolean;
+  onClose: () => void;
   templateKey: string;
   groupName: string | null;
   existingGroups: string[];
@@ -47,24 +49,25 @@ function TemplateGroupField({ templateKey, groupName, existingGroups, onUpdate }
 }) {
   const [value, setValue] = useState(groupName || '');
   useEffect(() => { setValue(groupName || ''); }, [groupName]);
-  const commit = () => {
+  const handleSave = () => {
     const trimmed = value.trim() || null;
     if (trimmed !== groupName) onUpdate(templateKey, trimmed);
+    onClose();
   };
   return (
-    <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-      <Typography.Text type="secondary" style={{ whiteSpace: 'nowrap' }}>Gruppe:</Typography.Text>
-      <AutoComplete
-        value={value}
-        onChange={setValue}
-        onBlur={commit}
-        onSelect={(val: string) => { setValue(val); onUpdate(templateKey, val || null); }}
-        options={existingGroups.map(g => ({ value: g }))}
-        placeholder="Keine Gruppe"
-        style={{ width: 200 }}
-        allowClear
-      />
-    </div>
+    <Modal title="Gruppe zuweisen" open={open} onCancel={onClose} onOk={handleSave} okText="Speichern" cancelText="Abbrechen" width={400} destroyOnClose>
+      <Form.Item label="Gruppe" style={{ marginBottom: 0, marginTop: 16 }}>
+        <AutoComplete
+          value={value}
+          onChange={setValue}
+          options={existingGroups.map(g => ({ value: g }))}
+          placeholder="Keine Gruppe"
+          style={{ width: '100%' }}
+          allowClear
+          autoFocus
+        />
+      </Form.Item>
+    </Modal>
   );
 }
 
@@ -164,6 +167,8 @@ export default function AdminPage() {
   const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(null);
   const [showTemplateCreate, setShowTemplateCreate] = useState(false);
   const [showMappingModal, setShowMappingModal] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const editorRef = useRef<TemplateEditorHandle>(null);
   const [showWorkbookUpload, setShowWorkbookUpload] = useState(false);
   const [showWorkbookShare, setShowWorkbookShare] = useState(false);
   // Load data on auth
@@ -627,24 +632,24 @@ export default function AdminPage() {
                     <Card
                       title={activeTemplate.label}
                       extra={
-                        <Button
-                          danger
-                          icon={<DeleteOutlined />}
-                          onClick={() => {
-                            if (confirm(`"${activeTemplate.label}" wirklich löschen?`)) {
-                              removeTemplate(activeTemplate.key);
-                            }
-                          }}
-                        />
+                        <Space>
+                          <Tooltip title="Gruppe">
+                            <Button icon={<FolderOutlined />} onClick={() => setShowGroupModal(true)} />
+                          </Tooltip>
+                          <Tooltip title="Vorschau">
+                            <Button icon={<EyeOutlined />} loading={templatePreviewing} onClick={() => { const html = editorRef.current?.getHTML(); if (html) previewTemplate(activeTemplate.key, html); }} />
+                          </Tooltip>
+                          <Tooltip title="Speichern">
+                            <Button type="primary" icon={<SaveOutlined />} loading={templateSaving} onClick={() => { const html = editorRef.current?.getHTML(); if (html) updateTemplate(activeTemplate.key, html); }} />
+                          </Tooltip>
+                          <Tooltip title="Löschen">
+                            <Button danger icon={<DeleteOutlined />} onClick={() => { if (confirm(`"${activeTemplate.label}" wirklich löschen?`)) removeTemplate(activeTemplate.key); }} />
+                          </Tooltip>
+                        </Space>
                       }
                     >
-                      <TemplateGroupField
-                        templateKey={activeTemplate.key}
-                        groupName={activeTemplate.groupName}
-                        existingGroups={existingGroups}
-                        onUpdate={updateTemplateGroup}
-                      />
                       <TemplateEditor
+                        ref={editorRef}
                         key={activeTemplate.key}
                         htmlContent={activeTemplate.htmlContent}
                         placeholders={activeTemplate.placeholders}
@@ -653,6 +658,7 @@ export default function AdminPage() {
                         onSave={(html) => updateTemplate(activeTemplate.key, html)}
                         onPreview={(html) => previewTemplate(activeTemplate.key, html)}
                         onUploadImage={uploadImage}
+                        hideActions
                       />
                     </Card>
                   ) : (
@@ -678,6 +684,17 @@ export default function AdminPage() {
                 onUpdate={updateMapping}
                 onLoad={fetchMappings}
               />
+
+              {activeTemplate && (
+                <TemplateGroupModal
+                  open={showGroupModal}
+                  onClose={() => setShowGroupModal(false)}
+                  templateKey={activeTemplate.key}
+                  groupName={activeTemplate.groupName}
+                  existingGroups={existingGroups}
+                  onUpdate={updateTemplateGroup}
+                />
+              )}
             </>
           );
         })()}
