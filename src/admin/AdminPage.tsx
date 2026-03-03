@@ -19,7 +19,7 @@ import TherapyList from './components/TherapyList';
 import GroupForm from './components/GroupForm';
 import GroupManager from './components/GroupManager';
 import { Link } from 'react-router-dom';
-import { Tabs, Card, Input, Button, Alert, Spin, Badge, Space, Typography, Row, Col } from 'antd';
+import { Tabs, Card, Input, Button, Alert, Spin, Space, Typography, Row, Col } from 'antd';
 import {
   CalendarOutlined, TeamOutlined, FileTextOutlined,
   VideoCameraOutlined, SyncOutlined, LogoutOutlined,
@@ -191,23 +191,23 @@ export default function AdminPage() {
     },
     {
       key: 'erstgespraeche',
-      label: <span><CalendarOutlined /> Erstgespräche <Badge count={bookings.filter(b => b.status === 'confirmed').length} size="small" style={{ marginLeft: 4 }} /></span>,
+      label: <span><CalendarOutlined /> Erstgespräche ({bookings.filter(b => b.status === 'confirmed').length})</span>,
     },
     {
       key: 'einzel',
-      label: <span><VideoCameraOutlined /> Einzeltherapie <Badge count={therapies.length} size="small" showZero style={{ marginLeft: 4 }} /></span>,
+      label: <span><VideoCameraOutlined /> Einzeltherapie ({therapies.length})</span>,
     },
     {
       key: 'groups',
-      label: <span><TeamOutlined /> Gruppentherapie <Badge count={groups.length} size="small" showZero style={{ marginLeft: 4 }} /></span>,
+      label: <span><TeamOutlined /> Gruppentherapie ({groups.length})</span>,
     },
     {
       key: 'kunden',
-      label: <span><TeamOutlined /> Kunden <Badge count={clients.length} size="small" showZero style={{ marginLeft: 4 }} /></span>,
+      label: <span><TeamOutlined /> Kunden ({clients.length})</span>,
     },
     {
       key: 'dokumente',
-      label: <span><FileTextOutlined /> Vorlagen <Badge count={templates.length} size="small" showZero style={{ marginLeft: 4 }} /></span>,
+      label: <span><FileTextOutlined /> Vorlagen ({templates.length})</span>,
     },
   ];
 
@@ -332,18 +332,12 @@ export default function AdminPage() {
 
         {activeTab === 'erstgespraeche' && (
           <div style={{ maxWidth: 768 }}>
-            <Card size="small">
-              <Space style={{ marginBottom: 16 }}>
-                <CalendarOutlined style={{ fontSize: 20, color: '#9ca3af' }} />
-                <Typography.Text strong style={{ fontSize: 16 }}>Erstgespräche</Typography.Text>
-              </Space>
-              <BookingList
-                bookings={bookings}
-                onUpdate={updateBooking}
-                onSendEmail={sendEmail}
-                onMigrateToClient={handleMigrateToClient}
-              />
-            </Card>
+            <BookingList
+              bookings={bookings}
+              onUpdate={updateBooking}
+              onSendEmail={sendEmail}
+              onMigrateToClient={handleMigrateToClient}
+            />
           </div>
         )}
 

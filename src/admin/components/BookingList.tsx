@@ -4,7 +4,7 @@ import DocumentChecklist from './DocumentChecklist';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
-  Card, Button, Tag, Space, Typography, Tooltip, Collapse, Modal,
+  Card, Button, Tag, Space, Typography, Tooltip, Collapse, Divider, Modal,
 } from 'antd';
 import {
   MailOutlined, CheckCircleOutlined, ClockCircleOutlined, UserAddOutlined,
@@ -35,6 +35,7 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onMigrate
         <Card
           key={b.id}
           size="small"
+          title={<Typography.Text strong ellipsis>{b.clientName}</Typography.Text>}
           style={{
             opacity: b.status === 'cancelled' ? 0.6 : 1,
             borderColor: b.status === 'cancelled' ? '#fca5a5' : undefined,
@@ -93,8 +94,7 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onMigrate
           }
         >
           <Space direction="vertical" size={2} style={{ width: '100%' }}>
-            <Text strong>{b.clientName}</Text>
-            <Text type="secondary" style={{ fontSize: 13 }}>{b.clientEmail}</Text>
+            <a href={`mailto:${b.clientEmail}`} style={{ fontSize: 13 }}>{b.clientEmail}</a>
             <Space size={4} style={{ marginTop: 4 }}>
               <CalendarOutlined style={{ fontSize: 13, color: '#9ca3af' }} />
               <Text type="secondary" style={{ fontSize: 13 }}>
@@ -107,16 +107,19 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onMigrate
           </Space>
 
           {b.status === 'confirmed' && (
-            <div style={{ marginTop: 12 }}>
+            <>
+              <Divider style={{ margin: '12px 0 0' }} />
               <Collapse
                 ghost
                 activeKey={expandedId === b.id ? ['docs'] : []}
                 onChange={keys =>
                   setExpandedId(keys.includes('docs') ? b.id : null)
                 }
+                style={{ margin: '0 -12px' }}
                 items={[
                   {
                     key: 'docs',
+                    style: { paddingBottom: 0 },
                     label: (
                       <Space size={4}>
                         <FileTextOutlined style={{ fontSize: 12 }} />
@@ -124,14 +127,12 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onMigrate
                       </Space>
                     ),
                     children: (
-                      <div style={{ background: '#f9fafb', borderRadius: 8, padding: 12 }}>
-                        <DocumentChecklist contextType="erstgespraech" contextId={b.id} />
-                      </div>
+                      <DocumentChecklist contextType="erstgespraech" contextId={b.id} />
                     ),
                   },
                 ]}
               />
-            </div>
+            </>
           )}
         </Card>
       ))}
