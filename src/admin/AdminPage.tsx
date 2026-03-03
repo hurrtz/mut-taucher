@@ -172,7 +172,7 @@ export default function AdminPage() {
   const tabItems = [
     {
       key: 'rules',
-      label: <span><SyncOutlined /> Regeln & Kalender</span>,
+      label: <span><CalendarOutlined /> Kalender</span>,
     },
     {
       key: 'erstgespraeche',
