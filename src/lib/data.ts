@@ -87,7 +87,7 @@ export interface GroupSession {
   sessionDate: string;
   sessionTime: string;
   durationMinutes: number;
-  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+  status: 'scheduled' | 'completed' | 'cancelled';
   notes: string | null;
   createdAt: string;
   payments: GroupSessionPayment[];
@@ -103,6 +103,7 @@ export interface GroupSessionPayment {
   paymentPaidDate: string | null;
   invoiceSent: boolean;
   invoiceSentAt: string | null;
+  attendanceStatus: 'attended' | 'no_show' | 'cancelled' | null;
 }
 
 export interface Client {

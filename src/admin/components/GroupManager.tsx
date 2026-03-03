@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons';
 import {
   Card, Button, Tag, Space, Typography, Modal, Select, Statistic,
-  Row, Col, DatePicker, Progress, Collapse,
+  Row, Col, DatePicker, Progress, Collapse, InputNumber, Switch,
 } from 'antd';
 import type { ReactNode } from 'react';
 
@@ -21,13 +21,19 @@ const { Text } = Typography;
 
 // ─── Participant Panel ───────────────────────────────────────────
 
-function ParticipantPanel({ group, clients, onAdd, onRemove }: {
+function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay }: {
   group: TherapyGroup;
   clients: Client[];
+  sessions: GroupSession[];
   onAdd: (clientId: number) => void;
   onRemove: (clientId: number) => void;
+  onBulkPay?: (groupId: number, clientId: number, count?: number | null) => void;
 }) {
   const [selectedClientId, setSelectedClientId] = useState(0);
+  const [bulkPayClient, setBulkPayClient] = useState<{ id: number; name: string; unpaid: number } | null>(null);
+  const [bulkPayCount, setBulkPayCount] = useState(1);
+  const [payAll, setPayAll] = useState(false);
+
   const activeParticipants = group.participants?.filter(p => p.status === 'active') ?? [];
   const participantIds = new Set(activeParticipants.map(p => p.clientId));
   const availableClients = clients.filter(c => !participantIds.has(c.id));
@@ -35,6 +41,15 @@ function ParticipantPanel({ group, clients, onAdd, onRemove }: {
   const pct = group.maxParticipants > 0
     ? Math.round((activeParticipants.length / group.maxParticipants) * 100)
     : 0;
+
+  const unpaidByClient = new Map<number, number>();
+  for (const s of sessions) {
+    for (const p of s.payments) {
+      if (p.paymentStatus === 'due') {
+        unpaidByClient.set(p.clientId, (unpaidByClient.get(p.clientId) ?? 0) + 1);
+      }
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -50,30 +65,50 @@ function ParticipantPanel({ group, clients, onAdd, onRemove }: {
         <Text type="secondary" style={{ textAlign: 'center', padding: '8px 0' }}>Noch keine Teilnehmer.</Text>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {activeParticipants.map(p => (
-            <Card size="small" key={p.clientId} styles={{ body: { padding: '8px 12px' } }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <Text strong>{p.clientName}</Text>
-                  <Text type="secondary" style={{ marginLeft: 8 }}>{p.clientEmail}</Text>
+          {activeParticipants.map(p => {
+            const unpaidCount = unpaidByClient.get(p.clientId) ?? 0;
+            return (
+              <Card size="small" key={p.clientId} styles={{ body: { padding: '8px 12px' } }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Text strong>{p.clientName}</Text>
+                    <Text type="secondary">{p.clientEmail}</Text>
+                    {unpaidCount > 0 && (
+                      <Tag color="gold">{unpaidCount} offen</Tag>
+                    )}
+                  </div>
+                  <Space size={0}>
+                    {onBulkPay && unpaidCount > 0 && (
+                      <Button
+                        type="text"
+                        icon={<EuroCircleOutlined />}
+                        title="Sammelzahlung"
+                        onClick={() => {
+                          setBulkPayClient({ id: p.clientId, name: p.clientName, unpaid: unpaidCount });
+                          setBulkPayCount(unpaidCount);
+                          setPayAll(true);
+                        }}
+                      />
+                    )}
+                    <Button
+                      type="text"
+                      icon={<CloseOutlined />}
+                      danger
+                      onClick={() => {
+                        Modal.confirm({
+                          title: `${p.clientName} wirklich entfernen?`,
+                          okText: 'Entfernen',
+                          cancelText: 'Abbrechen',
+                          okType: 'danger',
+                          onOk: () => onRemove(p.clientId),
+                        });
+                      }}
+                    />
+                  </Space>
                 </div>
-                <Button
-                  type="text"
-                  icon={<CloseOutlined />}
-                  danger
-                  onClick={() => {
-                    Modal.confirm({
-                      title: `${p.clientName} wirklich entfernen?`,
-                      okText: 'Entfernen',
-                      cancelText: 'Abbrechen',
-                      okType: 'danger',
-                      onOk: () => onRemove(p.clientId),
-                    });
-                  }}
-                />
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -103,6 +138,43 @@ function ParticipantPanel({ group, clients, onAdd, onRemove }: {
       {isFull && (
         <Text type="warning">Maximale Teilnehmerzahl erreicht.</Text>
       )}
+
+      <Modal
+        title={`Sammelzahlung: ${bulkPayClient?.name ?? ''}`}
+        open={!!bulkPayClient}
+        onCancel={() => setBulkPayClient(null)}
+        onOk={() => {
+          if (bulkPayClient && onBulkPay) {
+            onBulkPay(group.id, bulkPayClient.id, payAll ? null : bulkPayCount);
+            setBulkPayClient(null);
+          }
+        }}
+        okText="Bezahlen"
+        cancelText="Abbrechen"
+      >
+        {bulkPayClient && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Text>{bulkPayClient.unpaid} offene Zahlungen vorhanden.</Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Text>Anzahl:</Text>
+              <InputNumber
+                min={1}
+                max={bulkPayClient.unpaid}
+                value={payAll ? bulkPayClient.unpaid : bulkPayCount}
+                onChange={(val) => { if (val) { setBulkPayCount(val); setPayAll(false); } }}
+                disabled={payAll}
+                style={{ width: 80 }}
+              />
+              <Switch
+                checked={payAll}
+                onChange={(checked) => { setPayAll(checked); if (checked) setBulkPayCount(bulkPayClient.unpaid); }}
+                checkedChildren="Alle"
+                unCheckedChildren="Alle"
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -115,7 +187,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
   onGenerate: (from: string, to: string) => void;
   onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
   onDeleteSession: (id: number) => void;
-  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null }) => void;
+  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }) => void;
   onSendInvoice: (paymentId: number) => void;
 }) {
   const [genFrom, setGenFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -126,14 +198,12 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
     scheduled: 'Geplant',
     completed: 'Abgeschlossen',
     cancelled: 'Abgesagt',
-    no_show: 'Nicht erschienen',
   };
 
   const statusTagColors: Record<string, string> = {
     scheduled: 'blue',
     completed: 'green',
     cancelled: 'default',
-    no_show: 'red',
   };
 
   const allPayments = sessions.flatMap(s => s.payments);
@@ -209,7 +279,6 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                         { value: 'scheduled', label: 'Geplant' },
                         { value: 'completed', label: 'Abgeschlossen' },
                         { value: 'cancelled', label: 'Abgesagt' },
-                        { value: 'no_show', label: 'Nicht erschienen' },
                       ]}
                     />
                     <Button
@@ -229,15 +298,15 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                   </Space>
                 </div>
                 {isExpanded && (
-                  <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {s.payments.length === 0 ? (
                       <Text type="secondary" style={{ fontSize: 12 }}>Keine Zahlungen (keine Teilnehmer).</Text>
                     ) : (
                       s.payments.map(p => (
-                        <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa', borderRadius: 4, padding: '6px 8px' }}>
+                        <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa', borderRadius: 4, padding: '4px 8px' }}>
                           <Text strong style={{ fontSize: 12 }}>{p.clientName}</Text>
-                          <Space size={0}>
-                            <Tag color={p.paymentStatus === 'paid' ? 'green' : 'gold'}>
+                          <Space size={4}>
+                            <Tag color={p.paymentStatus === 'paid' ? 'green' : 'gold'} style={{ marginInlineEnd: 0 }}>
                               {p.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
                             </Tag>
                             <Button
@@ -257,6 +326,19 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                               disabled={p.invoiceSent}
                               title={p.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}
                               onClick={() => onSendInvoice(p.id)}
+                            />
+                            <Select
+                              value={p.attendanceStatus ?? undefined}
+                              onChange={(val) => onUpdatePayment(p.id, { attendanceStatus: val ?? null })}
+                              allowClear
+                              placeholder="Anwesenheit"
+                              style={{ width: 160 }}
+                              size="small"
+                              options={[
+                                { value: 'attended', label: 'Erschienen' },
+                                { value: 'no_show', label: 'Nicht erschienen' },
+                                { value: 'cancelled', label: 'Abgesagt' },
+                              ]}
                             />
                           </Space>
                         </div>
@@ -306,7 +388,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
 function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchive,
   onToggleHomepage, onAddParticipant, onRemoveParticipant,
   onGenerateSessions, onUpdateSession, onDeleteSession,
-  onUpdatePayment, onSendInvoice }: {
+  onUpdatePayment, onBulkPay, onSendInvoice }: {
   group: TherapyGroup;
   clients: Client[];
   sessions: GroupSession[];
@@ -319,7 +401,8 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
   onGenerateSessions: (groupId: number, from: string, to: string) => void;
   onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
   onDeleteSession: (id: number, groupId: number) => void;
-  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null }, groupId: number) => void;
+  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }, groupId: number) => void;
+  onBulkPay?: (groupId: number, clientId: number, count?: number | null) => void;
   onSendInvoice: (paymentId: number, groupId: number) => void;
 }) {
   useEffect(() => { fetchSessions(group.id); }, [group.id, fetchSessions]);
@@ -441,8 +524,10 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
               <ParticipantPanel
                 group={group}
                 clients={clients}
+                sessions={sessions}
                 onAdd={(clientId) => onAddParticipant(group.id, clientId)}
                 onRemove={(clientId) => onRemoveParticipant(group.id, clientId)}
+                onBulkPay={onBulkPay}
               />
             ),
           }]}
@@ -469,7 +554,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
 export default function GroupManager({ groups, archivedGroups, clients, groupSessionsByGroup, fetchGroupSessions,
   onDelete, onArchive, onToggleHomepage, onAddParticipant, onRemoveParticipant,
   onGenerateSessions, onUpdateSession, onDeleteSession,
-  onUpdatePayment, onSendInvoice,
+  onUpdatePayment, onBulkPay, onSendInvoice,
   showNewForm, onToggleNewForm, newForm }: {
   groups: TherapyGroup[];
   archivedGroups: TherapyGroup[];
@@ -484,7 +569,8 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
   onGenerateSessions: (groupId: number, from: string, to: string) => void;
   onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
   onDeleteSession: (id: number, groupId: number) => void;
-  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null }, groupId: number) => void;
+  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }, groupId: number) => void;
+  onBulkPay?: (groupId: number, clientId: number, count?: number | null) => void;
   onSendInvoice: (paymentId: number, groupId: number) => void;
   showNewForm: boolean;
   onToggleNewForm: () => void;
@@ -524,6 +610,7 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
                 onUpdateSession={onUpdateSession}
                 onDeleteSession={onDeleteSession}
                 onUpdatePayment={onUpdatePayment}
+                onBulkPay={onBulkPay}
                 onSendInvoice={onSendInvoice}
               />
             ))
@@ -553,6 +640,7 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
                   onUpdateSession={onUpdateSession}
                   onDeleteSession={onDeleteSession}
                   onUpdatePayment={onUpdatePayment}
+                  onBulkPay={onBulkPay}
                   onSendInvoice={onSendInvoice}
                 />
               ),

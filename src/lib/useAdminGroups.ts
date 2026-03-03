@@ -190,7 +190,7 @@ export function useAdminGroups() {
 
   // ─── Payments ─────────────────────────────────────────────────
 
-  const updatePayment = useCallback(async (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null }, groupId?: number) => {
+  const updatePayment = useCallback(async (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }, groupId?: number) => {
     setError(null);
     try {
       await apiFetch(`/admin/group-session-payments/${paymentId}`, {
@@ -200,6 +200,19 @@ export function useAdminGroups() {
       if (groupId) await fetchGroupSessions(groupId);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren');
+    }
+  }, [fetchGroupSessions]);
+
+  const bulkPayGroupPayments = useCallback(async (groupId: number, clientId: number, count?: number | null) => {
+    setError(null);
+    try {
+      await apiFetch<{ updated: number }>('/admin/group-session-payments/bulk-pay', {
+        method: 'POST',
+        body: JSON.stringify({ groupId, clientId, count: count ?? undefined }),
+      });
+      await fetchGroupSessions(groupId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler bei Sammelzahlung');
     }
   }, [fetchGroupSessions]);
 
@@ -232,6 +245,7 @@ export function useAdminGroups() {
     updateGroupSession,
     removeGroupSession,
     updatePayment,
+    bulkPayGroupPayments,
     sendGroupInvoice,
   };
 }

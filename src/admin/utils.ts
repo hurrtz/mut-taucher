@@ -15,6 +15,6 @@ export function groupHasInteraction(sessions: GroupSession[]): boolean {
   return sessions.some(s =>
     s.status !== 'scheduled' ||
     s.notes != null ||
-    s.payments.some(p => p.paymentStatus === 'paid' || p.invoiceSent)
+    s.payments.some(p => p.paymentStatus === 'paid' || p.invoiceSent || p.attendanceStatus != null)
   );
 }

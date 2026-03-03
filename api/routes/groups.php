@@ -252,7 +252,7 @@ function handleDeleteGroup(int $id): void {
         $payCheckStmt = $db->prepare(
             'SELECT COUNT(*) FROM group_session_payments gsp
              JOIN group_sessions gs ON gsp.group_session_id = gs.id
-             WHERE gs.group_id = ? AND (gsp.payment_status = \'paid\' OR gsp.invoice_sent = 1)'
+             WHERE gs.group_id = ? AND (gsp.payment_status = \'paid\' OR gsp.invoice_sent = 1 OR gsp.attendance_status IS NOT NULL)'
         );
         $payCheckStmt->execute([$id]);
         $hasInteraction = (int)$payCheckStmt->fetchColumn() > 0;
@@ -485,6 +485,7 @@ function handleGetGroupSessions(int $groupId): void {
                 'paymentPaidDate' => $p['payment_paid_date'],
                 'invoiceSent'     => (bool)$p['invoice_sent'],
                 'invoiceSentAt'   => $p['invoice_sent_at'],
+                'attendanceStatus' => $p['attendance_status'],
             ], $payments),
         ];
     }
@@ -740,6 +741,10 @@ function handleUpdateGroupPayment(int $id): void {
         $fields[] = 'payment_paid_date = ?';
         $params[] = $input['paymentPaidDate'];
     }
+    if (array_key_exists('attendanceStatus', $input)) {
+        $fields[] = 'attendance_status = ?';
+        $params[] = $input['attendanceStatus'];
+    }
 
     if (empty($fields)) {
         http_response_code(400);
@@ -753,6 +758,53 @@ function handleUpdateGroupPayment(int $id): void {
     $stmt->execute($params);
 
     echo json_encode(['message' => 'Zahlung aktualisiert']);
+}
+
+/**
+ * POST /api/admin/group-session-payments/bulk-pay
+ * Body: { groupId: int, clientId: int, count?: int }
+ * Marks the next N (or all) unpaid session payments as paid for a participant.
+ */
+function handleBulkPayGroupPayments(): void {
+    requireAuth();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $db = getDB();
+
+    $groupId = $input['groupId'] ?? null;
+    $clientId = $input['clientId'] ?? null;
+    $count = $input['count'] ?? null; // null = all
+
+    if (!$groupId || !$clientId) {
+        http_response_code(400);
+        echo json_encode(['error' => 'groupId und clientId sind erforderlich']);
+        return;
+    }
+
+    // Find unpaid payment IDs ordered by session date
+    $sql = 'SELECT gsp.id FROM group_session_payments gsp
+            JOIN group_sessions gs ON gs.id = gsp.group_session_id
+            WHERE gs.group_id = ? AND gsp.client_id = ? AND gsp.payment_status = \'due\'
+            ORDER BY gs.session_date ASC, gs.session_time ASC';
+    if ($count !== null) {
+        $sql .= ' LIMIT ' . (int)$count;
+    }
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$groupId, $clientId]);
+    $ids = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+    if (empty($ids)) {
+        echo json_encode(['updated' => 0]);
+        return;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $today = date('Y-m-d');
+    $updateSql = "UPDATE group_session_payments SET payment_status = 'paid', payment_paid_date = ? WHERE id IN ($placeholders)";
+    $updateStmt = $db->prepare($updateSql);
+    $updateStmt->execute(array_merge([$today], $ids));
+
+    echo json_encode(['updated' => count($ids)]);
 }
 
 /**
