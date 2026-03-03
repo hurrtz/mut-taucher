@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import type { TherapyGroup, Client, GroupSession } from '../../lib/data';
 import { DAY_LABELS } from '../constants';
 import { DocumentCollapse } from './DocumentChecklist';
+import { groupHasInteraction } from '../utils';
 import { format, parseISO, addMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
 import dayjs from 'dayjs';
 import {
   SyncOutlined, CalendarOutlined, EuroCircleOutlined, VideoCameraOutlined,
   DeleteOutlined, HomeOutlined, CloseOutlined, CheckCircleOutlined, FileTextOutlined,
+  ContainerOutlined,
 } from '@ant-design/icons';
 import {
   Card, Button, Tag, Space, Typography, Modal, Select, Statistic,
@@ -300,7 +302,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
 
 // ─── Group Card ─────────────────────────────────────────────────
 
-function GroupCard({ group, clients, sessions, fetchSessions, onDelete,
+function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchive,
   onToggleHomepage, onAddParticipant, onRemoveParticipant,
   onGenerateSessions, onUpdateSession, onDeleteSession,
   onUpdatePayment, onSendInvoice }: {
@@ -309,6 +311,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete,
   sessions: GroupSession[];
   fetchSessions: (groupId: number) => void;
   onDelete: (id: number) => void;
+  onArchive: (id: number) => void;
   onToggleHomepage: (id: number, current: boolean) => void;
   onAddParticipant: (groupId: number, clientId: number) => void;
   onRemoveParticipant: (groupId: number, clientId: number) => void;
@@ -328,6 +331,8 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete,
     ?.map(s => `${DAY_LABELS[s.dayOfWeek]} ${s.time}${s.frequency === 'biweekly' ? ' (2-wöch.)' : ''}`)
     .join(', ');
 
+  const hasInteraction = groupHasInteraction(sessions);
+
   return (
     <Card
       size="small"
@@ -346,21 +351,38 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete,
             title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}
             style={{ color: group.showOnHomepage ? '#f43f5e' : undefined }}
           />
-          <Button
-            type="text"
-            icon={<DeleteOutlined />}
-            danger
-            onClick={() => {
-              Modal.confirm({
-                title: `Gruppe "${group.label || 'Ohne Bezeichnung'}" wirklich löschen?`,
-                okText: 'Löschen',
-                cancelText: 'Abbrechen',
-                okType: 'danger',
-                onOk: () => onDelete(group.id),
-              });
-            }}
-            title="Löschen"
-          />
+          {hasInteraction ? (
+            <Button
+              type="text"
+              icon={<ContainerOutlined />}
+              onClick={() => {
+                Modal.confirm({
+                  title: `Gruppe "${group.label || 'Ohne Bezeichnung'}" archivieren?`,
+                  content: 'Die Gruppe hat Sitzungen mit Interaktionen und kann nicht gelöscht werden.',
+                  okText: 'Archivieren',
+                  cancelText: 'Abbrechen',
+                  onOk: () => onArchive(group.id),
+                });
+              }}
+              title="Archivieren"
+            />
+          ) : (
+            <Button
+              type="text"
+              icon={<DeleteOutlined />}
+              danger
+              onClick={() => {
+                Modal.confirm({
+                  title: `Gruppe "${group.label || 'Ohne Bezeichnung'}" wirklich löschen?`,
+                  okText: 'Löschen',
+                  cancelText: 'Abbrechen',
+                  okType: 'danger',
+                  onOk: () => onDelete(group.id),
+                });
+              }}
+              title="Löschen"
+            />
+          )}
         </Space>
       }
     >
@@ -440,7 +462,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete,
 // ─── Group Manager ───────────────────────────────────────────────
 
 export default function GroupManager({ groups, clients, groupSessionsByGroup, fetchGroupSessions,
-  onDelete, onToggleHomepage, onAddParticipant, onRemoveParticipant,
+  onDelete, onArchive, onToggleHomepage, onAddParticipant, onRemoveParticipant,
   onGenerateSessions, onUpdateSession, onDeleteSession,
   onUpdatePayment, onSendInvoice }: {
   groups: TherapyGroup[];
@@ -448,6 +470,7 @@ export default function GroupManager({ groups, clients, groupSessionsByGroup, fe
   groupSessionsByGroup: Record<number, GroupSession[]>;
   fetchGroupSessions: (groupId: number) => void;
   onDelete: (id: number) => void;
+  onArchive: (id: number) => void;
   onToggleHomepage: (id: number, current: boolean) => void;
   onAddParticipant: (groupId: number, clientId: number) => void;
   onRemoveParticipant: (groupId: number, clientId: number) => void;
@@ -477,6 +500,7 @@ export default function GroupManager({ groups, clients, groupSessionsByGroup, fe
           sessions={groupSessionsByGroup[group.id] ?? []}
           fetchSessions={fetchGroupSessions}
           onDelete={onDelete}
+          onArchive={onArchive}
           onToggleHomepage={onToggleHomepage}
           onAddParticipant={onAddParticipant}
           onRemoveParticipant={onRemoveParticipant}

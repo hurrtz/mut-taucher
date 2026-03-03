@@ -94,6 +94,7 @@ export function useAdminTherapies() {
     }
   }, []);
 
+
   const addSession = useCallback(async (therapyId: number, session: { date: string; time: string; durationMinutes?: number }) => {
     setError(null);
     try {

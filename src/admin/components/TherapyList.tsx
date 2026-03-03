@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import type { Therapy, TherapySession } from '../../lib/data';
 import { DAY_LABELS } from '../constants';
 import { DocumentCollapse } from './DocumentChecklist';
+import { therapyHasInteraction } from '../utils';
 import { format, parseISO, addMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
   SyncOutlined, CalendarOutlined, EuroCircleOutlined,
   VideoCameraOutlined, DeleteOutlined, CheckCircleOutlined,
-  FileTextOutlined,
+  FileTextOutlined, ContainerOutlined,
 } from '@ant-design/icons';
 import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse } from 'antd';
 import dayjs from 'dayjs';
@@ -184,12 +185,13 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
 
 // ─── Therapy Card ────────────────────────────────────────────────
 
-function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onGenerateSessions,
+function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onArchive, onGenerateSessions,
   onUpdateSession, onDeleteSession, onSendInvoice }: {
   therapy: Therapy;
   sessions: TherapySession[];
   fetchSessions: (therapyId: number) => void;
   onDelete: (id: number) => void;
+  onArchive: (id: number) => void;
   onGenerateSessions: (therapyId: number, from: string, to: string) => void;
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number, therapyId: number) => void;
@@ -203,6 +205,8 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onGenerateSes
     .map(s => `${DAY_LABELS[s.dayOfWeek]} ${s.time}${s.frequency === 'biweekly' ? ' (2-wöch.)' : ''}`)
     .join(', ');
 
+  const hasInteraction = therapyHasInteraction(sessions);
+
   return (
     <Card
       size="small"
@@ -213,17 +217,34 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onGenerateSes
         </Space>
       }
       extra={
-        <Button
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => {
-            Modal.confirm({
-              title: `Therapie "${therapy.label || 'Einzeltherapie'}" löschen?`,
-              onOk: () => onDelete(therapy.id),
-            });
-          }}
-        />
+        hasInteraction ? (
+          <Button
+            type="text"
+            icon={<ContainerOutlined />}
+            onClick={() => {
+              Modal.confirm({
+                title: `Therapie "${therapy.label || 'Einzeltherapie'}" archivieren?`,
+                content: 'Die Therapie hat Sitzungen mit Interaktionen und kann nicht gelöscht werden.',
+                okText: 'Archivieren',
+                cancelText: 'Abbrechen',
+                onOk: () => onArchive(therapy.id),
+              });
+            }}
+            title="Archivieren"
+          />
+        ) : (
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => {
+              Modal.confirm({
+                title: `Therapie "${therapy.label || 'Einzeltherapie'}" löschen?`,
+                onOk: () => onDelete(therapy.id),
+              });
+            }}
+          />
+        )
       }
     >
       <div style={{ fontSize: 12 }}>
@@ -274,12 +295,13 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onGenerateSes
 
 // ─── Therapy List ────────────────────────────────────────────────
 
-export default function TherapyList({ therapies, sessionsByTherapy, fetchSessions, onDelete, onGenerateSessions,
+export default function TherapyList({ therapies, sessionsByTherapy, fetchSessions, onDelete, onArchive, onGenerateSessions,
   onUpdateSession, onDeleteSession, onSendInvoice }: {
   therapies: Therapy[];
   sessionsByTherapy: Record<number, TherapySession[]>;
   fetchSessions: (therapyId: number) => void;
   onDelete: (id: number) => void;
+  onArchive: (id: number) => void;
   onGenerateSessions: (therapyId: number, from: string, to: string) => void;
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number, therapyId: number) => void;
@@ -304,6 +326,7 @@ export default function TherapyList({ therapies, sessionsByTherapy, fetchSession
           sessions={sessionsByTherapy[t.id] || []}
           fetchSessions={fetchSessions}
           onDelete={onDelete}
+          onArchive={onArchive}
           onGenerateSessions={onGenerateSessions}
           onUpdateSession={onUpdateSession}
           onDeleteSession={onDeleteSession}

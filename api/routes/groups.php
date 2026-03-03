@@ -239,6 +239,31 @@ function handleDeleteGroup(int $id): void {
     requireAuth();
     $db = getDB();
 
+    // Check if any group session has interaction
+    $checkStmt = $db->prepare(
+        'SELECT COUNT(*) FROM group_sessions
+         WHERE group_id = ? AND (status != \'scheduled\' OR notes IS NOT NULL)'
+    );
+    $checkStmt->execute([$id]);
+    $hasInteraction = (int)$checkStmt->fetchColumn() > 0;
+
+    // Also check group session payments for paid/invoiced
+    if (!$hasInteraction) {
+        $payCheckStmt = $db->prepare(
+            'SELECT COUNT(*) FROM group_session_payments gsp
+             JOIN group_sessions gs ON gsp.group_session_id = gs.id
+             WHERE gs.group_id = ? AND (gsp.payment_status = \'paid\' OR gsp.invoice_sent = 1)'
+        );
+        $payCheckStmt->execute([$id]);
+        $hasInteraction = (int)$payCheckStmt->fetchColumn() > 0;
+    }
+
+    if ($hasInteraction) {
+        http_response_code(409);
+        echo json_encode(['error' => 'Gruppe hat Sitzungen mit Interaktionen und kann nicht gelöscht werden. Bitte archivieren.']);
+        return;
+    }
+
     $stmt = $db->prepare('DELETE FROM therapy_groups WHERE id = ?');
     $stmt->execute([$id]);
 

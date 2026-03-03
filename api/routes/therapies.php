@@ -228,6 +228,18 @@ function handleDeleteTherapy(int $id): void {
     requireAuth();
     $db = getDB();
 
+    // Check if any session has interaction (status changed, notes, paid, invoice sent)
+    $checkStmt = $db->prepare(
+        'SELECT COUNT(*) FROM therapy_sessions
+         WHERE therapy_id = ? AND (status != \'scheduled\' OR notes IS NOT NULL OR payment_status = \'paid\' OR invoice_sent = 1)'
+    );
+    $checkStmt->execute([$id]);
+    if ((int)$checkStmt->fetchColumn() > 0) {
+        http_response_code(409);
+        echo json_encode(['error' => 'Therapie hat Sitzungen mit Interaktionen und kann nicht gelöscht werden. Bitte archivieren.']);
+        return;
+    }
+
     $stmt = $db->prepare('DELETE FROM therapies WHERE id = ?');
     $stmt->execute([$id]);
 

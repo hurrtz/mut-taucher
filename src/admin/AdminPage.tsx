@@ -58,7 +58,7 @@ export default function AdminPage() {
 
   const {
     therapies, sessionsByTherapy, error: therapiesError,
-    fetchTherapies, addTherapy, removeTherapy,
+    fetchTherapies, addTherapy, updateTherapy, removeTherapy,
     fetchSessions, generateSessions, updateSession, removeSession, sendInvoice,
   } = useAdminTherapies();
 
@@ -355,6 +355,7 @@ export default function AdminPage() {
                 sessionsByTherapy={sessionsByTherapy}
                 fetchSessions={fetchSessions}
                 onDelete={removeTherapy}
+                onArchive={(id) => updateTherapy(id, { status: 'archived' })}
                 onGenerateSessions={async (tid, from, to) => { await generateSessions(tid, from, to); }}
                 onUpdateSession={(id, updates) => updateSession(id, updates)}
                 onDeleteSession={(id, tid) => removeSession(id, tid)}
@@ -442,6 +443,7 @@ export default function AdminPage() {
                 groupSessionsByGroup={groupSessionsByGroup}
                 fetchGroupSessions={fetchGroupSessions}
                 onDelete={removeGroup}
+                onArchive={(id) => updateGroup(id, { status: 'archived' })}
                 onToggleHomepage={(id, current) => updateGroup(id, { showOnHomepage: !current })}
                 onAddParticipant={addParticipant}
                 onRemoveParticipant={removeParticipant}
