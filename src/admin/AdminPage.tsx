@@ -63,7 +63,7 @@ export default function AdminPage() {
   } = useAdminTherapies();
 
   const {
-    groups, groupSessions, error: groupsError,
+    groups, groupSessionsByGroup, error: groupsError,
     fetchGroups, addGroup, updateGroup, removeGroup,
     addParticipant, removeParticipant,
     fetchGroupSessions, generateGroupSessions,
@@ -82,7 +82,6 @@ export default function AdminPage() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('rules');
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [editingClientId, setEditingClientId] = useState<number | null>(null);
   const [showNewClient, setShowNewClient] = useState(false);
@@ -100,13 +99,6 @@ export default function AdminPage() {
       fetchTemplates();
     }
   }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchClients, fetchTherapies, fetchTemplates]);
-
-  // Load group sessions when group selected
-  useEffect(() => {
-    if (selectedGroupId) {
-      fetchGroupSessions(selectedGroupId);
-    }
-  }, [selectedGroupId, fetchGroupSessions]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -447,18 +439,17 @@ export default function AdminPage() {
               <GroupManager
                 groups={groups}
                 clients={clients}
-                selectedGroupId={selectedGroupId}
-                onSelect={setSelectedGroupId}
+                groupSessionsByGroup={groupSessionsByGroup}
+                fetchGroupSessions={fetchGroupSessions}
                 onDelete={removeGroup}
                 onToggleHomepage={(id, current) => updateGroup(id, { showOnHomepage: !current })}
                 onAddParticipant={addParticipant}
                 onRemoveParticipant={removeParticipant}
-                groupSessions={groupSessions}
                 onGenerateSessions={async (gid, from, to) => { await generateGroupSessions(gid, from, to); }}
                 onUpdateSession={(id, updates) => updateGroupSession(id, updates)}
                 onDeleteSession={(id, gid) => removeGroupSession(id, gid)}
-                onUpdatePayment={(pid, updates) => updatePayment(pid, updates, selectedGroupId ?? undefined)}
-                onSendInvoice={(pid) => sendGroupInvoice(pid, selectedGroupId ?? undefined)}
+                onUpdatePayment={(pid, updates, gid) => updatePayment(pid, updates, gid)}
+                onSendInvoice={(pid, gid) => sendGroupInvoice(pid, gid)}
               />
             </Space>
           </div>

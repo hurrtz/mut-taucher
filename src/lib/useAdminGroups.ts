@@ -4,7 +4,7 @@ import type { TherapyGroup, GroupSession, TherapyScheduleRule } from './data';
 
 export function useAdminGroups() {
   const [groups, setGroups] = useState<TherapyGroup[]>([]);
-  const [groupSessions, setGroupSessions] = useState<GroupSession[]>([]);
+  const [groupSessionsByGroup, setGroupSessionsByGroup] = useState<Record<number, GroupSession[]>>({});
   const [error, setError] = useState<string | null>(null);
 
   const fetchGroups = useCallback(async (status: string = 'active') => {
@@ -114,7 +114,7 @@ export function useAdminGroups() {
     try {
       const params = from && to ? `?from=${from}&to=${to}` : '';
       const data = await apiFetch<GroupSession[]>(`/admin/groups/${groupId}/sessions${params}`);
-      setGroupSessions(data);
+      setGroupSessionsByGroup(prev => ({ ...prev, [groupId]: data }));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Laden der Sitzungen');
     }
@@ -155,7 +155,13 @@ export function useAdminGroups() {
         method: 'PATCH',
         body: JSON.stringify(updates),
       });
-      setGroupSessions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+      setGroupSessionsByGroup(prev => {
+        const updated: Record<number, GroupSession[]> = {};
+        for (const [gid, list] of Object.entries(prev)) {
+          updated[Number(gid)] = list.map(s => s.id === id ? { ...s, ...updates } : s);
+        }
+        return updated;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren');
     }
@@ -198,7 +204,7 @@ export function useAdminGroups() {
 
   return {
     groups,
-    groupSessions,
+    groupSessionsByGroup,
     error,
     fetchGroups,
     addGroup,

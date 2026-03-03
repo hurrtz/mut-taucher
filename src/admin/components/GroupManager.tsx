@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { TherapyGroup, Client, GroupSession } from '../../lib/data';
 import { DAY_LABELS } from '../constants';
-import { InlineCollapsible } from './CollapsibleSection';
 import { DocumentCollapse } from './DocumentChecklist';
 import { format, parseISO, addMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -12,7 +11,7 @@ import {
 } from '@ant-design/icons';
 import {
   Card, Button, Tag, Space, Typography, Modal, Select, Statistic,
-  Row, Col, DatePicker, Progress,
+  Row, Col, DatePicker, Progress, Collapse,
 } from 'antd';
 
 const { Text } = Typography;
@@ -59,7 +58,6 @@ function ParticipantPanel({ group, clients, onAdd, onRemove }: {
                   type="text"
                   icon={<CloseOutlined />}
                   danger
-                  size="small"
                   onClick={() => {
                     Modal.confirm({
                       title: `${p.clientName} wirklich entfernen?`,
@@ -142,10 +140,10 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
   const amountPaid = totalPaid * group.sessionCostCents;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <Row gutter={16}>
-        <Col span={8}>
-          <Card size="small">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <Card size="small" type="inner" title="Finanzieller Status">
+        <Row gutter={16}>
+          <Col span={8} style={{ textAlign: 'center' }}>
             <Statistic
               title="Offen"
               value={(amountDue / 100).toFixed(0)}
@@ -153,10 +151,8 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
               valueStyle={{ color: '#1677ff' }}
             />
             <Text type="secondary" style={{ fontSize: 12 }}>{totalDue} Zahlungen</Text>
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card size="small">
+          </Col>
+          <Col span={8} style={{ textAlign: 'center' }}>
             <Statistic
               title="Bezahlt"
               value={(amountPaid / 100).toFixed(0)}
@@ -164,44 +160,20 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
               valueStyle={{ color: '#52c41a' }}
             />
             <Text type="secondary" style={{ fontSize: 12 }}>{totalPaid} Zahlungen</Text>
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card size="small">
+          </Col>
+          <Col span={8} style={{ textAlign: 'center' }}>
             <Statistic
               title="Gesamt"
               value={((amountDue + amountPaid) / 100).toFixed(0)}
               suffix="€"
             />
             <Text type="secondary" style={{ fontSize: 12 }}>{sessions.length} Sitzungen</Text>
-          </Card>
-        </Col>
-      </Row>
-
-      <Card size="small" title="Sitzungen generieren">
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-          <div>
-            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Von</Text>
-            <DatePicker
-              value={dayjs(genFrom)}
-              onChange={(d) => { if (d) setGenFrom(d.format('YYYY-MM-DD')); }}
-            />
-          </div>
-          <div>
-            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Bis</Text>
-            <DatePicker
-              value={dayjs(genTo)}
-              onChange={(d) => { if (d) setGenTo(d.format('YYYY-MM-DD')); }}
-            />
-          </div>
-          <Button type="primary" onClick={() => onGenerate(genFrom, genTo)}>
-            Generieren
-          </Button>
-        </div>
+          </Col>
+        </Row>
       </Card>
 
       {sessions.length === 0 ? (
-        <Text type="secondary" style={{ textAlign: 'center', padding: '16px 0' }}>Noch keine Sitzungen.</Text>
+        <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '16px 0' }}>Noch keine Sitzungen.</Text>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {sessions.map(s => {
@@ -225,12 +197,11 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                       <Text type="secondary" style={{ fontSize: 12 }}>{paidCount}/{totalCount} bezahlt</Text>
                     )}
                   </div>
-                  <Space size={4}>
+                  <Space size={8}>
                     <Select
-                      size="small"
                       value={s.status}
                       onChange={(val) => onUpdateSession(s.id, { status: val as GroupSession['status'] })}
-                      style={{ width: 140 }}
+                      style={{ width: 160 }}
                       options={[
                         { value: 'scheduled', label: 'Geplant' },
                         { value: 'completed', label: 'Abgeschlossen' },
@@ -242,7 +213,6 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                       type="text"
                       icon={<DeleteOutlined />}
                       danger
-                      size="small"
                       onClick={() => {
                         Modal.confirm({
                           title: 'Sitzung löschen?',
@@ -263,13 +233,12 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                       s.payments.map(p => (
                         <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa', borderRadius: 4, padding: '6px 8px' }}>
                           <Text strong style={{ fontSize: 12 }}>{p.clientName}</Text>
-                          <Space size={4}>
+                          <Space size={0}>
                             <Tag color={p.paymentStatus === 'paid' ? 'green' : 'gold'}>
                               {p.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
                             </Tag>
                             <Button
                               type="text"
-                              size="small"
                               icon={<EuroCircleOutlined />}
                               style={{ color: p.paymentStatus === 'paid' ? '#52c41a' : undefined }}
                               title={p.paymentStatus === 'paid' ? 'Als offen markieren' : 'Als bezahlt markieren'}
@@ -280,7 +249,6 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                             />
                             <Button
                               type="text"
-                              size="small"
                               icon={p.invoiceSent ? <CheckCircleOutlined /> : <FileTextOutlined />}
                               style={{ color: p.invoiceSent ? '#52c41a' : undefined }}
                               disabled={p.invoiceSent}
@@ -298,30 +266,196 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
           })}
         </div>
       )}
+
+      <Collapse
+        items={[{
+          key: 'gen',
+          label: 'Sitzungen generieren',
+          children: (
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+              <Space>
+                <Text type="secondary" style={{ width: 28, display: 'inline-block' }}>Von</Text>
+                <DatePicker
+                  value={dayjs(genFrom)}
+                  onChange={(d) => { if (d) setGenFrom(d.format('YYYY-MM-DD')); }}
+                />
+              </Space>
+              <Space>
+                <Text type="secondary" style={{ width: 28, display: 'inline-block' }}>Bis</Text>
+                <DatePicker
+                  value={dayjs(genTo)}
+                  onChange={(d) => { if (d) setGenTo(d.format('YYYY-MM-DD')); }}
+                />
+              </Space>
+              <Button type="primary" onClick={() => onGenerate(genFrom, genTo)} block>
+                Generieren
+              </Button>
+            </Space>
+          ),
+        }]}
+      />
     </div>
+  );
+}
+
+// ─── Group Card ─────────────────────────────────────────────────
+
+function GroupCard({ group, clients, sessions, fetchSessions, onDelete,
+  onToggleHomepage, onAddParticipant, onRemoveParticipant,
+  onGenerateSessions, onUpdateSession, onDeleteSession,
+  onUpdatePayment, onSendInvoice }: {
+  group: TherapyGroup;
+  clients: Client[];
+  sessions: GroupSession[];
+  fetchSessions: (groupId: number) => void;
+  onDelete: (id: number) => void;
+  onToggleHomepage: (id: number, current: boolean) => void;
+  onAddParticipant: (groupId: number, clientId: number) => void;
+  onRemoveParticipant: (groupId: number, clientId: number) => void;
+  onGenerateSessions: (groupId: number, from: string, to: string) => void;
+  onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
+  onDeleteSession: (id: number, groupId: number) => void;
+  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null }, groupId: number) => void;
+  onSendInvoice: (paymentId: number, groupId: number) => void;
+}) {
+  useEffect(() => { fetchSessions(group.id); }, [group.id, fetchSessions]);
+
+  const pct = group.maxParticipants > 0
+    ? Math.round((group.participantCount / group.maxParticipants) * 100)
+    : 0;
+  const spotsLeft = group.maxParticipants - group.participantCount;
+  const scheduleLabel = group.schedule
+    ?.map(s => `${DAY_LABELS[s.dayOfWeek]} ${s.time}${s.frequency === 'biweekly' ? ' (2-wöch.)' : ''}`)
+    .join(', ');
+
+  return (
+    <Card
+      size="small"
+      title={
+        <Space>
+          <span>{group.label || 'Ohne Bezeichnung'}</span>
+          {group.showOnHomepage && <Tag color="magenta">Homepage</Tag>}
+        </Space>
+      }
+      extra={
+        <Space size={0}>
+          <Button
+            type="text"
+            icon={<HomeOutlined />}
+            onClick={() => onToggleHomepage(group.id, group.showOnHomepage)}
+            title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}
+            style={{ color: group.showOnHomepage ? '#f43f5e' : undefined }}
+          />
+          <Button
+            type="text"
+            icon={<DeleteOutlined />}
+            danger
+            onClick={() => {
+              Modal.confirm({
+                title: `Gruppe "${group.label || 'Ohne Bezeichnung'}" wirklich löschen?`,
+                okText: 'Löschen',
+                cancelText: 'Abbrechen',
+                okType: 'danger',
+                onOk: () => onDelete(group.id),
+              });
+            }}
+            title="Löschen"
+          />
+        </Space>
+      }
+    >
+      <div style={{ fontSize: 12 }}>
+        {scheduleLabel && (
+          <Space size={4} style={{ display: 'flex', color: '#888' }}>
+            <SyncOutlined /> <span>{scheduleLabel}</span>
+          </Space>
+        )}
+        {group.startDate && (
+          <Space size={4} style={{ display: 'flex', color: '#888' }}>
+            <CalendarOutlined />
+            <span>
+              Ab {format(parseISO(group.startDate), 'd. MMM yyyy', { locale: de })}
+              {group.endDate && ` bis ${format(parseISO(group.endDate), 'd. MMM yyyy', { locale: de })}`}
+            </span>
+          </Space>
+        )}
+        <Space size={4} style={{ display: 'flex', color: '#888' }}>
+          <EuroCircleOutlined /> <span>{(group.sessionCostCents / 100).toFixed(0)} € · {group.sessionDurationMinutes} Min.</span>
+        </Space>
+        {group.videoLink && (
+          <a href={group.videoLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>
+            <Space size={4}>
+              <VideoCameraOutlined /> <span>Video-Link</span>
+            </Space>
+          </a>
+        )}
+      </div>
+
+      <div style={{ marginTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <Text style={{ fontSize: 13 }}>{group.participantCount} / {group.maxParticipants} Teilnehmer</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{spotsLeft > 0 ? `${spotsLeft} frei` : 'Voll'}</Text>
+        </div>
+        <Progress
+          percent={Math.min(pct, 100)}
+          showInfo={false}
+          strokeColor={pct >= 100 ? '#f87171' : pct >= 70 ? '#fbbf24' : '#2dd4bf'}
+          size="small"
+        />
+      </div>
+
+      <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Collapse
+          defaultActiveKey={[]}
+          items={[{
+            key: 'participants',
+            label: `Teilnehmer (${group.participantCount})`,
+            children: (
+              <ParticipantPanel
+                group={group}
+                clients={clients}
+                onAdd={(clientId) => onAddParticipant(group.id, clientId)}
+                onRemove={(clientId) => onRemoveParticipant(group.id, clientId)}
+              />
+            ),
+          }]}
+        />
+
+        <GroupSessionPanel
+          group={group}
+          sessions={sessions}
+          onGenerate={(from, to) => onGenerateSessions(group.id, from, to)}
+          onUpdateSession={onUpdateSession}
+          onDeleteSession={(id) => onDeleteSession(id, group.id)}
+          onUpdatePayment={(pid, updates) => onUpdatePayment(pid, updates, group.id)}
+          onSendInvoice={(pid) => onSendInvoice(pid, group.id)}
+        />
+
+        <DocumentCollapse contextType="group" contextId={group.id} />
+      </div>
+    </Card>
   );
 }
 
 // ─── Group Manager ───────────────────────────────────────────────
 
-export default function GroupManager({ groups, clients, selectedGroupId, onSelect, onDelete,
-  onToggleHomepage, onAddParticipant, onRemoveParticipant,
-  groupSessions, onGenerateSessions, onUpdateSession, onDeleteSession,
+export default function GroupManager({ groups, clients, groupSessionsByGroup, fetchGroupSessions,
+  onDelete, onToggleHomepage, onAddParticipant, onRemoveParticipant,
+  onGenerateSessions, onUpdateSession, onDeleteSession,
   onUpdatePayment, onSendInvoice }: {
   groups: TherapyGroup[];
   clients: Client[];
-  selectedGroupId: number | null;
-  onSelect: (id: number | null) => void;
+  groupSessionsByGroup: Record<number, GroupSession[]>;
+  fetchGroupSessions: (groupId: number) => void;
   onDelete: (id: number) => void;
   onToggleHomepage: (id: number, current: boolean) => void;
   onAddParticipant: (groupId: number, clientId: number) => void;
   onRemoveParticipant: (groupId: number, clientId: number) => void;
-  groupSessions: GroupSession[];
   onGenerateSessions: (groupId: number, from: string, to: string) => void;
   onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
   onDeleteSession: (id: number, groupId: number) => void;
-  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null }) => void;
-  onSendInvoice: (paymentId: number) => void;
+  onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null }, groupId: number) => void;
+  onSendInvoice: (paymentId: number, groupId: number) => void;
 }) {
   if (groups.length === 0) {
     return (
@@ -335,138 +469,24 @@ export default function GroupManager({ groups, clients, selectedGroupId, onSelec
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {groups.map(group => {
-        const isSelected = selectedGroupId === group.id;
-        const pct = group.maxParticipants > 0
-          ? Math.round((group.participantCount / group.maxParticipants) * 100)
-          : 0;
-        const spotsLeft = group.maxParticipants - group.participantCount;
-        const scheduleLabel = group.schedule
-          ?.map(s => `${DAY_LABELS[s.dayOfWeek]} ${s.time}${s.frequency === 'biweekly' ? ' (2-wöch.)' : ''}`)
-          .join(', ');
-
-        return (
-          <Card
-            key={group.id}
-            size="small"
-            style={{ borderColor: isSelected ? '#2dd4bf' : undefined }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-              <div
-                onClick={() => onSelect(isSelected ? null : group.id)}
-                style={{ textAlign: 'left', minWidth: 0, flex: 1, cursor: 'pointer' }}
-              >
-                <Space>
-                  <Text strong style={{ fontSize: 15 }}>{group.label || 'Ohne Bezeichnung'}</Text>
-                  {group.showOnHomepage && (
-                    <Tag color="magenta">Homepage</Tag>
-                  )}
-                </Space>
-                <div style={{ marginTop: 4, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {scheduleLabel && (
-                    <Space size={4}>
-                      <SyncOutlined style={{ fontSize: 12 }} />
-                      <Text type="secondary" style={{ fontSize: 12 }}>{scheduleLabel}</Text>
-                    </Space>
-                  )}
-                  {group.startDate && (
-                    <Space size={4}>
-                      <CalendarOutlined style={{ fontSize: 12 }} />
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        Ab {format(parseISO(group.startDate), 'd. MMM yyyy', { locale: de })}
-                        {group.endDate && ` bis ${format(parseISO(group.endDate), 'd. MMM yyyy', { locale: de })}`}
-                      </Text>
-                    </Space>
-                  )}
-                  <Space size={4}>
-                    <EuroCircleOutlined style={{ fontSize: 12 }} />
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {(group.sessionCostCents / 100).toFixed(0)} € · {group.sessionDurationMinutes} Min.
-                    </Text>
-                  </Space>
-                  {group.videoLink && (
-                    <a href={group.videoLink} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
-                      <Space size={4}>
-                        <VideoCameraOutlined style={{ fontSize: 12, color: '#2dd4bf' }} />
-                        <Text style={{ fontSize: 12, color: '#2dd4bf' }}>Video-Link</Text>
-                      </Space>
-                    </a>
-                  )}
-                </div>
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text style={{ fontSize: 13 }}>{group.participantCount} / {group.maxParticipants} Teilnehmer</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{spotsLeft > 0 ? `${spotsLeft} frei` : 'Voll'}</Text>
-                  </div>
-                  <Progress
-                    percent={Math.min(pct, 100)}
-                    showInfo={false}
-                    strokeColor={pct >= 100 ? '#f87171' : pct >= 70 ? '#fbbf24' : '#2dd4bf'}
-                    size="small"
-                  />
-                  {group.participants && group.participants.length > 0 && (
-                    <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
-                      {group.participants.map(p => p.clientName).join(', ')}
-                    </Text>
-                  )}
-                </div>
-              </div>
-              <Space size={4} style={{ flexShrink: 0 }}>
-                <Button
-                  type="text"
-                  icon={<HomeOutlined />}
-                  onClick={() => onToggleHomepage(group.id, group.showOnHomepage)}
-                  title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}
-                  style={{ color: group.showOnHomepage ? '#f43f5e' : undefined }}
-                />
-                <Button
-                  type="text"
-                  icon={<DeleteOutlined />}
-                  danger
-                  onClick={() => {
-                    Modal.confirm({
-                      title: `Gruppe "${group.label || 'Ohne Bezeichnung'}" wirklich löschen?`,
-                      okText: 'Löschen',
-                      cancelText: 'Abbrechen',
-                      okType: 'danger',
-                      onOk: () => onDelete(group.id),
-                    });
-                  }}
-                  title="Löschen"
-                />
-              </Space>
-            </div>
-            {isSelected && (
-              <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <DocumentCollapse contextType="group" contextId={group.id} />
-
-                <InlineCollapsible
-                  title="Teilnehmer"
-                  count={group.participantCount}
-                  defaultOpen={true}
-                >
-                  <ParticipantPanel
-                    group={group}
-                    clients={clients}
-                    onAdd={(clientId) => onAddParticipant(group.id, clientId)}
-                    onRemove={(clientId) => onRemoveParticipant(group.id, clientId)}
-                  />
-                </InlineCollapsible>
-
-                <GroupSessionPanel
-                  group={group}
-                  sessions={groupSessions}
-                  onGenerate={(from, to) => onGenerateSessions(group.id, from, to)}
-                  onUpdateSession={onUpdateSession}
-                  onDeleteSession={(id) => onDeleteSession(id, group.id)}
-                  onUpdatePayment={onUpdatePayment}
-                  onSendInvoice={onSendInvoice}
-                />
-              </div>
-            )}
-          </Card>
-        );
-      })}
+      {groups.map(group => (
+        <GroupCard
+          key={group.id}
+          group={group}
+          clients={clients}
+          sessions={groupSessionsByGroup[group.id] ?? []}
+          fetchSessions={fetchGroupSessions}
+          onDelete={onDelete}
+          onToggleHomepage={onToggleHomepage}
+          onAddParticipant={onAddParticipant}
+          onRemoveParticipant={onRemoveParticipant}
+          onGenerateSessions={onGenerateSessions}
+          onUpdateSession={onUpdateSession}
+          onDeleteSession={onDeleteSession}
+          onUpdatePayment={onUpdatePayment}
+          onSendInvoice={onSendInvoice}
+        />
+      ))}
     </div>
   );
 }
