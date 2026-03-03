@@ -67,7 +67,7 @@ export default function GroupForm({ initial, onSave, onCancel }: {
   return (
     <form onSubmit={handleSubmit}>
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Form.Item label="Bezeichnung" style={{ marginBottom: 0 }}>
+        <Form.Item label="Bezeichnung">
           <Input
             value={form.label}
             onChange={e => setForm({ ...form, label: e.target.value })}
@@ -78,7 +78,7 @@ export default function GroupForm({ initial, onSave, onCancel }: {
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item label="Max. Teilnehmer" style={{ marginBottom: 0 }}>
+            <Form.Item label="Max. Teilnehmer">
               <InputNumber
                 min={1}
                 max={50}
@@ -89,7 +89,7 @@ export default function GroupForm({ initial, onSave, onCancel }: {
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Sitzungsdauer (Min.)" style={{ marginBottom: 0 }}>
+            <Form.Item label="Sitzungsdauer (Min.)">
               <InputNumber
                 value={form.sessionDurationMinutes}
                 onChange={val => setForm({ ...form, sessionDurationMinutes: val ?? 90 })}
@@ -101,7 +101,7 @@ export default function GroupForm({ initial, onSave, onCancel }: {
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item label="Startdatum" style={{ marginBottom: 0 }}>
+            <Form.Item label="Startdatum">
               <DatePicker
                 value={form.startDate ? dayjs(form.startDate) : null}
                 onChange={(_date, dateString) => setForm({ ...form, startDate: dateString as string })}
@@ -110,7 +110,7 @@ export default function GroupForm({ initial, onSave, onCancel }: {
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Enddatum (optional)" style={{ marginBottom: 0 }}>
+            <Form.Item label="Enddatum (optional)">
               <DatePicker
                 value={form.endDate ? dayjs(form.endDate) : null}
                 onChange={(_date, dateString) => setForm({ ...form, endDate: dateString as string })}
@@ -122,7 +122,7 @@ export default function GroupForm({ initial, onSave, onCancel }: {
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item label="Kosten pro Sitzung (Cent)" style={{ marginBottom: 0 }}>
+            <Form.Item label="Kosten pro Sitzung (Cent)">
               <InputNumber
                 value={form.sessionCostCents}
                 onChange={val => setForm({ ...form, sessionCostCents: val ?? 0 })}
@@ -132,7 +132,7 @@ export default function GroupForm({ initial, onSave, onCancel }: {
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Video-Link" style={{ marginBottom: 0 }}>
+            <Form.Item label="Video-Link">
               <Input
                 value={form.videoLink}
                 onChange={e => setForm({ ...form, videoLink: e.target.value })}
@@ -142,7 +142,7 @@ export default function GroupForm({ initial, onSave, onCancel }: {
           </Col>
         </Row>
 
-        <Form.Item label="Zeitplan" style={{ marginBottom: 0 }}>
+        <Form.Item label="Zeitplan">
           <Space direction="vertical" size="small" style={{ width: '100%' }}>
             {form.schedule.map((rule, idx) => (
               <Space key={idx}>
@@ -190,7 +190,7 @@ export default function GroupForm({ initial, onSave, onCancel }: {
           Auf Homepage anzeigen
         </Checkbox>
 
-        <Form.Item label="Notizen" style={{ marginBottom: 0 }}>
+        <Form.Item label="Notizen">
           <Input.TextArea
             value={form.notes}
             onChange={e => setForm({ ...form, notes: e.target.value })}
