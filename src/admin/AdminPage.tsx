@@ -202,7 +202,7 @@ export default function AdminPage() {
       onLogout={logout}
     >
       <div style={{ maxWidth: 1280 }}>
-        <Title level={4} style={{ marginBottom: 24 }}>{sectionTitles[activeTab]}</Title>
+        <Title style={{ marginBottom: 24 }}>{sectionTitles[activeTab]}</Title>
 
         {combinedError && (
           <Alert message={combinedError} type="error" showIcon closable style={{ marginBottom: 16 }} />
