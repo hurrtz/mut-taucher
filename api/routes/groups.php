@@ -816,5 +816,9 @@ function handleSendGroupInvoice(int $paymentId): void {
         'UPDATE group_session_payments SET invoice_sent = 1, invoice_sent_at = NOW() WHERE id = ?'
     )->execute([$paymentId]);
 
+    // Archive invoice PDF to client documents
+    require_once __DIR__ . '/client_history.php';
+    archiveSentDocument((int)$payment['client_id'], "Rechnung {$invoiceNumber}", $pdfContent, $pdfFilename);
+
     echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber]);
 }

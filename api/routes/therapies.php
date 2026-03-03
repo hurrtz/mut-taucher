@@ -531,7 +531,7 @@ function handleSendInvoice(int $sessionId): void {
     $db = getDB();
 
     $stmt = $db->prepare(
-        'SELECT s.*, t.session_cost_cents, t.label as therapy_label,
+        'SELECT s.*, t.client_id, t.session_cost_cents, t.label as therapy_label,
                 c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix,
                 c.email as client_email,
                 c.street as client_street, c.zip as client_zip,
@@ -602,6 +602,10 @@ function handleSendInvoice(int $sessionId): void {
     $db->prepare(
         'UPDATE therapy_sessions SET invoice_sent = 1, invoice_sent_at = NOW() WHERE id = ?'
     )->execute([$sessionId]);
+
+    // Archive invoice PDF to client documents
+    require_once __DIR__ . '/client_history.php';
+    archiveSentDocument((int)$session['client_id'], "Rechnung {$invoiceNumber}", $pdfContent, $pdfFilename);
 
     echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber]);
 }

@@ -17,7 +17,7 @@ import {
   Plus, Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, LogOut, Calendar as CalendarIcon,
   Clock, Repeat, Ban, Loader2, AlertCircle, Mail, MailCheck, X, Users, CalendarPlus,
   ExternalLink, BarChart3, Home, UserPlus, FileText, Send, Check, Euro,
-  Video, FileCheck,
+  Video, FileCheck, History,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -1748,6 +1748,13 @@ function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
               </div>
             </div>
             <div className="flex gap-1 shrink-0">
+              <Link
+                to={`/admin/client/${c.id}`}
+                className="p-1.5 text-gray-400 hover:text-primary rounded hover:bg-gray-100"
+                title="Verlauf"
+              >
+                <History size={16} />
+              </Link>
               <button
                 onClick={() => onNewTherapy(c.id)}
                 className="p-1.5 text-gray-400 hover:text-primary rounded hover:bg-gray-100"

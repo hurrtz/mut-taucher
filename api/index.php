@@ -28,6 +28,7 @@ require_once __DIR__ . '/routes/clients.php';
 require_once __DIR__ . '/routes/therapies.php';
 require_once __DIR__ . '/routes/groups.php';
 require_once __DIR__ . '/routes/templates.php';
+require_once __DIR__ . '/routes/client_history.php';
 
 // Parse request
 $method = $_SERVER['REQUEST_METHOD'];
@@ -233,6 +234,47 @@ if ($method === 'PUT' && preg_match('#^/admin/clients/(\d+)$#', $uri, $m)) {
 
 if ($method === 'DELETE' && preg_match('#^/admin/clients/(\d+)$#', $uri, $m)) {
     handleDeleteClient((int)$m[1]);
+    exit;
+}
+
+// Admin: client history (timeline, notes, documents)
+if ($method === 'GET' && preg_match('#^/admin/clients/(\d+)/timeline$#', $uri, $m)) {
+    handleGetClientTimeline((int)$m[1]);
+    exit;
+}
+
+if ($method === 'GET' && preg_match('#^/admin/clients/(\d+)/notes$#', $uri, $m)) {
+    handleGetClientNotes((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/clients/(\d+)/notes$#', $uri, $m)) {
+    handleCreateClientNote((int)$m[1]);
+    exit;
+}
+
+if ($method === 'PUT' && preg_match('#^/admin/client-notes/(\d+)$#', $uri, $m)) {
+    handleUpdateClientNote((int)$m[1]);
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/client-notes/(\d+)$#', $uri, $m)) {
+    handleDeleteClientNote((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/clients/(\d+)/documents$#', $uri, $m)) {
+    handleUploadClientDocument((int)$m[1]);
+    exit;
+}
+
+if ($method === 'GET' && preg_match('#^/admin/client-documents/(\d+)/download$#', $uri, $m)) {
+    handleDownloadClientDocument((int)$m[1]);
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/client-documents/(\d+)$#', $uri, $m)) {
+    handleDeleteClientDocument((int)$m[1]);
     exit;
 }
 

@@ -451,6 +451,7 @@ function handleDocumentSend(): void {
     // Resolve client name/email based on context
     $clientName = '';
     $clientEmail = '';
+    $resolvedClientId = null;
 
     $clientStreet = '';
     $clientZip = '';
@@ -458,6 +459,7 @@ function handleDocumentSend(): void {
     $clientCountry = '';
 
     if ($contextType === 'client') {
+        $resolvedClientId = $contextId;
         $stmt = $db->prepare('SELECT title, first_name, last_name, suffix, email, street, zip, city, country FROM clients WHERE id = ?');
         $stmt->execute([$contextId]);
         $row = $stmt->fetch();
@@ -485,7 +487,7 @@ function handleDocumentSend(): void {
         $clientEmail = $row['client_email'];
     } elseif ($contextType === 'therapy') {
         $stmt = $db->prepare(
-            'SELECT c.title, c.first_name, c.last_name, c.suffix, c.email, c.street, c.zip, c.city, c.country FROM therapies t JOIN clients c ON t.client_id = c.id WHERE t.id = ?'
+            'SELECT t.client_id, c.title, c.first_name, c.last_name, c.suffix, c.email, c.street, c.zip, c.city, c.country FROM therapies t JOIN clients c ON t.client_id = c.id WHERE t.id = ?'
         );
         $stmt->execute([$contextId]);
         $row = $stmt->fetch();
@@ -494,6 +496,7 @@ function handleDocumentSend(): void {
             echo json_encode(['error' => 'Therapie nicht gefunden']);
             return;
         }
+        $resolvedClientId = (int)$row['client_id'];
         $clientName = composeClientName($row['title'], $row['first_name'], $row['last_name'], $row['suffix']);
         $clientEmail = $row['email'];
         $clientStreet = $row['street'] ?? '';
@@ -549,9 +552,16 @@ function handleDocumentSend(): void {
 
     // Record in document_sends
     $stmt = $db->prepare(
-        'INSERT INTO document_sends (context_type, context_id, document_key) VALUES (?, ?, ?)'
+        'INSERT INTO document_sends (client_id, context_type, context_id, document_key) VALUES (?, ?, ?, ?)'
     );
-    $stmt->execute([$contextType, $contextId, $documentKey]);
+    $stmt->execute([$resolvedClientId, $contextType, $contextId, $documentKey]);
+    $documentSendId = (int)$db->lastInsertId();
+
+    // Archive sent PDF to client documents
+    if ($resolvedClientId && isset($pdfContent) && isset($pdfFilename)) {
+        require_once __DIR__ . '/client_history.php';
+        archiveSentDocument($resolvedClientId, $doc['label'], $pdfContent, $pdfFilename, $documentSendId);
+    }
 
     echo json_encode(['message' => $doc['label'] . ' gesendet/vermerkt']);
 }

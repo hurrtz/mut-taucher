@@ -8,6 +8,7 @@ import Impressum from './pages/Impressum';
 import AGB from './pages/AGB';
 import UeberMich from './pages/UeberMich';
 import Admin from './pages/Admin';
+import ClientDetail from './pages/ClientDetail';
 import ConsentBanner from './components/ConsentBanner';
 import { trackPageView } from './lib/analytics';
 
@@ -61,6 +62,7 @@ function App() {
         <Route path="/impressum" element={<Impressum />} />
         <Route path="/agb" element={<AGB />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/client/:id" element={<ClientDetail />} />
       </Routes>
       <ConsentBanner />
     </Router>
