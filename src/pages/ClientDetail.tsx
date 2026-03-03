@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent, type ReactNode } from 'react';
-import AdminLayout from '../admin/AdminLayout';
+import { AdminShell } from '../admin/AdminLayout';
 import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { useClientHistory, type TimelineEvent } from '../lib/useClientHistory';
@@ -78,29 +78,29 @@ export default function ClientDetail() {
 
   if (clientLoading) {
     return (
-      <AdminLayout>
+      <AdminShell>
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Spin size="large" />
         </div>
-      </AdminLayout>
+      </AdminShell>
     );
   }
 
   if (!client) {
     return (
-      <AdminLayout>
+      <AdminShell>
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
           <Text type="secondary">Patient:in nicht gefunden.</Text>
           <Link to="/admin">
             <Button type="link" icon={<ArrowLeftOutlined />}>Zurück zur Übersicht</Button>
           </Link>
         </div>
-      </AdminLayout>
+      </AdminShell>
     );
   }
 
   return (
-    <AdminLayout>
+    <AdminShell>
       <div style={{ maxWidth: 768, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Header */}
         <Space align="center">
@@ -188,7 +188,7 @@ export default function ClientDetail() {
           )}
         </Card>
       </div>
-    </AdminLayout>
+    </AdminShell>
   );
 }
 

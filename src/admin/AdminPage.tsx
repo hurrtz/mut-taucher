@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useCallback, type FormEvent } from 'react';
-import AdminLayout from './AdminLayout';
+import AdminLayout, { AdminShell } from './AdminLayout';
 import { useAdminBooking } from '../lib/useAdminBooking';
 import { useAdminClients } from '../lib/useAdminClients';
 import { useAdminTherapies } from '../lib/useAdminTherapies';
@@ -21,11 +21,10 @@ import GroupForm from './components/GroupForm';
 import GroupManager from './components/GroupManager';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Tabs, Card, Input, Button, Alert, Spin, Space, Typography, Row, Col, Badge } from 'antd';
+import { Card, Input, Button, Alert, Spin, Space, Typography, Row, Col, Badge } from 'antd';
 import {
   CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
-  VideoCameraOutlined, SyncOutlined, LogoutOutlined,
-  HomeOutlined, BarChartOutlined, LinkOutlined,
+  VideoCameraOutlined, SyncOutlined,
   PlusOutlined, EditOutlined, ScheduleOutlined, UserAddOutlined,
   SendOutlined,
 } from '@ant-design/icons';
@@ -140,7 +139,7 @@ export default function AdminPage() {
 
   if (!authenticated) {
     return (
-      <AdminLayout>
+      <AdminShell>
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' }}>
         <Card style={{ width: 380 }}>
           <Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>Admin Login</Title>
@@ -170,72 +169,44 @@ export default function AdminPage() {
           </form>
         </Card>
       </div>
-      </AdminLayout>
+      </AdminShell>
     );
   }
 
   const editingRule = editingRuleId ? rules.find(r => r.id === editingRuleId) : undefined;
   const editingClient = editingClientId ? clients.find(c => c.id === editingClientId) : undefined;
 
-  const tabItems = [
-    {
-      key: 'rules',
-      label: <span><CalendarOutlined /> Kalender</span>,
-    },
-    {
-      key: 'erstgespraeche',
-      label: <span><CalendarOutlined /> Erstgespräche ({bookings.filter(b => b.status === 'confirmed').length})</span>,
-    },
-    {
-      key: 'einzel',
-      label: <span><VideoCameraOutlined /> Einzeltherapie ({therapies.length})</span>,
-    },
-    {
-      key: 'groups',
-      label: <span><TeamOutlined /> Gruppentherapie ({groups.length})</span>,
-    },
-    {
-      key: 'kunden',
-      label: <span><UserOutlined /> Patienten ({clients.length})</span>,
-    },
-    {
-      key: 'dokumente',
-      label: <span><FileTextOutlined /> Vorlagen ({templates.length})</span>,
-    },
+  const sidebarMenuItems = [
+    { key: 'rules', icon: <CalendarOutlined />, label: 'Kalender' },
+    { key: 'erstgespraeche', icon: <CalendarOutlined />, label: 'Erstgespräche', badge: bookings.filter(b => b.status === 'confirmed').length },
+    { key: 'einzel', icon: <VideoCameraOutlined />, label: 'Einzeltherapie', badge: therapies.length },
+    { key: 'groups', icon: <TeamOutlined />, label: 'Gruppentherapie', badge: groups.length },
+    { key: 'kunden', icon: <UserOutlined />, label: 'Patienten', badge: clients.length },
+    { key: 'dokumente', icon: <FileTextOutlined />, label: 'Vorlagen', badge: templates.length },
   ];
 
+  const sectionTitles: Record<TabKey, string> = {
+    rules: 'Kalender',
+    erstgespraeche: 'Erstgespräche',
+    einzel: 'Einzeltherapie',
+    groups: 'Gruppentherapie',
+    kunden: 'Patienten',
+    dokumente: 'Vorlagen',
+  };
+
   return (
-    <AdminLayout>
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '16px 16px' }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <Space size="middle" align="center">
-            <Title level={3} style={{ margin: 0 }}>Administration</Title>
-            <Space size="small">
-              <Link to="/">
-                <Button type="text" icon={<HomeOutlined />}>Website</Button>
-              </Link>
-              <a href="https://app.eu.amplitude.com/analytics/mut-taucher-395196/home" target="_blank" rel="noopener noreferrer">
-                <Button type="text" icon={<BarChartOutlined />}>Analytics <LinkOutlined style={{ fontSize: 10 }} /></Button>
-              </a>
-            </Space>
-          </Space>
-          <Button type="text" danger icon={<LogoutOutlined />} onClick={logout}>
-            Logout
-          </Button>
-        </div>
+    <AdminLayout
+      activeKey={activeTab}
+      onNavigate={(key) => setActiveTab(key as TabKey)}
+      menuItems={sidebarMenuItems}
+      onLogout={logout}
+    >
+      <div style={{ maxWidth: 1280 }}>
+        <Title level={4} style={{ marginBottom: 24 }}>{sectionTitles[activeTab]}</Title>
 
         {combinedError && (
           <Alert message={combinedError} type="error" showIcon closable style={{ marginBottom: 16 }} />
         )}
-
-        <Tabs
-          activeKey={activeTab}
-          onChange={(key) => setActiveTab(key as TabKey)}
-          items={tabItems}
-          style={{ marginBottom: 16 }}
-        />
 
         {loading && rules.length === 0 && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0' }}>
@@ -528,7 +499,6 @@ export default function AdminPage() {
           </Row>
         )}
       </div>
-    </div>
     </AdminLayout>
   );
 }
