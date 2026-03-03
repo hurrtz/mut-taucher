@@ -329,7 +329,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'erstgespraeche' && (
-          <div style={{ maxWidth: 768 }}>
+          <div>
             <BookingList
               bookings={bookings}
               onUpdate={updateBooking}
@@ -340,7 +340,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'einzel' && (
-          <div style={{ maxWidth: 896 }}>
+          <div>
             <TherapyList
               therapies={therapies}
               archivedTherapies={archivedTherapies}
@@ -377,7 +377,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'kunden' && (
-          <div style={{ maxWidth: 768 }}>
+          <div>
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
               {showNewClient || editingClient ? (
                 <Card size="small">
@@ -422,7 +422,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'groups' && (
-          <div style={{ maxWidth: 896 }}>
+          <div>
             <GroupManager
               groups={groups}
               archivedGroups={archivedGroups}
