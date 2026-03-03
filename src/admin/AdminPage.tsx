@@ -29,7 +29,7 @@ import { Card, Input, Button, Alert, Spin, Space, Typography, Row, Col, Badge, T
 import {
   CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
   VideoCameraOutlined, BookOutlined,
-  PlusOutlined, EditOutlined, ScheduleOutlined, UserAddOutlined,
+  PlusOutlined, ScheduleOutlined, UserAddOutlined,
   SendOutlined, DeleteOutlined,
 } from '@ant-design/icons';
 
@@ -373,6 +373,25 @@ export default function AdminPage() {
 
         {activeTab === 'einzel' && (
           <div>
+            <Modal
+              title="Neue Therapie"
+              open={showNewTherapy}
+              onCancel={() => { setShowNewTherapy(false); setNewTherapyClientId(undefined); }}
+              footer={null}
+              destroyOnClose
+              width={720}
+            >
+              <TherapyForm
+                clients={clients}
+                initialClientId={newTherapyClientId}
+                onSave={async (data) => {
+                  await addTherapy(data);
+                  setShowNewTherapy(false);
+                  setNewTherapyClientId(undefined);
+                }}
+                onCancel={() => { setShowNewTherapy(false); setNewTherapyClientId(undefined); }}
+              />
+            </Modal>
             <TherapyList
               therapies={therapies}
               archivedTherapies={archivedTherapies}
@@ -384,56 +403,37 @@ export default function AdminPage() {
               onUpdateSession={(id, updates) => updateSession(id, updates)}
               onDeleteSession={(id, tid) => removeSession(id, tid)}
               onSendInvoice={sendInvoice}
-              showNewForm={showNewTherapy}
-              newForm={
-                <Card size="small">
-                  <Space style={{ marginBottom: 16 }}>
-                    <PlusOutlined style={{ fontSize: 20, color: '#2dd4bf' }} />
-                    <Typography.Text strong style={{ fontSize: 16 }}>Neue Therapie</Typography.Text>
-                  </Space>
-                  <TherapyForm
-                    clients={clients}
-                    initialClientId={newTherapyClientId}
-                    onSave={async (data) => {
-                      await addTherapy(data);
-                      setShowNewTherapy(false);
-                      setNewTherapyClientId(undefined);
-                    }}
-                    onCancel={() => { setShowNewTherapy(false); setNewTherapyClientId(undefined); }}
-                  />
-                </Card>
-              }
+              showNewForm={false}
+              newForm={null}
             />
           </div>
         )}
 
         {activeTab === 'kunden' && (
           <div>
-            {showNewClient || editingClient ? (
-              <Card size="small" style={{ marginBottom: 24 }}>
-                <Space style={{ marginBottom: 16 }}>
-                  {editingClient ? (
-                    <><EditOutlined style={{ fontSize: 20, color: '#2dd4bf' }} /> <Typography.Text strong style={{ fontSize: 16 }}>Patient:in bearbeiten</Typography.Text></>
-                  ) : (
-                    <><UserAddOutlined style={{ fontSize: 20, color: '#2dd4bf' }} /> <Typography.Text strong style={{ fontSize: 16 }}>Neue:r Patient:in</Typography.Text></>
-                  )}
-                </Space>
-                <ClientForm
-                  key={editingClientId ?? 'new'}
-                  initial={editingClient ?? undefined}
-                  onSave={async (data) => {
-                    if (editingClient) {
-                      await updateClient(editingClientId!, data);
-                    } else {
-                      await addClient(data);
-                    }
-                    setEditingClientId(null);
-                    setShowNewClient(false);
-                  }}
-                  onCancel={() => { setEditingClientId(null); setShowNewClient(false); }}
-                />
-              </Card>
-            ) : null}
+            <Modal
+              title={editingClient ? 'Patient:in bearbeiten' : 'Neue:r Patient:in'}
+              open={showNewClient || !!editingClient}
+              onCancel={() => { setEditingClientId(null); setShowNewClient(false); }}
+              footer={null}
+              destroyOnClose
+              width={720}
+            >
+              <ClientForm
+                key={editingClientId ?? 'new'}
+                initial={editingClient ?? undefined}
+                onSave={async (data) => {
+                  if (editingClient) {
+                    await updateClient(editingClientId!, data);
+                  } else {
+                    await addClient(data);
+                  }
+                  setEditingClientId(null);
+                  setShowNewClient(false);
+                }}
+                onCancel={() => { setEditingClientId(null); setShowNewClient(false); }}
+              />
+            </Modal>
 
             <Row gutter={24}>
               <Col xs={24} lg={12}>
@@ -460,6 +460,22 @@ export default function AdminPage() {
 
         {activeTab === 'groups' && (
           <div>
+            <Modal
+              title="Neue Gruppe"
+              open={showNewGroup}
+              onCancel={() => setShowNewGroup(false)}
+              footer={null}
+              destroyOnClose
+              width={720}
+            >
+              <GroupForm
+                onSave={async (data) => {
+                  await addGroup(data);
+                  setShowNewGroup(false);
+                }}
+                onCancel={() => setShowNewGroup(false)}
+              />
+            </Modal>
             <GroupManager
               groups={groups}
               archivedGroups={archivedGroups}
@@ -477,22 +493,8 @@ export default function AdminPage() {
               onUpdatePayment={(pid, updates, gid) => updatePayment(pid, updates, gid)}
               onBulkPay={bulkPayGroupPayments}
               onSendInvoice={(pid, gid) => sendGroupInvoice(pid, gid)}
-              showNewForm={showNewGroup}
-              newForm={
-                <Card size="small">
-                  <Space style={{ marginBottom: 16 }}>
-                    <PlusOutlined style={{ fontSize: 20, color: '#2dd4bf' }} />
-                    <Typography.Text strong style={{ fontSize: 16 }}>Neue Gruppe</Typography.Text>
-                  </Space>
-                  <GroupForm
-                    onSave={async (data) => {
-                      await addGroup(data);
-                      setShowNewGroup(false);
-                    }}
-                    onCancel={() => setShowNewGroup(false)}
-                  />
-                </Card>
-              }
+              showNewForm={false}
+              newForm={null}
             />
           </div>
         )}
