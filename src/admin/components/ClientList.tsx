@@ -25,7 +25,7 @@ export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: 
       {clients.map(c => (
         <Card
           key={c.id}
-          size="small"
+          size="default"
           title={
             <Space>
               <span>{c.lastName}, {c.firstName}</span>

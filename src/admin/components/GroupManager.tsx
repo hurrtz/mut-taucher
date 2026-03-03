@@ -419,7 +419,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
 
   return (
     <Card
-      size="small"
+      size="default"
       title={
         <Space>
           <span>{group.label || 'Ohne Bezeichnung'}</span>

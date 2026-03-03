@@ -210,7 +210,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onArchive, on
 
   return (
     <Card
-      size="small"
+      size="default"
       title={
         <Space>
           <span>{therapy.label || 'Einzeltherapie'}</span>
