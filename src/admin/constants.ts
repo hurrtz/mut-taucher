@@ -22,3 +22,22 @@ export const CATEGORY_COLORS: Record<EventCategory, string> = {
   gruppentherapie: 'purple',
   andere: 'gold',
 };
+
+export const SESSION_STATUS_LABELS: Record<string, string> = {
+  scheduled: 'Geplant',
+  completed: 'Abgeschlossen',
+  cancelled: 'Abgesagt',
+  no_show: 'Nicht erschienen',
+};
+
+export const SESSION_STATUS_COLORS: Record<string, string> = {
+  scheduled: 'blue',
+  completed: 'green',
+  cancelled: 'default',
+  no_show: 'red',
+};
+
+export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  due: 'Offen',
+  paid: 'Bezahlt',
+};
