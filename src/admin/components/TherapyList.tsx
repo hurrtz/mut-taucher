@@ -10,7 +10,7 @@ import {
   VideoCameraOutlined, DeleteOutlined, CheckCircleOutlined,
   FileTextOutlined, ContainerOutlined, EditOutlined,
 } from '@ant-design/icons';
-import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse, TimePicker, InputNumber } from 'antd';
+import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse, TimePicker, InputNumber, Tooltip } from 'antd';
 import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
 
@@ -160,46 +160,51 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
                     ]}
                   />
                   <Space size={0}>
-                  <Button
-                    type="text"
-                    icon={<EditOutlined />}
-                    onClick={() => {
-                      setEditingSessionId(s.id);
-                      setEditDate(s.sessionDate);
-                      setEditTime(s.sessionTime);
-                      setEditDuration(s.durationMinutes ?? therapy.sessionDurationMinutes);
-                    }}
-                    title="Termin ändern"
-                  />
-                  <Button
-                    type="text"
-                    icon={<EuroCircleOutlined />}
-                    onClick={() => onUpdateSession(s.id, {
-                      paymentStatus: s.paymentStatus === 'paid' ? 'due' : 'paid',
-                      paymentPaidDate: s.paymentStatus === 'paid' ? null : format(new Date(), 'yyyy-MM-dd'),
-                    })}
-                    title={s.paymentStatus === 'paid' ? 'Als offen markieren' : 'Als bezahlt markieren'}
-                    style={{ color: s.paymentStatus === 'paid' ? '#52c41a' : undefined }}
-                  />
-                  <Button
-                    type="text"
-                    icon={s.invoiceSent ? <CheckCircleOutlined /> : <FileTextOutlined />}
-                    onClick={() => onSendInvoice(s.id)}
-                    disabled={s.invoiceSent}
-                    title={s.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}
-                    style={{ color: s.invoiceSent ? '#52c41a' : undefined }}
-                  />
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => {
-                      Modal.confirm({
-                        title: 'Sitzung löschen?',
-                        onOk: () => onDeleteSession(s.id),
-                      });
-                    }}
-                  />
+                  <Tooltip title="Termin ändern">
+                    <Button
+                      type="text"
+                      icon={<EditOutlined />}
+                      onClick={() => {
+                        setEditingSessionId(s.id);
+                        setEditDate(s.sessionDate);
+                        setEditTime(s.sessionTime);
+                        setEditDuration(s.durationMinutes ?? therapy.sessionDurationMinutes);
+                      }}
+                    />
+                  </Tooltip>
+                  <Tooltip title={s.paymentStatus === 'paid' ? 'Als offen markieren' : 'Als bezahlt markieren'}>
+                    <Button
+                      type="text"
+                      icon={<EuroCircleOutlined />}
+                      onClick={() => onUpdateSession(s.id, {
+                        paymentStatus: s.paymentStatus === 'paid' ? 'due' : 'paid',
+                        paymentPaidDate: s.paymentStatus === 'paid' ? null : format(new Date(), 'yyyy-MM-dd'),
+                      })}
+                      style={{ color: s.paymentStatus === 'paid' ? '#52c41a' : undefined }}
+                    />
+                  </Tooltip>
+                  <Tooltip title={s.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}>
+                    <Button
+                      type="text"
+                      icon={s.invoiceSent ? <CheckCircleOutlined /> : <FileTextOutlined />}
+                      onClick={() => onSendInvoice(s.id)}
+                      disabled={s.invoiceSent}
+                      style={{ color: s.invoiceSent ? '#52c41a' : undefined }}
+                    />
+                  </Tooltip>
+                  <Tooltip title="Sitzung löschen">
+                    <Button
+                      type="text"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => {
+                        Modal.confirm({
+                          title: 'Sitzung löschen?',
+                          onOk: () => onDeleteSession(s.id),
+                        });
+                      }}
+                    />
+                  </Tooltip>
                 </Space>
                 </Space>
               </div>
@@ -283,15 +288,16 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
         (onEdit || onDelete || onArchive) ? (
           <Space size={0}>
           {onEdit && (
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => onEdit(therapy)}
-              title="Bearbeiten"
-            />
+            <Tooltip title="Bearbeiten">
+              <Button
+                type="text"
+                icon={<EditOutlined />}
+                onClick={() => onEdit(therapy)}
+              />
+            </Tooltip>
           )}
           {hasInteraction ? (
-            onArchive && <Button
+            onArchive && <Tooltip title="Archivieren"><Button
               type="text"
               icon={<ContainerOutlined />}
               onClick={() => {
@@ -303,10 +309,9 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
                   onOk: () => onArchive(therapy.id),
                 });
               }}
-              title="Archivieren"
-            />
+            /></Tooltip>
           ) : (
-            onDelete && <Button
+            onDelete && <Tooltip title="Löschen"><Button
               type="text"
               danger
               icon={<DeleteOutlined />}
@@ -316,7 +321,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
                   onOk: () => onDelete(therapy.id),
                 });
               }}
-            />
+            /></Tooltip>
           )}
           </Space>
         ) : undefined

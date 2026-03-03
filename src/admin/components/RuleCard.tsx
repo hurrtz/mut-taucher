@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Button, Tag, Space, Typography } from 'antd';
+import { Card, Button, Tag, Space, Typography, Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined, SyncOutlined, ClockCircleOutlined, CalendarOutlined, StopOutlined } from '@ant-design/icons';
 import type { RecurringRule } from '../../lib/data';
 import { DAY_LABELS_LONG } from '../constants';
@@ -29,8 +29,8 @@ export default function RuleCard({ rule, onEdit, onDelete, onToggleException }: 
     <Card
       extra={
         <Space size={0}>
-          <Button type="text" icon={<EditOutlined />} onClick={onEdit} title="Bearbeiten" />
-          <Button type="text" icon={<DeleteOutlined />} onClick={onDelete} title="Löschen" danger />
+          <Tooltip title="Bearbeiten"><Button type="text" icon={<EditOutlined />} onClick={onEdit} /></Tooltip>
+          <Tooltip title="Löschen"><Button type="text" icon={<DeleteOutlined />} onClick={onDelete} danger /></Tooltip>
         </Space>
       }
       title={

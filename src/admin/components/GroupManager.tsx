@@ -12,7 +12,7 @@ import {
   ContainerOutlined, EditOutlined,
 } from '@ant-design/icons';
 import {
-  Card, Button, Tag, Space, Typography, Modal, Select, Statistic,
+  Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Tooltip,
   Row, Col, DatePicker, TimePicker, Progress, Collapse, InputNumber, Switch, Dropdown,
 } from 'antd';
 import type { ReactNode } from 'react';
@@ -103,16 +103,17 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
                   </div>
                   <Space size={0}>
                     {onBulkPay && unpaidCount > 0 && (
-                      <Button
-                        type="text"
-                        icon={<EuroCircleOutlined />}
-                        title="Sammelzahlung"
-                        onClick={() => {
-                          setBulkPayClient({ id: p.clientId, name: p.clientName, unpaid: unpaidCount });
-                          setBulkPayCount(unpaidCount);
-                          setPayAll(true);
-                        }}
-                      />
+                      <Tooltip title="Sammelzahlung">
+                        <Button
+                          type="text"
+                          icon={<EuroCircleOutlined />}
+                          onClick={() => {
+                            setBulkPayClient({ id: p.clientId, name: p.clientName, unpaid: unpaidCount });
+                            setBulkPayCount(unpaidCount);
+                            setPayAll(true);
+                          }}
+                        />
+                      </Tooltip>
                     )}
                     {onSendBundleInvoice && !invoiceDone && (
                       <Dropdown
@@ -130,36 +131,40 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
                           },
                         }}
                       >
-                        <Button
-                          type="text"
-                          icon={<FileTextOutlined />}
-                          title="Rechnung senden"
-                        />
+                        <Tooltip title="Rechnung senden">
+                          <Button
+                            type="text"
+                            icon={<FileTextOutlined />}
+                          />
+                        </Tooltip>
                       </Dropdown>
                     )}
                     {invoiceDone && (
+                      <Tooltip title="Rechnung gesendet">
+                        <Button
+                          type="text"
+                          icon={<CheckCircleOutlined />}
+                          style={{ color: '#52c41a' }}
+                          disabled
+                        />
+                      </Tooltip>
+                    )}
+                    <Tooltip title="Teilnehmer entfernen">
                       <Button
                         type="text"
-                        icon={<CheckCircleOutlined />}
-                        style={{ color: '#52c41a' }}
-                        title="Rechnung gesendet"
-                        disabled
+                        icon={<CloseOutlined />}
+                        danger
+                        onClick={() => {
+                          Modal.confirm({
+                            title: `${p.clientName} wirklich entfernen?`,
+                            okText: 'Entfernen',
+                            cancelText: 'Abbrechen',
+                            okType: 'danger',
+                            onOk: () => onRemove(p.clientId),
+                          });
+                        }}
                       />
-                    )}
-                    <Button
-                      type="text"
-                      icon={<CloseOutlined />}
-                      danger
-                      onClick={() => {
-                        Modal.confirm({
-                          title: `${p.clientName} wirklich entfernen?`,
-                          okText: 'Entfernen',
-                          cancelText: 'Abbrechen',
-                          okType: 'danger',
-                          onOk: () => onRemove(p.clientId),
-                        });
-                      }}
-                    />
+                    </Tooltip>
                   </Space>
                 </div>
               </Card>
@@ -383,31 +388,34 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                         { value: 'cancelled', label: 'Abgesagt' },
                       ]}
                     />
-                    <Button
-                      type="text"
-                      icon={<EditOutlined />}
-                      onClick={() => {
-                        setEditingSessionId(s.id);
-                        setEditDate(s.sessionDate);
-                        setEditTime(s.sessionTime);
-                        setEditDuration(s.durationMinutes ?? group.sessionDurationMinutes);
-                      }}
-                      title="Termin ändern"
-                    />
-                    <Button
-                      type="text"
-                      icon={<DeleteOutlined />}
-                      danger
-                      onClick={() => {
-                        Modal.confirm({
-                          title: 'Sitzung löschen?',
-                          okText: 'Löschen',
-                          cancelText: 'Abbrechen',
-                          okType: 'danger',
-                          onOk: () => onDeleteSession(s.id),
-                        });
-                      }}
-                    />
+                    <Tooltip title="Termin ändern">
+                      <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        onClick={() => {
+                          setEditingSessionId(s.id);
+                          setEditDate(s.sessionDate);
+                          setEditTime(s.sessionTime);
+                          setEditDuration(s.durationMinutes ?? group.sessionDurationMinutes);
+                        }}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Sitzung löschen">
+                      <Button
+                        type="text"
+                        icon={<DeleteOutlined />}
+                        danger
+                        onClick={() => {
+                          Modal.confirm({
+                            title: 'Sitzung löschen?',
+                            okText: 'Löschen',
+                            cancelText: 'Abbrechen',
+                            okType: 'danger',
+                            onOk: () => onDeleteSession(s.id),
+                          });
+                        }}
+                      />
+                    </Tooltip>
                   </Space>
                 </div>
                 {isExpanded && (
@@ -422,16 +430,17 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                             <Tag color={p.paymentStatus === 'paid' ? 'green' : 'gold'} style={{ marginInlineEnd: 0 }}>
                               {p.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
                             </Tag>
-                            <Button
-                              type="text"
-                              icon={<EuroCircleOutlined />}
-                              style={{ color: p.paymentStatus === 'paid' ? '#52c41a' : undefined }}
-                              title={p.paymentStatus === 'paid' ? 'Als offen markieren' : 'Als bezahlt markieren'}
-                              onClick={() => onUpdatePayment(p.id, {
-                                paymentStatus: p.paymentStatus === 'paid' ? 'due' : 'paid',
-                                paymentPaidDate: p.paymentStatus === 'paid' ? null : format(new Date(), 'yyyy-MM-dd'),
-                              })}
-                            />
+                            <Tooltip title={p.paymentStatus === 'paid' ? 'Als offen markieren' : 'Als bezahlt markieren'}>
+                              <Button
+                                type="text"
+                                icon={<EuroCircleOutlined />}
+                                style={{ color: p.paymentStatus === 'paid' ? '#52c41a' : undefined }}
+                                onClick={() => onUpdatePayment(p.id, {
+                                  paymentStatus: p.paymentStatus === 'paid' ? 'due' : 'paid',
+                                  paymentPaidDate: p.paymentStatus === 'paid' ? null : format(new Date(), 'yyyy-MM-dd'),
+                                })}
+                              />
+                            </Tooltip>
                             <Select
                               value={p.attendanceStatus ?? undefined}
                               onChange={(val) => onUpdatePayment(p.id, { attendanceStatus: val ?? null })}
@@ -536,24 +545,26 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
         (onEdit || onDelete || onArchive || onToggleHomepage) ? (
           <Space size={0}>
             {onEdit && (
-              <Button
-                type="text"
-                icon={<EditOutlined />}
-                onClick={() => onEdit(group)}
-                title="Bearbeiten"
-              />
+              <Tooltip title="Bearbeiten">
+                <Button
+                  type="text"
+                  icon={<EditOutlined />}
+                  onClick={() => onEdit(group)}
+                />
+              </Tooltip>
             )}
             {onToggleHomepage && (
-              <Button
-                type="text"
-                icon={<HomeOutlined />}
-                onClick={() => onToggleHomepage(group.id, group.showOnHomepage)}
-                title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}
-                style={{ color: group.showOnHomepage ? '#f43f5e' : undefined }}
-              />
+              <Tooltip title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}>
+                <Button
+                  type="text"
+                  icon={<HomeOutlined />}
+                  onClick={() => onToggleHomepage(group.id, group.showOnHomepage)}
+                  style={{ color: group.showOnHomepage ? '#f43f5e' : undefined }}
+                />
+              </Tooltip>
             )}
             {hasInteraction ? (
-              onArchive && <Button
+              onArchive && <Tooltip title="Archivieren"><Button
                 type="text"
                 icon={<ContainerOutlined />}
                 onClick={() => {
@@ -565,10 +576,9 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
                     onOk: () => onArchive(group.id),
                   });
                 }}
-                title="Archivieren"
-              />
+              /></Tooltip>
             ) : (
-              onDelete && <Button
+              onDelete && <Tooltip title="Löschen"><Button
                 type="text"
                 icon={<DeleteOutlined />}
                 danger
@@ -581,8 +591,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
                     onOk: () => onDelete(group.id),
                   });
                 }}
-                title="Löschen"
-              />
+              /></Tooltip>
             )}
           </Space>
         ) : undefined

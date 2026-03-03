@@ -7,6 +7,7 @@ import {
   InputNumber,
   List,
   Modal,
+  Tooltip,
   Radio,
   Select,
   TimePicker,
@@ -172,13 +173,14 @@ export function EventList({
           <List.Item
             style={{ padding: '8px 12px', background: '#fafafa', borderRadius: 8, marginBottom: 8 }}
             actions={[
-              <Button
-                type="text"
-                icon={<DeleteOutlined />}
-                danger
-                title="Löschen"
-                onClick={() => handleDelete(event)}
-              />,
+              <Tooltip title="Löschen" key="delete">
+                <Button
+                  type="text"
+                  icon={<DeleteOutlined />}
+                  danger
+                  onClick={() => handleDelete(event)}
+                />
+              </Tooltip>,
             ]}
           >
             <List.Item.Meta

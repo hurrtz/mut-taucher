@@ -1,7 +1,7 @@
 import type { Client } from '../../lib/data';
 import { DocumentCollapse } from './DocumentChecklist';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { Card, Button, Tag, Space, Typography, Modal } from 'antd';
+import { Card, Button, Tag, Space, Typography, Modal, Tooltip } from 'antd';
 
 export default function ClientList({ clients, onEdit, onDelete, selectedId, onSelect }: {
   clients: Client[];
@@ -36,26 +36,28 @@ export default function ClientList({ clients, onEdit, onDelete, selectedId, onSe
           }
           extra={
             <Space size={0} onClick={e => e.stopPropagation()}>
-              <Button
-                type="text"
-                icon={<EditOutlined />}
-                onClick={() => onEdit(c.id)}
-                title="Bearbeiten"
-              />
-              <Button
-                type="text"
-                icon={<DeleteOutlined />}
-                onClick={() => {
-                  Modal.confirm({
-                    title: `Patient:in "${c.firstName} ${c.lastName}" wirklich löschen?`,
-                    okText: 'Löschen',
-                    cancelText: 'Abbrechen',
-                    okType: 'danger',
-                    onOk: () => onDelete(c.id),
-                  });
-                }}
-                title="Löschen"
-              />
+              <Tooltip title="Bearbeiten">
+                <Button
+                  type="text"
+                  icon={<EditOutlined />}
+                  onClick={() => onEdit(c.id)}
+                />
+              </Tooltip>
+              <Tooltip title="Löschen">
+                <Button
+                  type="text"
+                  icon={<DeleteOutlined />}
+                  onClick={() => {
+                    Modal.confirm({
+                      title: `Patient:in "${c.firstName} ${c.lastName}" wirklich löschen?`,
+                      okText: 'Löschen',
+                      cancelText: 'Abbrechen',
+                      okType: 'danger',
+                      onOk: () => onDelete(c.id),
+                    });
+                  }}
+                />
+              </Tooltip>
             </Space>
           }
         >

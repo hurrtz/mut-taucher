@@ -822,16 +822,18 @@ export default function AdminPage() {
                           <Button icon={<SendOutlined />} onClick={() => setShowWorkbookShare(true)}>
                             Versenden
                           </Button>
-                          <Button
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => {
-                              if (confirm(`"${selectedMaterial.name}" wirklich löschen?`)) {
-                                removeMaterial(selectedMaterial.id);
-                                setSelectedMaterialId(null);
-                              }
-                            }}
-                          />
+                          <Tooltip title="Löschen">
+                            <Button
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => {
+                                if (confirm(`"${selectedMaterial.name}" wirklich löschen?`)) {
+                                  removeMaterial(selectedMaterial.id);
+                                  setSelectedMaterialId(null);
+                                }
+                              }}
+                            />
+                          </Tooltip>
                         </Space>
                       }
                     >
