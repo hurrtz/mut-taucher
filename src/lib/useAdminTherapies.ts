@@ -4,7 +4,7 @@ import type { Therapy, TherapySession, TherapyScheduleRule } from './data';
 
 export function useAdminTherapies() {
   const [therapies, setTherapies] = useState<Therapy[]>([]);
-  const [sessions, setSessions] = useState<TherapySession[]>([]);
+  const [sessionsByTherapy, setSessionsByTherapy] = useState<Record<number, TherapySession[]>>({});
   const [error, setError] = useState<string | null>(null);
 
   const fetchTherapies = useCallback(async (status: string = 'active') => {
@@ -88,7 +88,7 @@ export function useAdminTherapies() {
     try {
       const params = from && to ? `?from=${from}&to=${to}` : '';
       const data = await apiFetch<TherapySession[]>(`/admin/therapies/${therapyId}/sessions${params}`);
-      setSessions(data);
+      setSessionsByTherapy(prev => ({ ...prev, [therapyId]: data }));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Laden der Sitzungen');
     }
@@ -130,7 +130,13 @@ export function useAdminTherapies() {
         body: JSON.stringify(updates),
       });
       // Update local state
-      setSessions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+      setSessionsByTherapy(prev => {
+        const updated: Record<number, TherapySession[]> = {};
+        for (const [tid, list] of Object.entries(prev)) {
+          updated[Number(tid)] = list.map(s => s.id === id ? { ...s, ...updates } : s);
+        }
+        return updated;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren');
     }
@@ -150,9 +156,15 @@ export function useAdminTherapies() {
     setError(null);
     try {
       await apiFetch(`/admin/sessions/${sessionId}/invoice`, { method: 'POST' });
-      setSessions(prev => prev.map(s =>
-        s.id === sessionId ? { ...s, invoiceSent: true, invoiceSentAt: new Date().toISOString() } : s
-      ));
+      setSessionsByTherapy(prev => {
+        const updated: Record<number, TherapySession[]> = {};
+        for (const [tid, list] of Object.entries(prev)) {
+          updated[Number(tid)] = list.map(s =>
+            s.id === sessionId ? { ...s, invoiceSent: true, invoiceSentAt: new Date().toISOString() } : s
+          );
+        }
+        return updated;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Rechnungsversand');
     }
@@ -160,7 +172,7 @@ export function useAdminTherapies() {
 
   return {
     therapies,
-    sessions,
+    sessionsByTherapy,
     error,
     fetchTherapies,
     addTherapy,

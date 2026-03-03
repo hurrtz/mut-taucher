@@ -36,8 +36,8 @@ export default function DocumentChecklist({ contextType, contextId }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {Object.entries(grouped).map(([category, docs]) => (
-        <div key={category}>
+      {Object.entries(grouped).map(([category, docs], idx) => (
+        <div key={category} style={idx > 0 ? { borderTop: '1px solid #f0f0f0', paddingTop: 16 } : undefined}>
           <Text
             type="secondary"
             style={{
@@ -53,6 +53,7 @@ export default function DocumentChecklist({ contextType, contextId }: {
           </Text>
           <List
             size="small"
+            split={false}
             dataSource={docs}
             renderItem={(doc: DocumentDefinition) => {
               const sent = isSent(doc.key);
@@ -74,7 +75,6 @@ export default function DocumentChecklist({ contextType, contextId }: {
                     hasTemplate ? (
                       <Button
                         key="send"
-                        size="small"
                         icon={isSending ? <Spin size="small" /> : <SendOutlined />}
                         disabled={isSending}
                         onClick={() => sendDocument(contextType, contextId, doc.key)}
@@ -90,7 +90,6 @@ export default function DocumentChecklist({ contextType, contextId }: {
                     ) : (
                       <Button
                         key="mark"
-                        size="small"
                         icon={isSending ? <Spin size="small" /> : sent ? <CheckOutlined /> : <FileTextOutlined />}
                         disabled={sent || isSending}
                         onClick={() => sendDocument(contextType, contextId, doc.key)}
@@ -100,12 +99,13 @@ export default function DocumentChecklist({ contextType, contextId }: {
                             ? { borderColor: '#b7eb8f', color: '#52c41a', backgroundColor: '#f6ffed' }
                             : undefined
                         }
-                      />
+                      >
+                        {sent ? 'Erledigt' : 'Erledigt'}
+                      </Button>
                     ),
                     hasSigStep ? (
                       <Button
                         key="sign"
-                        size="small"
                         icon={isSigningSending ? <Spin size="small" /> : <SafetyCertificateOutlined />}
                         disabled={!sent || isSigningSending}
                         onClick={() => sendDocument(contextType, contextId, doc.signedCounterpart!)}

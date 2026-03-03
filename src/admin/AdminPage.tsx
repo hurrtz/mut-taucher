@@ -57,7 +57,7 @@ export default function AdminPage() {
   } = useAdminClients();
 
   const {
-    therapies, sessions, error: therapiesError,
+    therapies, sessionsByTherapy, error: therapiesError,
     fetchTherapies, addTherapy, removeTherapy,
     fetchSessions, generateSessions, updateSession, removeSession, sendInvoice,
   } = useAdminTherapies();
@@ -88,8 +88,6 @@ export default function AdminPage() {
   const [showNewClient, setShowNewClient] = useState(false);
   const [showNewTherapy, setShowNewTherapy] = useState(false);
   const [newTherapyClientId, setNewTherapyClientId] = useState<number | undefined>();
-  const [selectedTherapyId, setSelectedTherapyId] = useState<number | null>(null);
-
   // Load data on auth
   useEffect(() => {
     if (authenticated) {
@@ -109,13 +107,6 @@ export default function AdminPage() {
       fetchGroupSessions(selectedGroupId);
     }
   }, [selectedGroupId, fetchGroupSessions]);
-
-  // Load sessions when therapy selected
-  useEffect(() => {
-    if (selectedTherapyId) {
-      fetchSessions(selectedTherapyId);
-    }
-  }, [selectedTherapyId, fetchSessions]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -369,9 +360,8 @@ export default function AdminPage() {
 
               <TherapyList
                 therapies={therapies}
-                sessions={sessions}
-                selectedTherapyId={selectedTherapyId}
-                onSelect={setSelectedTherapyId}
+                sessionsByTherapy={sessionsByTherapy}
+                fetchSessions={fetchSessions}
                 onDelete={removeTherapy}
                 onGenerateSessions={async (tid, from, to) => { await generateSessions(tid, from, to); }}
                 onUpdateSession={(id, updates) => updateSession(id, updates)}
