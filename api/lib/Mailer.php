@@ -50,6 +50,12 @@ class Mailer {
         $mail->Body    = $htmlBody;
         $mail->AltBody = $textBody ?: strip_tags($htmlBody);
 
+        // Embed logo for branded email header
+        $logoPath = __DIR__ . '/../assets/logo.png';
+        if (file_exists($logoPath)) {
+            $mail->addEmbeddedImage($logoPath, 'logo', 'logo.png', 'base64', 'image/png');
+        }
+
         foreach ($attachments as $att) {
             if (isset($att['string'])) {
                 $mail->addStringAttachment($att['string'], $att['name'], 'base64', 'application/pdf');

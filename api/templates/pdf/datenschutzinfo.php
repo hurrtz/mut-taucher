@@ -1,11 +1,12 @@
 <?php
 /** @var TCPDF $pdf @var string $clientName @var string $date @var string $therapistName @var string $title */
 
-$pdf->writeHTML('<h1>' . htmlspecialchars($title) . '</h1>');
-$pdf->writeHTML('<p>Sehr geehrte/r ' . htmlspecialchars($clientName) . ',</p>');
+$pdf->writeHTML('<h1 style="color: #2dd4bf; font-size: 16pt;">' . htmlspecialchars($title) . '</h1>');
 $pdf->Ln(2);
+
+$pdf->writeHTML('<p>Sehr geehrte/r ' . htmlspecialchars($clientName) . ',</p>');
 $pdf->writeHTML('<p>gemäß Art. 13 der Datenschutz-Grundverordnung (DSGVO) informiere ich Sie über die Verarbeitung Ihrer personenbezogenen Daten:</p>');
-$pdf->Ln(4);
+$pdf->Ln(2);
 
 $sections = [
     '1. Verantwortliche Stelle' => '[PLATZHALTER: Name, Adresse, Kontaktdaten der Therapeutin.]',
@@ -17,11 +18,9 @@ $sections = [
 ];
 
 foreach ($sections as $heading => $content) {
-    $pdf->SetFont('helvetica', 'B', 12);
-    $pdf->Cell(0, 8, $heading, 0, 1);
-    $pdf->SetFont('helvetica', '', 11);
+    $pdf->writeHTML('<h2 style="color: #2dd4bf; font-size: 12pt; border-bottom: 1px solid #e2e8f0;">' . htmlspecialchars($heading) . '</h2>');
     $pdf->writeHTML('<p>' . $content . '</p>');
-    $pdf->Ln(2);
+    $pdf->Ln(1);
 }
 
 $pdf->Ln(4);
