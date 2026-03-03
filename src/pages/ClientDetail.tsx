@@ -90,7 +90,7 @@ export default function ClientDetail() {
     return (
       <AdminLayout>
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <Text type="secondary">Klient:in nicht gefunden.</Text>
+          <Text type="secondary">Patient:in nicht gefunden.</Text>
           <Link to="/admin">
             <Button type="link" icon={<ArrowLeftOutlined />}>Zurück zur Übersicht</Button>
           </Link>

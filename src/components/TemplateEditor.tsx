@@ -52,12 +52,12 @@ const FONT_SIZES = ['8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '16pt', '18pt'
 
 const PLACEHOLDER_LABELS: Record<string, string> = {
   therapist_address: 'Therapeut:in Adresse (Block)',
-  client_address: 'Klient:in Adresse (Block)',
-  client_name: 'Klient:in Name',
-  client_street: 'Klient:in Straße',
-  client_zip: 'Klient:in PLZ',
-  client_city: 'Klient:in Ort',
-  client_country: 'Klient:in Land',
+  client_address: 'Patient:in Adresse (Block)',
+  client_name: 'Patient:in Name',
+  client_street: 'Patient:in Straße',
+  client_zip: 'Patient:in PLZ',
+  client_city: 'Patient:in Ort',
+  client_country: 'Patient:in Land',
   date: 'Datum',
   therapist_name: 'Therapeut:in Name',
   therapist_street: 'Therapeut:in Straße',

@@ -60,7 +60,7 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onMigrate
                     onClick={() => onSendEmail(b.id, 'reminder')}
                   />
                 </Tooltip>
-                <Tooltip title="Klient:in anlegen">
+                <Tooltip title="Patient:in anlegen">
                   <Button
                     type="text"
                     icon={<UserAddOutlined />}

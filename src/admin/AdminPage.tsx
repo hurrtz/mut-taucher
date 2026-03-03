@@ -68,7 +68,7 @@ export default function AdminPage() {
     addParticipant, removeParticipant,
     fetchGroupSessions, generateGroupSessions,
     updateGroupSession, removeGroupSession,
-    updatePayment, sendGroupInvoice,
+    updatePayment, bulkPayGroupPayments, sendGroupInvoice,
   } = useAdminGroups();
 
   const {
@@ -113,7 +113,7 @@ export default function AdminPage() {
     setLoginLoading(false);
   };
 
-  // Cross-tab navigation: migrate booking → create client → switch to Kunden
+  // Cross-tab navigation: migrate booking → create client → switch to Patienten
   const handleMigrateToClient = useCallback(async (bookingId: number) => {
     const clientId = await migrateBookingToClient(bookingId);
     if (clientId) {
@@ -121,7 +121,7 @@ export default function AdminPage() {
     }
   }, [migrateBookingToClient]);
 
-  // Cross-tab navigation: new therapy from Kunden → switch to Einzel
+  // Cross-tab navigation: new therapy from Patienten → switch to Einzel
   const handleNewTherapyFromClient = useCallback((clientId: number) => {
     setNewTherapyClientId(clientId);
     setShowNewTherapy(true);
@@ -188,7 +188,7 @@ export default function AdminPage() {
     },
     {
       key: 'kunden',
-      label: <span><TeamOutlined /> Kunden ({clients.length})</span>,
+      label: <span><TeamOutlined /> Patienten ({clients.length})</span>,
     },
     {
       key: 'dokumente',
@@ -370,9 +370,9 @@ export default function AdminPage() {
                 <Card size="small">
                   <Space style={{ marginBottom: 16 }}>
                     {editingClient ? (
-                      <><EditOutlined style={{ fontSize: 20, color: '#2dd4bf' }} /> <Typography.Text strong style={{ fontSize: 16 }}>Klient:in bearbeiten</Typography.Text></>
+                      <><EditOutlined style={{ fontSize: 20, color: '#2dd4bf' }} /> <Typography.Text strong style={{ fontSize: 16 }}>Patient:in bearbeiten</Typography.Text></>
                     ) : (
-                      <><UserAddOutlined style={{ fontSize: 20, color: '#2dd4bf' }} /> <Typography.Text strong style={{ fontSize: 16 }}>Neue:r Klient:in</Typography.Text></>
+                      <><UserAddOutlined style={{ fontSize: 20, color: '#2dd4bf' }} /> <Typography.Text strong style={{ fontSize: 16 }}>Neue:r Patient:in</Typography.Text></>
                     )}
                   </Space>
                   <ClientForm
@@ -392,15 +392,11 @@ export default function AdminPage() {
                 </Card>
               ) : (
                 <Button type="primary" icon={<UserAddOutlined />} onClick={() => setShowNewClient(true)}>
-                  Neue:r Klient:in
+                  Neue:r Patient:in
                 </Button>
               )}
 
               <div>
-                <Space style={{ marginBottom: 12 }}>
-                  <TeamOutlined style={{ fontSize: 20, color: '#9ca3af' }} />
-                  <Typography.Text strong style={{ fontSize: 16 }}>Klient:innen ({clients.length})</Typography.Text>
-                </Space>
                 <ClientList
                   clients={clients}
                   onEdit={(id) => { setEditingClientId(id); setShowNewClient(false); }}
@@ -429,6 +425,7 @@ export default function AdminPage() {
               onUpdateSession={(id, updates) => updateGroupSession(id, updates)}
               onDeleteSession={(id, gid) => removeGroupSession(id, gid)}
               onUpdatePayment={(pid, updates, gid) => updatePayment(pid, updates, gid)}
+              onBulkPay={bulkPayGroupPayments}
               onSendInvoice={(pid, gid) => sendGroupInvoice(pid, gid)}
               showNewForm={showNewGroup}
               onToggleNewForm={() => setShowNewGroup(!showNewGroup)}

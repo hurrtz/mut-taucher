@@ -12,7 +12,7 @@ export function useAdminClients() {
       const data = await apiFetch<Client[]>(`/admin/clients?status=${status}`);
       setClients(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Laden der Klient:innen');
+      setError(e instanceof Error ? e.message : 'Fehler beim Laden der Patient:innen');
     }
   }, []);
 

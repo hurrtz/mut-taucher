@@ -118,7 +118,7 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
             showSearch
             value={selectedClientId || undefined}
             onChange={(val) => setSelectedClientId(val)}
-            placeholder="Klient:in auswählen..."
+            placeholder="Patient:in auswählen..."
             style={{ flex: 1 }}
             optionFilterProp="label"
             options={availableClients.map(c => ({

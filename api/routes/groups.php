@@ -326,7 +326,7 @@ function handleAddParticipant(int $groupId): void {
 
     if ($existing && $existing['status'] === 'active') {
         http_response_code(409);
-        echo json_encode(['error' => 'Klient:in ist bereits Teilnehmer:in']);
+        echo json_encode(['error' => 'Patient:in ist bereits Teilnehmer:in']);
         return;
     }
 

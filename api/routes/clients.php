@@ -71,7 +71,7 @@ function handleGetClient(int $id): void {
 
     if (!$c) {
         http_response_code(404);
-        echo json_encode(['error' => 'Klient:in nicht gefunden']);
+        echo json_encode(['error' => 'Patient:in nicht gefunden']);
         return;
     }
 
@@ -133,7 +133,7 @@ function handleCreateClient(): void {
         $input['notes'] ?? null,
     ]);
 
-    echo json_encode(['id' => (int)$db->lastInsertId(), 'message' => 'Klient:in angelegt']);
+    echo json_encode(['id' => (int)$db->lastInsertId(), 'message' => 'Patient:in angelegt']);
 }
 
 /**
@@ -165,11 +165,11 @@ function handleUpdateClient(int $id): void {
 
     if ($stmt->rowCount() === 0) {
         http_response_code(404);
-        echo json_encode(['error' => 'Klient:in nicht gefunden']);
+        echo json_encode(['error' => 'Patient:in nicht gefunden']);
         return;
     }
 
-    echo json_encode(['message' => 'Klient:in aktualisiert']);
+    echo json_encode(['message' => 'Patient:in aktualisiert']);
 }
 
 /**
@@ -184,11 +184,11 @@ function handleDeleteClient(int $id): void {
 
     if ($stmt->rowCount() === 0) {
         http_response_code(404);
-        echo json_encode(['error' => 'Klient:in nicht gefunden']);
+        echo json_encode(['error' => 'Patient:in nicht gefunden']);
         return;
     }
 
-    echo json_encode(['message' => 'Klient:in gelöscht']);
+    echo json_encode(['message' => 'Patient:in gelöscht']);
 }
 
 /**
@@ -214,7 +214,7 @@ function handleMigrateBookingToClient(int $bookingId): void {
     $existingStmt->execute([$bookingId]);
     if ($existingStmt->fetch()) {
         http_response_code(409);
-        echo json_encode(['error' => 'Klient:in wurde bereits aus dieser Buchung angelegt']);
+        echo json_encode(['error' => 'Patient:in wurde bereits aus dieser Buchung angelegt']);
         return;
     }
 
@@ -230,6 +230,6 @@ function handleMigrateBookingToClient(int $bookingId): void {
 
     echo json_encode([
         'id' => (int)$db->lastInsertId(),
-        'message' => 'Klient:in aus Buchung angelegt',
+        'message' => 'Patient:in aus Buchung angelegt',
     ]);
 }

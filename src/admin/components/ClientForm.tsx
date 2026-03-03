@@ -155,7 +155,7 @@ export default function ClientForm({ initial, onSave, onCancel }: {
         )}
         <Space>
           <Button type="primary" htmlType="submit">
-            {initial ? 'Speichern' : 'Klient:in anlegen'}
+            {initial ? 'Speichern' : 'Patient:in anlegen'}
           </Button>
           {onCancel && (
             <Button onClick={onCancel}>

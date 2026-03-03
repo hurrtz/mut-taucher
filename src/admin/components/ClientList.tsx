@@ -15,7 +15,7 @@ export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: 
   if (clients.length === 0) {
     return (
       <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center' }}>
-        Noch keine Klient:innen angelegt.
+        Noch keine Patient:innen angelegt.
       </Typography.Text>
     );
   }
@@ -63,7 +63,7 @@ export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: 
                 icon={<DeleteOutlined />}
                 onClick={() => {
                   Modal.confirm({
-                    title: `Klient:in "${c.firstName} ${c.lastName}" wirklich löschen?`,
+                    title: `Patient:in "${c.firstName} ${c.lastName}" wirklich löschen?`,
                     okText: 'Löschen',
                     cancelText: 'Abbrechen',
                     okType: 'danger',

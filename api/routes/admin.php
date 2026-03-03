@@ -465,7 +465,7 @@ function handleDocumentSend(): void {
         $row = $stmt->fetch();
         if (!$row) {
             http_response_code(404);
-            echo json_encode(['error' => 'Klient:in nicht gefunden']);
+            echo json_encode(['error' => 'Patient:in nicht gefunden']);
             return;
         }
         $clientName = composeClientName($row['title'], $row['first_name'], $row['last_name'], $row['suffix']);

@@ -65,7 +65,7 @@ export default function TherapyForm({ clients, initialClientId, onSave, onCancel
   return (
     <form onSubmit={handleSubmit}>
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Form.Item label="Klient:in">
+        <Form.Item label="Patient:in">
           <Select
             value={form.clientId}
             onChange={(value) => setForm({ ...form, clientId: value })}
