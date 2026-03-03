@@ -21,7 +21,7 @@ import GroupManager from './components/GroupManager';
 import { Link } from 'react-router-dom';
 import { Tabs, Card, Input, Button, Alert, Spin, Space, Typography, Row, Col } from 'antd';
 import {
-  CalendarOutlined, TeamOutlined, FileTextOutlined,
+  CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
   VideoCameraOutlined, SyncOutlined, LogoutOutlined,
   HomeOutlined, BarChartOutlined, LinkOutlined,
   PlusOutlined, EditOutlined, ScheduleOutlined, UserAddOutlined,
@@ -188,7 +188,7 @@ export default function AdminPage() {
     },
     {
       key: 'kunden',
-      label: <span><TeamOutlined /> Patienten ({clients.length})</span>,
+      label: <span><UserOutlined /> Patienten ({clients.length})</span>,
     },
     {
       key: 'dokumente',
