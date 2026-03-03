@@ -12,13 +12,14 @@ function handleGetTemplates(): void {
     $db = getDB();
 
     $stmt = $db->query(
-        'SELECT template_key, label, placeholders, updated_at FROM document_templates ORDER BY label ASC'
+        'SELECT template_key, label, group_name, placeholders, updated_at FROM document_templates ORDER BY label ASC'
     );
     $rows = $stmt->fetchAll();
 
     $result = array_map(fn($r) => [
         'key'          => $r['template_key'],
         'label'        => $r['label'],
+        'groupName'    => $r['group_name'],
         'placeholders' => json_decode($r['placeholders'], true),
         'updatedAt'    => $r['updated_at'],
     ], $rows);
@@ -95,29 +96,44 @@ function handlePreviewTemplate(string $key): void {
 
 /**
  * PUT /api/admin/templates/:key
- * Body: { htmlContent }
- * Updates the HTML content of a template.
+ * Body: { htmlContent?, label? }
+ * Updates the HTML content and/or label of a template.
  */
 function handleUpdateTemplate(string $key): void {
     requireAuth();
     $db = getDB();
     $input = json_decode(file_get_contents('php://input'), true);
 
-    $htmlContent = $input['htmlContent'] ?? '';
-    if (!$htmlContent) {
+    $htmlContent = $input['htmlContent'] ?? null;
+    $label = $input['label'] ?? null;
+
+    if (!$htmlContent && !$label) {
         http_response_code(400);
-        echo json_encode(['error' => 'htmlContent ist erforderlich']);
+        echo json_encode(['error' => 'htmlContent oder label ist erforderlich']);
         return;
     }
 
-    // Strip unsafe tags, keep TCPDF-safe subset
-    $allowed = '<p><br><strong><b><em><i><u><h1><h2><h3><ul><ol><li><table><tr><td><th><thead><tbody><span><img><mark>';
-    $htmlContent = strip_tags($htmlContent, $allowed);
+    $sets = [];
+    $params = [];
 
+    if ($htmlContent) {
+        // Strip unsafe tags, keep TCPDF-safe subset
+        $allowed = '<p><br><strong><b><em><i><u><h1><h2><h3><ul><ol><li><table><tr><td><th><thead><tbody><span><img><mark>';
+        $htmlContent = strip_tags($htmlContent, $allowed);
+        $sets[] = 'html_content = ?';
+        $params[] = $htmlContent;
+    }
+
+    if ($label) {
+        $sets[] = 'label = ?';
+        $params[] = $label;
+    }
+
+    $params[] = $key;
     $stmt = $db->prepare(
-        'UPDATE document_templates SET html_content = ? WHERE template_key = ?'
+        'UPDATE document_templates SET ' . implode(', ', $sets) . ' WHERE template_key = ?'
     );
-    $stmt->execute([$htmlContent, $key]);
+    $stmt->execute($params);
 
     if ($stmt->rowCount() === 0) {
         http_response_code(404);
@@ -126,6 +142,155 @@ function handleUpdateTemplate(string $key): void {
     }
 
     echo json_encode(['message' => 'Vorlage aktualisiert']);
+}
+
+/**
+ * POST /api/admin/templates/upload-image
+ * Accepts multipart form-data with an 'image' file.
+ * Returns { url: "/api/assets/uploads/img_xxx.png" }
+ */
+/**
+ * POST /api/admin/templates
+ * Body: { key, label, groupName? }
+ * Creates a new template with empty content.
+ */
+function handleCreateTemplate(): void {
+    requireAuth();
+    $db = getDB();
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    $key = $input['key'] ?? '';
+    $label = $input['label'] ?? '';
+    $groupName = $input['groupName'] ?? null;
+
+    if (!$key || !$label) {
+        http_response_code(400);
+        echo json_encode(['error' => 'key und label sind erforderlich']);
+        return;
+    }
+
+    if (!preg_match('/^[a-z_]+$/', $key)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Schlüssel darf nur Kleinbuchstaben und Unterstriche enthalten']);
+        return;
+    }
+
+    // Check uniqueness
+    $stmt = $db->prepare('SELECT COUNT(*) FROM document_templates WHERE template_key = ?');
+    $stmt->execute([$key]);
+    if ($stmt->fetchColumn() > 0) {
+        http_response_code(409);
+        echo json_encode(['error' => 'Schlüssel existiert bereits']);
+        return;
+    }
+
+    $stmt = $db->prepare(
+        'INSERT INTO document_templates (template_key, label, group_name, html_content, placeholders) VALUES (?, ?, ?, \'\', \'[]\')'
+    );
+    $stmt->execute([$key, $label, $groupName]);
+
+    echo json_encode([
+        'key'          => $key,
+        'label'        => $label,
+        'groupName'    => $groupName,
+        'placeholders' => [],
+        'updatedAt'    => date('Y-m-d H:i:s'),
+    ]);
+}
+
+/**
+ * DELETE /api/admin/templates/:key
+ * Deletes a template. FK cascade sets mappings to NULL.
+ */
+function handleDeleteTemplate(string $key): void {
+    requireAuth();
+    $db = getDB();
+
+    $stmt = $db->prepare('DELETE FROM document_templates WHERE template_key = ?');
+    $stmt->execute([$key]);
+
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Vorlage nicht gefunden']);
+        return;
+    }
+
+    echo json_encode(['message' => 'Vorlage gelöscht']);
+}
+
+/**
+ * PATCH /api/admin/templates/:key/group
+ * Body: { groupName: string | null }
+ * Updates the group_name of a template.
+ */
+function handleUpdateTemplateGroup(string $key): void {
+    requireAuth();
+    $db = getDB();
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    $groupName = array_key_exists('groupName', $input) ? $input['groupName'] : null;
+
+    $stmt = $db->prepare('UPDATE document_templates SET group_name = ? WHERE template_key = ?');
+    $stmt->execute([$groupName ?: null, $key]);
+
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Vorlage nicht gefunden']);
+        return;
+    }
+
+    echo json_encode(['message' => 'Gruppe aktualisiert']);
+}
+
+/**
+ * GET /api/admin/template-mappings
+ * Returns all template mappings.
+ */
+function handleGetMappings(): void {
+    requireAuth();
+    $db = getDB();
+
+    $stmt = $db->query('SELECT sending_point, template_key, updated_at FROM template_mappings ORDER BY sending_point ASC');
+    $rows = $stmt->fetchAll();
+
+    $result = array_map(fn($r) => [
+        'sendingPoint' => $r['sending_point'],
+        'templateKey'  => $r['template_key'],
+        'updatedAt'    => $r['updated_at'],
+    ], $rows);
+
+    echo json_encode(array_values($result));
+}
+
+/**
+ * PUT /api/admin/template-mappings
+ * Body: { sendingPoint, templateKey: string | null }
+ * Updates a single template mapping.
+ */
+function handleUpdateMapping(): void {
+    requireAuth();
+    $db = getDB();
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    $sendingPoint = $input['sendingPoint'] ?? '';
+    $templateKey = $input['templateKey'] ?? null;
+
+    if (!$sendingPoint) {
+        http_response_code(400);
+        echo json_encode(['error' => 'sendingPoint ist erforderlich']);
+        return;
+    }
+
+    $stmt = $db->prepare('UPDATE template_mappings SET template_key = ? WHERE sending_point = ?');
+    $stmt->execute([$templateKey ?: null, $sendingPoint]);
+
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Zuordnung nicht gefunden']);
+        return;
+    }
+
+    echo json_encode(['message' => 'Zuordnung aktualisiert']);
 }
 
 /**

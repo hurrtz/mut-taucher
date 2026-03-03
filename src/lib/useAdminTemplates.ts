@@ -4,6 +4,7 @@ import { apiFetch, getToken } from './api';
 export interface TemplateSummary {
   key: string;
   label: string;
+  groupName: string | null;
   placeholders: string[];
   updatedAt: string;
 }
@@ -12,9 +13,16 @@ export interface TemplateDetail extends TemplateSummary {
   htmlContent: string;
 }
 
+export interface TemplateMapping {
+  sendingPoint: string;
+  templateKey: string | null;
+  updatedAt: string;
+}
+
 export function useAdminTemplates() {
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [activeTemplate, setActiveTemplate] = useState<TemplateDetail | null>(null);
+  const [mappings, setMappings] = useState<TemplateMapping[]>([]);
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +47,31 @@ export function useAdminTemplates() {
     }
   }, []);
 
+  const createTemplate = useCallback(async (key: string, label: string, groupName?: string) => {
+    setError(null);
+    try {
+      await apiFetch('/admin/templates', {
+        method: 'POST',
+        body: JSON.stringify({ key, label, groupName: groupName || null }),
+      });
+      await fetchTemplates();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Erstellen');
+      throw e;
+    }
+  }, [fetchTemplates]);
+
+  const removeTemplate = useCallback(async (key: string) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/templates/${key}`, { method: 'DELETE' });
+      if (activeTemplate?.key === key) setActiveTemplate(null);
+      setTemplates(prev => prev.filter(t => t.key !== key));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Löschen');
+    }
+  }, [activeTemplate]);
+
   const updateTemplate = useCallback(async (key: string, htmlContent: string) => {
     setError(null);
     setSaving(true);
@@ -57,6 +90,19 @@ export function useAdminTemplates() {
       setSaving(false);
     }
   }, [activeTemplate, fetchTemplates]);
+
+  const updateTemplateGroup = useCallback(async (key: string, groupName: string | null) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/templates/${key}/group`, {
+        method: 'PATCH',
+        body: JSON.stringify({ groupName }),
+      });
+      await fetchTemplates();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Gruppe');
+    }
+  }, [fetchTemplates]);
 
   const previewTemplate = useCallback(async (key: string, htmlContent: string) => {
     setError(null);
@@ -111,17 +157,48 @@ export function useAdminTemplates() {
     return data.url;
   }, []);
 
+  const fetchMappings = useCallback(async () => {
+    setError(null);
+    try {
+      const data = await apiFetch<TemplateMapping[]>('/admin/template-mappings');
+      setMappings(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Laden der Zuordnungen');
+    }
+  }, []);
+
+  const updateMapping = useCallback(async (sendingPoint: string, templateKey: string | null) => {
+    setError(null);
+    try {
+      await apiFetch('/admin/template-mappings', {
+        method: 'PUT',
+        body: JSON.stringify({ sendingPoint, templateKey }),
+      });
+      setMappings(prev => prev.map(m =>
+        m.sendingPoint === sendingPoint ? { ...m, templateKey } : m
+      ));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Zuordnung');
+    }
+  }, []);
+
   return {
     templates,
     activeTemplate,
+    mappings,
     saving,
     previewing,
     error,
     fetchTemplates,
     fetchTemplate,
+    createTemplate,
+    removeTemplate,
     updateTemplate,
+    updateTemplateGroup,
     previewTemplate,
     setActiveTemplate,
     uploadImage,
+    fetchMappings,
+    updateMapping,
   };
 }

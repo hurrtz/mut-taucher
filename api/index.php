@@ -399,6 +399,11 @@ if ($method === 'POST' && preg_match('#^/admin/templates/([a-z_]+)/preview$#', $
     exit;
 }
 
+if ($method === 'POST' && $uri === '/admin/templates') {
+    handleCreateTemplate();
+    exit;
+}
+
 if ($method === 'GET' && $uri === '/admin/templates') {
     handleGetTemplates();
     exit;
@@ -414,8 +419,29 @@ if ($method === 'PUT' && preg_match('#^/admin/templates/([a-z_]+)$#', $uri, $m))
     exit;
 }
 
+if ($method === 'DELETE' && preg_match('#^/admin/templates/([a-z_]+)$#', $uri, $m)) {
+    handleDeleteTemplate($m[1]);
+    exit;
+}
+
+if ($method === 'PATCH' && preg_match('#^/admin/templates/([a-z_]+)/group$#', $uri, $m)) {
+    handleUpdateTemplateGroup($m[1]);
+    exit;
+}
+
 if ($method === 'POST' && $uri === '/admin/templates/upload-image') {
     handleUploadImage();
+    exit;
+}
+
+// Admin: template mappings
+if ($method === 'GET' && $uri === '/admin/template-mappings') {
+    handleGetMappings();
+    exit;
+}
+
+if ($method === 'PUT' && $uri === '/admin/template-mappings') {
+    handleUpdateMapping();
     exit;
 }
 
