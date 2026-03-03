@@ -1,82 +1,120 @@
-import { ConfigProvider, Layout, Menu, Typography, Button, FloatButton } from 'antd';
+import { useState, useLayoutEffect, type FormEvent } from 'react';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { ConfigProvider, Layout, Menu, Typography, Button, FloatButton, Card, Input, Alert } from 'antd';
 import {
   BarChartOutlined, LogoutOutlined,
+  CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
+  VideoCameraOutlined, BookOutlined,
 } from '@ant-design/icons';
 import deDE from 'antd/locale/de_DE';
 import adminTheme from './theme';
-import type { ReactNode } from 'react';
-import type { MenuProps } from 'antd';
+import { useAdminBooking } from '../lib/useAdminBooking';
 
 const { Sider, Content } = Layout;
 
-interface MenuItem {
-  key: string;
-  icon: ReactNode;
-  label: string;
-  badge?: number;
-}
+const MENU_ITEMS = [
+  { key: 'kalender', icon: <CalendarOutlined />, label: 'Kalender' },
+  { key: 'erstgespraeche', icon: <CalendarOutlined />, label: 'Erstgespräche' },
+  { key: 'einzel', icon: <VideoCameraOutlined />, label: 'Einzeltherapie' },
+  { key: 'gruppen', icon: <TeamOutlined />, label: 'Gruppentherapie' },
+  { key: 'kunden', icon: <UserOutlined />, label: 'Patienten' },
+  { key: 'dokumente', icon: <FileTextOutlined />, label: 'Vorlagen' },
+  { key: 'arbeitsmappe', icon: <BookOutlined />, label: 'Arbeitsmappe' },
+];
 
-interface AdminLayoutProps {
-  activeKey: string;
-  onNavigate: (key: string) => void;
-  menuItems: MenuItem[];
-  onLogout: () => void;
-  children: ReactNode;
-}
+export default function AdminLayout() {
+  const { authenticated, login, logout } = useAdminBooking();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-export default function AdminLayout({ activeKey, onNavigate, menuItems, onLogout, children }: AdminLayoutProps) {
-  const antMenuItems: MenuProps['items'] = menuItems.map(item => ({
-    key: item.key,
-    icon: item.icon,
-    label: item.badge != null ? `${item.label} (${item.badge})` : item.label,
-  }));
+  // Block indexing
+  useLayoutEffect(() => {
+    let meta = document.querySelector('meta[name="robots"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'robots');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', 'noindex, nofollow');
+    return () => { meta.remove(); };
+  }, []);
+
+  // Derive active key from URL
+  const pathSegment = location.pathname.split('/')[2] || 'kalender';
+  const activeKey = MENU_ITEMS.some(i => i.key === pathSegment) ? pathSegment : 'kalender';
+
+  if (!authenticated) {
+    return (
+      <ConfigProvider theme={adminTheme} locale={deDE}>
+        <LoginForm onLogin={login} />
+      </ConfigProvider>
+    );
+  }
 
   return (
     <ConfigProvider theme={adminTheme} locale={deDE}>
       <Layout style={{ minHeight: '100vh' }}>
-        <Sider
-          width={220}
-          breakpoint="lg"
-          collapsedWidth={0}
-          style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}
-        >
+        <Sider width={220} breakpoint="lg" collapsedWidth={0} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div style={{ padding: '20px 24px 12px' }}>
               <Typography.Title level={4} style={{ margin: 0 }}>Administration</Typography.Title>
             </div>
-
             <Menu
               mode="inline"
               selectedKeys={[activeKey]}
-              onClick={({ key }) => onNavigate(key)}
-              items={antMenuItems}
+              onClick={({ key }) => navigate(`/admin/${key}`)}
+              items={MENU_ITEMS}
               style={{ flex: 1, borderRight: 'none' }}
             />
-
             <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
-              <Button type="text" danger icon={<LogoutOutlined />} onClick={onLogout} block style={{ textAlign: 'left' }}>
+              <Button type="text" danger icon={<LogoutOutlined />} onClick={logout} block style={{ textAlign: 'left' }}>
                 Logout
               </Button>
             </div>
           </div>
         </Sider>
-
         <Content style={{ background: '#f8fafc', padding: 24 }}>
-          {children}
+          <Outlet />
         </Content>
       </Layout>
-      <FloatButton
-        icon={<BarChartOutlined />}
-        tooltip="Analytics"
-        href="https://app.eu.amplitude.com/analytics/mut-taucher-395196/home"
-        target="_blank"
-      />
+      <FloatButton icon={<BarChartOutlined />} tooltip="Analytics" href="https://app.eu.amplitude.com/analytics/mut-taucher-395196/home" target="_blank" />
     </ConfigProvider>
   );
 }
 
-// Wrapper for unauthenticated screens (login)
-export function AdminShell({ children }: { children: ReactNode }) {
+function LoginForm({ onLogin }: { onLogin: (password: string) => Promise<boolean> }) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    const success = await onLogin(password);
+    if (!success) setError('Falsches Passwort');
+    setSubmitting(false);
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' }}>
+      <Card style={{ width: 380 }}>
+        <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>Admin Login</Typography.Title>
+        <form onSubmit={handleSubmit}>
+          <Input.Password value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Passwort" size="large" style={{ marginBottom: 16 }} />
+          {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
+          <Button type="primary" htmlType="submit" loading={submitting} block size="large">Login</Button>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <Link to="/" style={{ color: '#8c8c8c', fontSize: 14 }}>Zurück zur Website</Link>
+          </div>
+        </form>
+      </Card>
+    </div>
+  );
+}
+
+/** Wrapper for screens that need Ant Design theme but are outside the admin layout */
+export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <ConfigProvider theme={adminTheme} locale={deDE}>
       {children}
