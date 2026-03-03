@@ -31,7 +31,7 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onMigrate
       {bookings.map(b => (
         <Card
           key={b.id}
-          size="small"
+          size="default"
           title={<Typography.Text strong ellipsis>{b.clientName}</Typography.Text>}
           style={{
             opacity: b.status === 'cancelled' ? 0.6 : 1,

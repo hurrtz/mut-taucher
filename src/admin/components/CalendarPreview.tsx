@@ -6,10 +6,10 @@ import {
   eachDayOfInterval, isSameDay, isSameMonth,
 } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Card, Button, Tag, Typography } from 'antd';
+import { Card, Button, Tag } from 'antd';
 import { LeftOutlined, RightOutlined, CalendarOutlined } from '@ant-design/icons';
 
-const { Title } = Typography;
+
 
 export default function CalendarPreview({ rules, events, onToggleException }: {
   rules: RecurringRule[];
@@ -30,37 +30,38 @@ export default function CalendarPreview({ rules, events, onToggleException }: {
   );
 
   return (
-    <Card size="small" style={{ width: '100%' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={5} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+    <Card
+      size="default"
+      style={{ width: '100%' }}
+      title={
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CalendarOutlined style={{ color: '#8c8c8c' }} />
           Vorschau: {format(currentMonth, 'MMMM yyyy', { locale: de })}
-        </Title>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Button.Group>
-            <Button
-              size="small"
-              icon={<LeftOutlined />}
-              onClick={() => setCurrentMonth(addMonths(currentMonth, -1))}
-            />
-            <Button
-              size="small"
-              type="link"
-              onClick={() => setCurrentMonth(startOfMonth(new Date()))}
-              style={{ padding: '0 8px' }}
-            >
-              Heute
-            </Button>
-            <Button
-              size="small"
-              icon={<RightOutlined />}
-              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            />
-          </Button.Group>
-        </div>
-      </div>
-
+        </span>
+      }
+      extra={
+        <Button.Group>
+          <Button
+            size="small"
+            icon={<LeftOutlined />}
+            onClick={() => setCurrentMonth(addMonths(currentMonth, -1))}
+          />
+          <Button
+            size="small"
+            type="link"
+            onClick={() => setCurrentMonth(startOfMonth(new Date()))}
+            style={{ padding: '0 8px' }}
+          >
+            Heute
+          </Button>
+          <Button
+            size="small"
+            icon={<RightOutlined />}
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+          />
+        </Button.Group>
+      }
+    >
       {/* Day-of-week headers */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, textAlign: 'center', marginBottom: 4 }}>
         {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (

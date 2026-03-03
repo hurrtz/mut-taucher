@@ -275,7 +275,7 @@ export default function AdminPage() {
 
                 {/* Active Rules */}
                 <Card
-                  size="small"
+                  size="default"
                   title={<span><SyncOutlined style={{ color: '#9ca3af', marginRight: 8 }} />Aktive Regeln ({rules.length})</span>}
                 >
                   {rules.length === 0 && !loading ? (
