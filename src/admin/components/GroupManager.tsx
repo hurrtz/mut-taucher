@@ -9,11 +9,11 @@ import dayjs from 'dayjs';
 import {
   SyncOutlined, CalendarOutlined, EuroCircleOutlined, VideoCameraOutlined,
   DeleteOutlined, HomeOutlined, CloseOutlined, CheckCircleOutlined, FileTextOutlined,
-  ContainerOutlined,
+  ContainerOutlined, EditOutlined,
 } from '@ant-design/icons';
 import {
   Card, Button, Tag, Space, Typography, Modal, Select, Statistic,
-  Row, Col, DatePicker, Progress, Collapse, InputNumber, Switch, Dropdown,
+  Row, Col, DatePicker, TimePicker, Progress, Collapse, InputNumber, Switch, Dropdown,
 } from 'antd';
 import type { ReactNode } from 'react';
 
@@ -248,6 +248,10 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
   const [genFrom, setGenFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [genTo, setGenTo] = useState(format(addMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [expandedSessionId, setExpandedSessionId] = useState<number | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
+  const [editDuration, setEditDuration] = useState(90);
 
   const statusLabels: Record<string, string> = {
     scheduled: 'Geplant',
@@ -312,19 +316,62 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
             return (
               <Card size="small" key={s.id}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <div
-                    onClick={() => setExpandedSessionId(isExpanded ? null : s.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, cursor: 'pointer' }}
-                  >
-                    <Text strong>
-                      {format(parseISO(s.sessionDate), 'd. MMM yyyy', { locale: de })}
-                    </Text>
-                    <Text type="secondary">{s.sessionTime} Uhr</Text>
-                    <Tag color={statusTagColors[s.status]}>{statusLabels[s.status]}</Tag>
-                    {totalCount > 0 && (
-                      <Text type="secondary" style={{ fontSize: 12 }}>{paidCount}/{totalCount} bezahlt</Text>
-                    )}
-                  </div>
+                  {editingSessionId === s.id ? (
+                    <Space>
+                      <DatePicker
+                        value={dayjs(editDate)}
+                        onChange={(d) => { if (d) setEditDate(d.format('YYYY-MM-DD')); }}
+                        size="small"
+                      />
+                      <TimePicker
+                        value={dayjs(editTime, 'HH:mm')}
+                        onChange={(t) => { if (t) setEditTime(t.format('HH:mm')); }}
+                        format="HH:mm"
+                        minuteStep={5}
+                        size="small"
+                      />
+                      <InputNumber
+                        value={editDuration}
+                        onChange={(v) => { if (v) setEditDuration(v); }}
+                        min={15}
+                        max={240}
+                        size="small"
+                        style={{ width: 70 }}
+                        suffix="Min."
+                      />
+                      <Button
+                        size="small"
+                        type="primary"
+                        onClick={() => {
+                          onUpdateSession(s.id, {
+                            sessionDate: editDate,
+                            sessionTime: editTime,
+                            durationMinutes: editDuration,
+                          } as Partial<GroupSession>);
+                          setEditingSessionId(null);
+                        }}
+                      >
+                        OK
+                      </Button>
+                      <Button size="small" onClick={() => setEditingSessionId(null)}>
+                        Abbrechen
+                      </Button>
+                    </Space>
+                  ) : (
+                    <div
+                      onClick={() => setExpandedSessionId(isExpanded ? null : s.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, cursor: 'pointer' }}
+                    >
+                      <Text strong>
+                        {format(parseISO(s.sessionDate), 'd. MMM yyyy', { locale: de })}
+                      </Text>
+                      <Text type="secondary">{s.sessionTime} Uhr</Text>
+                      <Tag color={statusTagColors[s.status]}>{statusLabels[s.status]}</Tag>
+                      {totalCount > 0 && (
+                        <Text type="secondary" style={{ fontSize: 12 }}>{paidCount}/{totalCount} bezahlt</Text>
+                      )}
+                    </div>
+                  )}
                   <Space size={8}>
                     <Select
                       value={s.status}
@@ -335,6 +382,17 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                         { value: 'completed', label: 'Abgeschlossen' },
                         { value: 'cancelled', label: 'Abgesagt' },
                       ]}
+                    />
+                    <Button
+                      type="text"
+                      icon={<EditOutlined />}
+                      onClick={() => {
+                        setEditingSessionId(s.id);
+                        setEditDate(s.sessionDate);
+                        setEditTime(s.sessionTime);
+                        setEditDuration(s.durationMinutes ?? group.sessionDurationMinutes);
+                      }}
+                      title="Termin ändern"
                     />
                     <Button
                       type="text"
@@ -432,7 +490,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
 
 // ─── Group Card ─────────────────────────────────────────────────
 
-function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchive,
+function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, onArchive,
   onToggleHomepage, onAddParticipant, onRemoveParticipant,
   onGenerateSessions, onUpdateSession, onDeleteSession,
   onUpdatePayment, onBulkPay, onSendBundleInvoice }: {
@@ -440,6 +498,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
   clients: Client[];
   sessions: GroupSession[];
   fetchSessions: (groupId: number) => void;
+  onEdit?: (group: TherapyGroup) => void;
   onDelete?: (id: number) => void;
   onArchive?: (id: number) => void;
   onToggleHomepage?: (id: number, current: boolean) => void;
@@ -474,8 +533,16 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
         </Space>
       }
       extra={
-        (onDelete || onArchive || onToggleHomepage) ? (
+        (onEdit || onDelete || onArchive || onToggleHomepage) ? (
           <Space size={0}>
+            {onEdit && (
+              <Button
+                type="text"
+                icon={<EditOutlined />}
+                onClick={() => onEdit(group)}
+                title="Bearbeiten"
+              />
+            )}
             {onToggleHomepage && (
               <Button
                 type="text"
@@ -599,7 +666,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
 // ─── Group Manager ───────────────────────────────────────────────
 
 export default function GroupManager({ groups, archivedGroups, clients, groupSessionsByGroup, fetchGroupSessions,
-  onDelete, onArchive, onToggleHomepage, onAddParticipant, onRemoveParticipant,
+  onEdit, onDelete, onArchive, onToggleHomepage, onAddParticipant, onRemoveParticipant,
   onGenerateSessions, onUpdateSession, onDeleteSession,
   onUpdatePayment, onBulkPay, onSendBundleInvoice,
   showNewForm, newForm }: {
@@ -608,6 +675,7 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
   clients: Client[];
   groupSessionsByGroup: Record<number, GroupSession[]>;
   fetchGroupSessions: (groupId: number) => void;
+  onEdit?: (group: TherapyGroup) => void;
   onDelete: (id: number) => void;
   onArchive: (id: number) => void;
   onToggleHomepage: (id: number, current: boolean) => void;
@@ -642,6 +710,7 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
                 clients={clients}
                 sessions={groupSessionsByGroup[group.id] ?? []}
                 fetchSessions={fetchGroupSessions}
+                onEdit={onEdit}
                 onDelete={onDelete}
                 onArchive={onArchive}
                 onToggleHomepage={onToggleHomepage}

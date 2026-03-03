@@ -8,9 +8,9 @@ import { de } from 'date-fns/locale';
 import {
   SyncOutlined, CalendarOutlined, EuroCircleOutlined,
   VideoCameraOutlined, DeleteOutlined, CheckCircleOutlined,
-  FileTextOutlined, ContainerOutlined,
+  FileTextOutlined, ContainerOutlined, EditOutlined,
 } from '@ant-design/icons';
-import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse } from 'antd';
+import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse, TimePicker, InputNumber } from 'antd';
 import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
 
@@ -26,6 +26,10 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
 }) {
   const [genFrom, setGenFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [genTo, setGenTo] = useState(format(addMonths(new Date(), 3), 'yyyy-MM-dd'));
+  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
+  const [editDuration, setEditDuration] = useState(60);
 
   const statusLabels: Record<string, string> = {
     scheduled: 'Geplant',
@@ -85,19 +89,64 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
         </Typography.Text>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {sessions.map(s => (
+          {sessions.map(s => {
+            const isEditing = editingSessionId === s.id;
+            return (
             <Card key={s.id} size="small">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <Space>
-                  <Typography.Text strong>
-                    {format(parseISO(s.sessionDate), 'd. MMM yyyy', { locale: de })}
-                  </Typography.Text>
-                  <Typography.Text type="secondary">{s.sessionTime} Uhr</Typography.Text>
-                  <Tag color={statusTagColors[s.status]}>{statusLabels[s.status]}</Tag>
-                  <Tag color={s.paymentStatus === 'paid' ? 'green' : 'gold'}>
-                    {s.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
-                  </Tag>
-                </Space>
+                {isEditing ? (
+                  <Space>
+                    <DatePicker
+                      value={dayjs(editDate)}
+                      onChange={(d) => { if (d) setEditDate(d.format('YYYY-MM-DD')); }}
+                      size="small"
+                    />
+                    <TimePicker
+                      value={dayjs(editTime, 'HH:mm')}
+                      onChange={(t) => { if (t) setEditTime(t.format('HH:mm')); }}
+                      format="HH:mm"
+                      minuteStep={5}
+                      size="small"
+                    />
+                    <InputNumber
+                      value={editDuration}
+                      onChange={(v) => { if (v) setEditDuration(v); }}
+                      min={15}
+                      max={240}
+                      size="small"
+                      style={{ width: 70 }}
+                      suffix="Min."
+                    />
+                    <Button
+                      size="small"
+                      type="primary"
+                      onClick={() => {
+                        onUpdateSession(s.id, {
+                          sessionDate: editDate,
+                          sessionTime: editTime,
+                          durationMinutes: editDuration,
+                        } as Partial<TherapySession>);
+                        setEditingSessionId(null);
+                      }}
+                    >
+                      OK
+                    </Button>
+                    <Button size="small" onClick={() => setEditingSessionId(null)}>
+                      Abbrechen
+                    </Button>
+                  </Space>
+                ) : (
+                  <Space>
+                    <Typography.Text strong>
+                      {format(parseISO(s.sessionDate), 'd. MMM yyyy', { locale: de })}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">{s.sessionTime} Uhr</Typography.Text>
+                    <Tag color={statusTagColors[s.status]}>{statusLabels[s.status]}</Tag>
+                    <Tag color={s.paymentStatus === 'paid' ? 'green' : 'gold'}>
+                      {s.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
+                    </Tag>
+                  </Space>
+                )}
                 <Space size={8}>
                   <Select
                     value={s.status}
@@ -111,6 +160,17 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
                     ]}
                   />
                   <Space size={0}>
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => {
+                      setEditingSessionId(s.id);
+                      setEditDate(s.sessionDate);
+                      setEditTime(s.sessionTime);
+                      setEditDuration(s.durationMinutes ?? therapy.sessionDurationMinutes);
+                    }}
+                    title="Termin ändern"
+                  />
                   <Button
                     type="text"
                     icon={<EuroCircleOutlined />}
@@ -149,7 +209,8 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
                 </Typography.Text>
               )}
             </Card>
-          ))}
+          );
+          })}
         </div>
       )}
 
@@ -186,11 +247,12 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
 
 // ─── Therapy Card ────────────────────────────────────────────────
 
-function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onArchive, onGenerateSessions,
+function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArchive, onGenerateSessions,
   onUpdateSession, onDeleteSession, onSendInvoice }: {
   therapy: Therapy;
   sessions: TherapySession[];
   fetchSessions: (therapyId: number) => void;
+  onEdit?: (therapy: Therapy) => void;
   onDelete?: (id: number) => void;
   onArchive?: (id: number) => void;
   onGenerateSessions: (therapyId: number, from: string, to: string) => void;
@@ -218,8 +280,17 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onArchive, on
         </Space>
       }
       extra={
-        (onDelete || onArchive) ? (
-          hasInteraction ? (
+        (onEdit || onDelete || onArchive) ? (
+          <Space size={0}>
+          {onEdit && (
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={() => onEdit(therapy)}
+              title="Bearbeiten"
+            />
+          )}
+          {hasInteraction ? (
             onArchive && <Button
               type="text"
               icon={<ContainerOutlined />}
@@ -246,7 +317,8 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onArchive, on
                 });
               }}
             />
-          )
+          )}
+          </Space>
         ) : undefined
       }
     >
@@ -299,12 +371,13 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onArchive, on
 // ─── Therapy List ────────────────────────────────────────────────
 
 export default function TherapyList({ therapies, archivedTherapies, sessionsByTherapy, fetchSessions,
-  onDelete, onArchive, onGenerateSessions, onUpdateSession, onDeleteSession, onSendInvoice,
+  onEdit, onDelete, onArchive, onGenerateSessions, onUpdateSession, onDeleteSession, onSendInvoice,
   showNewForm, newForm }: {
   therapies: Therapy[];
   archivedTherapies: Therapy[];
   sessionsByTherapy: Record<number, TherapySession[]>;
   fetchSessions: (therapyId: number) => void;
+  onEdit?: (therapy: Therapy) => void;
   onDelete: (id: number) => void;
   onArchive: (id: number) => void;
   onGenerateSessions: (therapyId: number, from: string, to: string) => void;
@@ -333,6 +406,7 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
                 therapy={t}
                 sessions={sessionsByTherapy[t.id] || []}
                 fetchSessions={fetchSessions}
+                onEdit={onEdit}
                 onDelete={onDelete}
                 onArchive={onArchive}
                 onGenerateSessions={onGenerateSessions}

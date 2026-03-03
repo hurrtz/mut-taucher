@@ -163,10 +163,12 @@ export default function AdminPage() {
   };
 
   const [showNewGroup, setShowNewGroup] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<typeof groups[number] | null>(null);
   const [editingClientId, setEditingClientId] = useState<number | null>(null);
   const [showNewClient, setShowNewClient] = useState(false);
   const [showNewTherapy, setShowNewTherapy] = useState(false);
   const [newTherapyClientId, setNewTherapyClientId] = useState<number | undefined>();
+  const [editingTherapy, setEditingTherapy] = useState<typeof therapies[number] | null>(null);
   const [showCancellationModal, setShowCancellationModal] = useState(false);
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -462,22 +464,29 @@ export default function AdminPage() {
         {activeTab === 'einzel' && (
           <div>
             <Modal
-              title="Neue Therapie"
-              open={showNewTherapy}
-              onCancel={() => { setShowNewTherapy(false); setNewTherapyClientId(undefined); }}
+              title={editingTherapy ? 'Therapie bearbeiten' : 'Neue Therapie'}
+              open={showNewTherapy || !!editingTherapy}
+              onCancel={() => { setShowNewTherapy(false); setNewTherapyClientId(undefined); setEditingTherapy(null); }}
               footer={null}
               destroyOnClose
               width={720}
             >
               <TherapyForm
+                key={editingTherapy?.id ?? 'new'}
                 clients={clients}
                 initialClientId={newTherapyClientId}
+                initial={editingTherapy ?? undefined}
                 onSave={async (data) => {
-                  await addTherapy(data);
+                  if (editingTherapy) {
+                    await updateTherapy(editingTherapy.id, data);
+                  } else {
+                    await addTherapy(data);
+                  }
                   setShowNewTherapy(false);
                   setNewTherapyClientId(undefined);
+                  setEditingTherapy(null);
                 }}
-                onCancel={() => { setShowNewTherapy(false); setNewTherapyClientId(undefined); }}
+                onCancel={() => { setShowNewTherapy(false); setNewTherapyClientId(undefined); setEditingTherapy(null); }}
               />
             </Modal>
             <TherapyList
@@ -485,6 +494,7 @@ export default function AdminPage() {
               archivedTherapies={archivedTherapies}
               sessionsByTherapy={sessionsByTherapy}
               fetchSessions={fetchSessions}
+              onEdit={(therapy) => setEditingTherapy(therapy)}
               onDelete={removeTherapy}
               onArchive={async (id) => { await updateTherapy(id, { status: 'archived' }); await fetchArchivedTherapies(); }}
               onGenerateSessions={async (tid, from, to) => { await generateSessions(tid, from, to); }}
@@ -549,19 +559,26 @@ export default function AdminPage() {
         {activeTab === 'groups' && (
           <div>
             <Modal
-              title="Neue Gruppe"
-              open={showNewGroup}
-              onCancel={() => setShowNewGroup(false)}
+              title={editingGroup ? 'Gruppe bearbeiten' : 'Neue Gruppe'}
+              open={showNewGroup || !!editingGroup}
+              onCancel={() => { setShowNewGroup(false); setEditingGroup(null); }}
               footer={null}
               destroyOnClose
               width={720}
             >
               <GroupForm
+                key={editingGroup?.id ?? 'new'}
+                initial={editingGroup ?? undefined}
                 onSave={async (data) => {
-                  await addGroup(data);
+                  if (editingGroup) {
+                    await updateGroup(editingGroup.id, data);
+                  } else {
+                    await addGroup(data);
+                  }
                   setShowNewGroup(false);
+                  setEditingGroup(null);
                 }}
-                onCancel={() => setShowNewGroup(false)}
+                onCancel={() => { setShowNewGroup(false); setEditingGroup(null); }}
               />
             </Modal>
             <GroupManager
@@ -570,6 +587,7 @@ export default function AdminPage() {
               clients={clients}
               groupSessionsByGroup={groupSessionsByGroup}
               fetchGroupSessions={fetchGroupSessions}
+              onEdit={(group) => setEditingGroup(group)}
               onDelete={removeGroup}
               onArchive={async (id) => { await updateGroup(id, { status: 'archived' }); await fetchArchivedGroups(); }}
               onToggleHomepage={(id, current) => updateGroup(id, { showOnHomepage: !current })}

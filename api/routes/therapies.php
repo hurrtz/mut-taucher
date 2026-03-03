@@ -497,6 +497,18 @@ function handleUpdateSession(int $id): void {
         $fields[] = 'payment_paid_date = ?';
         $params[] = $input['paymentPaidDate'];
     }
+    if (isset($input['sessionDate'])) {
+        $fields[] = 'session_date = ?';
+        $params[] = $input['sessionDate'];
+    }
+    if (isset($input['sessionTime'])) {
+        $fields[] = 'session_time = ?';
+        $params[] = $input['sessionTime'];
+    }
+    if (isset($input['durationMinutes'])) {
+        $fields[] = 'duration_minutes = ?';
+        $params[] = (int)$input['durationMinutes'];
+    }
 
     if (empty($fields)) {
         http_response_code(400);

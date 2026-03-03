@@ -1,14 +1,15 @@
 import { useState, type FormEvent } from 'react';
-import type { Client, TherapyScheduleRule } from '../../lib/data';
+import type { Client, Therapy, TherapyScheduleRule } from '../../lib/data';
 import { DAY_LABELS_LONG } from '../constants';
 import { format } from 'date-fns';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Button, Col, DatePicker, Form, Input, InputNumber, Row, Select, Space, TimePicker } from 'antd';
 import dayjs from 'dayjs';
 
-export default function TherapyForm({ clients, initialClientId, onSave, onCancel }: {
+export default function TherapyForm({ clients, initialClientId, initial, onSave, onCancel }: {
   clients: Client[];
   initialClientId?: number;
+  initial?: Therapy;
   onSave: (data: {
     clientId: number; label: string; startDate: string; endDate?: string | null;
     sessionCostCents?: number; sessionDurationMinutes?: number; videoLink?: string;
@@ -17,15 +18,17 @@ export default function TherapyForm({ clients, initialClientId, onSave, onCancel
   onCancel?: () => void;
 }) {
   const [form, setForm] = useState({
-    clientId: initialClientId ?? 0,
-    label: '',
-    startDate: format(new Date(), 'yyyy-MM-dd'),
-    endDate: '',
-    sessionCostCents: 12000,
-    sessionDurationMinutes: 60,
-    videoLink: '',
-    notes: '',
-    schedule: [{ dayOfWeek: 1, frequency: 'weekly' as 'weekly' | 'biweekly', time: '10:00' }],
+    clientId: initial?.clientId ?? initialClientId ?? 0,
+    label: initial?.label ?? '',
+    startDate: initial?.startDate ?? format(new Date(), 'yyyy-MM-dd'),
+    endDate: initial?.endDate ?? '',
+    sessionCostCents: initial?.sessionCostCents ?? 12000,
+    sessionDurationMinutes: initial?.sessionDurationMinutes ?? 60,
+    videoLink: initial?.videoLink ?? '',
+    notes: initial?.notes ?? '',
+    schedule: initial?.schedule?.length
+      ? initial.schedule
+      : [{ dayOfWeek: 1, frequency: 'weekly' as 'weekly' | 'biweekly', time: '10:00' }],
   });
 
   const handleSubmit = (e: FormEvent) => {
@@ -69,6 +72,7 @@ export default function TherapyForm({ clients, initialClientId, onSave, onCancel
           <Select
             value={form.clientId}
             onChange={(value) => setForm({ ...form, clientId: value })}
+            disabled={!!initial}
             options={[
               { value: 0, label: 'Bitte wählen...' },
               ...clients.map(c => ({
@@ -183,7 +187,7 @@ export default function TherapyForm({ clients, initialClientId, onSave, onCancel
 
         <Space>
           <Button type="primary" htmlType="submit" disabled={!form.clientId}>
-            Therapie anlegen
+            {initial ? 'Speichern' : 'Therapie anlegen'}
           </Button>
           {onCancel && (
             <Button onClick={onCancel}>
