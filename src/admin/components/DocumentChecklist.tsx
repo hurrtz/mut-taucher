@@ -1,8 +1,8 @@
-import { useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useDocumentSends, DOCUMENT_DEFINITIONS, CATEGORY_LABELS } from '../../lib/useDocumentSends';
 import type { DocumentDefinition } from '../../lib/data';
 import { format } from 'date-fns';
-import { List, Button, Spin, Typography } from 'antd';
+import { List, Button, Spin, Typography, Collapse } from 'antd';
 import {
   CheckCircleFilled,
   MinusCircleOutlined,
@@ -14,9 +14,10 @@ import {
 
 const { Text } = Typography;
 
-export default function DocumentChecklist({ contextType, contextId }: {
+export default function DocumentChecklist({ contextType, contextId, onCompletionChange }: {
   contextType: 'client' | 'erstgespraech' | 'therapy' | 'group';
   contextId: number;
+  onCompletionChange?: (allDone: boolean) => void;
 }) {
   const { sending, fetchStatus, sendDocument, isSent, getSentAt } = useDocumentSends();
 
@@ -24,15 +25,29 @@ export default function DocumentChecklist({ contextType, contextId }: {
     if (contextId) fetchStatus(contextType, contextId);
   }, [contextType, contextId, fetchStatus]);
 
+  const defs = useMemo(() => DOCUMENT_DEFINITIONS[contextType] ?? [], [contextType]);
+
   const grouped = useMemo(() => {
-    const defs = DOCUMENT_DEFINITIONS[contextType] ?? [];
     const groups: Record<string, DocumentDefinition[]> = {};
     for (const doc of defs) {
       if (!groups[doc.category]) groups[doc.category] = [];
       groups[doc.category].push(doc);
     }
     return groups;
-  }, [contextType]);
+  }, [defs]);
+
+  const allDone = useMemo(() => {
+    if (defs.length === 0) return false;
+    return defs.every(doc => {
+      if (!isSent(doc.key)) return false;
+      if (doc.signedCounterpart && !isSent(doc.signedCounterpart)) return false;
+      return true;
+    });
+  }, [defs, isSent]);
+
+  useEffect(() => {
+    onCompletionChange?.(allDone);
+  }, [allDone, onCompletionChange]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -179,5 +194,31 @@ export default function DocumentChecklist({ contextType, contextId }: {
         </div>
       ))}
     </div>
+  );
+}
+
+export function DocumentCollapse({ contextType, contextId }: {
+  contextType: 'client' | 'erstgespraech' | 'therapy' | 'group';
+  contextId: number;
+}) {
+  const [allDone, setAllDone] = useState(false);
+  const handleCompletionChange = useCallback((done: boolean) => setAllDone(done), []);
+
+  return (
+    <Collapse
+      items={[{
+        key: 'docs',
+        label: <span style={{ color: allDone ? '#52c41a' : undefined }}>Dokumente</span>,
+        extra: allDone ? <CheckCircleFilled style={{ color: '#52c41a' }} /> : undefined,
+        children: (
+          <DocumentChecklist
+            contextType={contextType}
+            contextId={contextId}
+            onCompletionChange={handleCompletionChange}
+          />
+        ),
+      }]}
+      style={allDone ? { borderColor: '#b7eb8f' } : undefined}
+    />
   );
 }

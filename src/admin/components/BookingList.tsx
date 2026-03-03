@@ -1,14 +1,13 @@
-import { useState } from 'react';
 import type { AdminBooking } from '../../lib/useAdminBooking';
-import DocumentChecklist from './DocumentChecklist';
+import { DocumentCollapse } from './DocumentChecklist';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
-  Card, Button, Tag, Space, Typography, Tooltip, Collapse, Divider, Modal,
+  Card, Button, Tag, Space, Typography, Tooltip, Modal,
 } from 'antd';
 import {
   MailOutlined, CheckCircleOutlined, ClockCircleOutlined, UserAddOutlined,
-  CloseOutlined, CalendarOutlined, FileTextOutlined,
+  CloseOutlined, CalendarOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -19,8 +18,6 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onMigrate
   onSendEmail: (id: number, type: 'intro' | 'reminder') => void;
   onMigrateToClient: (bookingId: number) => void;
 }) {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-
   if (bookings.length === 0) {
     return (
       <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '24px 0' }}>
@@ -107,32 +104,9 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onMigrate
           </Space>
 
           {b.status === 'confirmed' && (
-            <>
-              <Divider style={{ margin: '12px 0 0' }} />
-              <Collapse
-                ghost
-                activeKey={expandedId === b.id ? ['docs'] : []}
-                onChange={keys =>
-                  setExpandedId(keys.includes('docs') ? b.id : null)
-                }
-                style={{ margin: '0 -12px' }}
-                items={[
-                  {
-                    key: 'docs',
-                    style: { paddingBottom: 0 },
-                    label: (
-                      <Space size={4}>
-                        <FileTextOutlined style={{ fontSize: 12 }} />
-                        <Text style={{ fontSize: 12 }}>Dokument-Checkliste</Text>
-                      </Space>
-                    ),
-                    children: (
-                      <DocumentChecklist contextType="erstgespraech" contextId={b.id} />
-                    ),
-                  },
-                ]}
-              />
-            </>
+            <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 12 }}>
+              <DocumentCollapse contextType="erstgespraech" contextId={b.id} />
+            </div>
           )}
         </Card>
       ))}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { TherapyGroup, Client, GroupSession } from '../../lib/data';
 import { DAY_LABELS } from '../constants';
 import { InlineCollapsible } from './CollapsibleSection';
-import DocumentChecklist from './DocumentChecklist';
+import { DocumentCollapse } from './DocumentChecklist';
 import { format, parseISO, addMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
 import dayjs from 'dayjs';
@@ -438,9 +438,7 @@ export default function GroupManager({ groups, clients, selectedGroupId, onSelec
             </div>
             {isSelected && (
               <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <InlineCollapsible title="Dokumente">
-                  <DocumentChecklist contextType="group" contextId={group.id} />
-                </InlineCollapsible>
+                <DocumentCollapse contextType="group" contextId={group.id} />
 
                 <InlineCollapsible
                   title="Teilnehmer"

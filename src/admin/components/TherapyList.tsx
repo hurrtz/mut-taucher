@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Therapy, TherapySession } from '../../lib/data';
 import { DAY_LABELS } from '../constants';
-import DocumentChecklist from './DocumentChecklist';
+import { DocumentCollapse } from './DocumentChecklist';
 import { format, parseISO, addMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
@@ -266,13 +266,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onGenerateSes
           onSendInvoice={onSendInvoice}
         />
 
-        <Collapse
-          items={[{
-            key: 'docs',
-            label: 'Dokumente',
-            children: <DocumentChecklist contextType="therapy" contextId={therapy.id} />,
-          }]}
-        />
+        <DocumentCollapse contextType="therapy" contextId={therapy.id} />
       </div>
     </Card>
   );

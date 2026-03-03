@@ -1,9 +1,8 @@
-import { useState } from 'react';
 import type { Client } from '../../lib/data';
-import DocumentChecklist from './DocumentChecklist';
+import { DocumentCollapse } from './DocumentChecklist';
 import { Link } from 'react-router-dom';
-import { PlusOutlined, EditOutlined, DeleteOutlined, FileTextOutlined, HistoryOutlined } from '@ant-design/icons';
-import { Card, Button, Tag, Space, Typography, Modal, Collapse } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, HistoryOutlined } from '@ant-design/icons';
+import { Card, Button, Tag, Space, Typography, Modal } from 'antd';
 
 export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
   clients: Client[];
@@ -11,7 +10,7 @@ export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: 
   onDelete: (id: number) => void;
   onNewTherapy: (clientId: number) => void;
 }) {
-  const [expandedDocId, setExpandedDocId] = useState<number | null>(null);
+
 
   if (clients.length === 0) {
     return (
@@ -80,26 +79,9 @@ export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: 
               {c.notes}
             </div>
           )}
-          <Collapse
-            ghost
-            activeKey={expandedDocId === c.id ? [`doc-${c.id}`] : []}
-            onChange={() => setExpandedDocId(expandedDocId === c.id ? null : c.id)}
-            style={{ marginTop: 8 }}
-            items={[
-              {
-                key: `doc-${c.id}`,
-                label: (
-                  <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>
-                    <FileTextOutlined style={{ marginRight: 4 }} />
-                    Dokumente
-                  </span>
-                ),
-                children: (
-                  <DocumentChecklist contextType="client" contextId={c.id} />
-                ),
-              },
-            ]}
-          />
+          <div style={{ marginTop: 8 }}>
+            <DocumentCollapse contextType="client" contextId={c.id} />
+          </div>
         </Card>
       ))}
     </Space>
