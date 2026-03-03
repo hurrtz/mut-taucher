@@ -1,16 +1,15 @@
 import type { Client } from '../../lib/data';
 import { DocumentCollapse } from './DocumentChecklist';
-import { Link } from 'react-router-dom';
-import { PlusOutlined, EditOutlined, DeleteOutlined, HistoryOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Card, Button, Tag, Space, Typography, Modal } from 'antd';
 
-export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: {
+export default function ClientList({ clients, onEdit, onDelete, selectedId, onSelect }: {
   clients: Client[];
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
-  onNewTherapy: (clientId: number) => void;
+  selectedId: number | null;
+  onSelect: (id: number) => void;
 }) {
-
 
   if (clients.length === 0) {
     return (
@@ -26,6 +25,9 @@ export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: 
         <Card
           key={c.id}
           size="default"
+          hoverable
+          onClick={() => onSelect(c.id)}
+          style={{ borderColor: selectedId === c.id ? '#2dd4bf' : undefined, cursor: 'pointer' }}
           title={
             <Space>
               <span>{c.lastName}, {c.firstName}</span>
@@ -33,16 +35,7 @@ export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: 
             </Space>
           }
           extra={
-            <Space size={0}>
-              <Link to={`/admin/client/${c.id}`} title="Verlauf">
-                <Button type="text" icon={<HistoryOutlined />} />
-              </Link>
-              <Button
-                type="text"
-                icon={<PlusOutlined />}
-                onClick={() => onNewTherapy(c.id)}
-                title="Neue Therapie"
-              />
+            <Space size={0} onClick={e => e.stopPropagation()}>
               <Button
                 type="text"
                 icon={<EditOutlined />}
@@ -82,7 +75,7 @@ export default function ClientList({ clients, onEdit, onDelete, onNewTherapy }: 
               {c.notes}
             </div>
           )}
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
             <DocumentCollapse contextType="client" contextId={c.id} />
           </div>
         </Card>

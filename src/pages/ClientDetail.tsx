@@ -48,10 +48,7 @@ function formatCents(cents: number): string {
   return (cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' €';
 }
 
-export default function ClientDetail() {
-  const { id } = useParams<{ id: string }>();
-  const clientId = Number(id);
-
+export function ClientHistoryPanel({ clientId }: { clientId: number }) {
   const [client, setClient] = useState<Client | null>(null);
   const [clientLoading, setClientLoading] = useState(true);
 
@@ -75,6 +72,116 @@ export default function ClientDetail() {
   useEffect(() => {
     if (clientId) fetchTimeline();
   }, [clientId, fetchTimeline]);
+
+  if (clientLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!client) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64 }}>
+        <Text type="secondary">Patient:in nicht gefunden.</Text>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Contact info card */}
+      <Card size="small">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, fontSize: 14 }}>
+          <div>
+            <Text type="secondary">E-Mail: </Text>
+            <a href={`mailto:${client.email}`}>{client.email}</a>
+          </div>
+          {client.phone && (
+            <div>
+              <Text type="secondary">Telefon: </Text>
+              <Text>{client.phone}</Text>
+            </div>
+          )}
+          {(client.street || client.city) && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <Text type="secondary">Adresse: </Text>
+              <Text>
+                {[client.street, [client.zip, client.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
+              </Text>
+            </div>
+          )}
+        </div>
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0', fontSize: 12, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          {client.therapyCount > 0 && <Text type="secondary">{client.therapyCount} Einzeltherapie{client.therapyCount !== 1 ? 'n' : ''}</Text>}
+          {client.groupCount > 0 && <Text type="secondary">{client.groupCount} Gruppe{client.groupCount !== 1 ? 'n' : ''}</Text>}
+          <Text type="secondary">Seit {formatDate(client.createdAt)}</Text>
+        </div>
+      </Card>
+
+      {/* Add note */}
+      <NoteForm onSubmit={addNote} />
+
+      {/* Upload document */}
+      <DocumentUploadForm onUpload={uploadDocument} />
+
+      {/* Timeline */}
+      <Card size="small" title="Verlauf">
+        {error && (
+          <Alert message={error} type="error" style={{ marginBottom: 16 }} />
+        )}
+
+        {events.length === 0 && !loading && (
+          <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: 16 }}>
+            Noch keine Einträge vorhanden.
+          </Text>
+        )}
+
+        <Timeline
+          events={events}
+          onUpdateNote={updateNote}
+          onDeleteNote={deleteNote}
+          onDeleteDocument={deleteDocument}
+        />
+
+        {events.length < total && (
+          <div style={{ padding: 16, borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+            <Button
+              type="link"
+              onClick={() => fetchTimeline(50, events.length, true)}
+              disabled={loading}
+            >
+              {loading ? 'Laden…' : 'Mehr laden…'}
+            </Button>
+          </div>
+        )}
+
+        {loading && events.length === 0 && (
+          <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
+            <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+export default function ClientDetail() {
+  const { id } = useParams<{ id: string }>();
+  const clientId = Number(id);
+
+  const [client, setClient] = useState<Client | null>(null);
+  const [clientLoading, setClientLoading] = useState(true);
+
+  useEffect(() => {
+    if (!clientId) return;
+    setClientLoading(true);
+    apiFetch<Client>(`/admin/clients/${clientId}`)
+      .then(setClient)
+      .catch(() => setClient(null))
+      .finally(() => setClientLoading(false));
+  }, [clientId]);
 
   if (clientLoading) {
     return (
@@ -115,78 +222,7 @@ export default function ClientDetail() {
           )}
         </Space>
 
-        {/* Contact info card */}
-        <Card size="small">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, fontSize: 14 }}>
-            <div>
-              <Text type="secondary">E-Mail: </Text>
-              <a href={`mailto:${client.email}`}>{client.email}</a>
-            </div>
-            {client.phone && (
-              <div>
-                <Text type="secondary">Telefon: </Text>
-                <Text>{client.phone}</Text>
-              </div>
-            )}
-            {(client.street || client.city) && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <Text type="secondary">Adresse: </Text>
-                <Text>
-                  {[client.street, [client.zip, client.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
-                </Text>
-              </div>
-            )}
-          </div>
-          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0', fontSize: 12, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-            {client.therapyCount > 0 && <Text type="secondary">{client.therapyCount} Einzeltherapie{client.therapyCount !== 1 ? 'n' : ''}</Text>}
-            {client.groupCount > 0 && <Text type="secondary">{client.groupCount} Gruppe{client.groupCount !== 1 ? 'n' : ''}</Text>}
-            <Text type="secondary">Seit {formatDate(client.createdAt)}</Text>
-          </div>
-        </Card>
-
-        {/* Add note */}
-        <NoteForm onSubmit={addNote} />
-
-        {/* Upload document */}
-        <DocumentUploadForm onUpload={uploadDocument} />
-
-        {/* Timeline */}
-        <Card size="small" title="Verlauf">
-          {error && (
-            <Alert message={error} type="error" style={{ marginBottom: 16 }} />
-          )}
-
-          {events.length === 0 && !loading && (
-            <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: 16 }}>
-              Noch keine Einträge vorhanden.
-            </Text>
-          )}
-
-          <Timeline
-            events={events}
-            onUpdateNote={updateNote}
-            onDeleteNote={deleteNote}
-            onDeleteDocument={deleteDocument}
-          />
-
-          {events.length < total && (
-            <div style={{ padding: 16, borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
-              <Button
-                type="link"
-                onClick={() => fetchTimeline(50, events.length, true)}
-                disabled={loading}
-              >
-                {loading ? 'Laden…' : 'Mehr laden…'}
-              </Button>
-            </div>
-          )}
-
-          {loading && events.length === 0 && (
-            <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
-              <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-            </div>
-          )}
-        </Card>
+        <ClientHistoryPanel clientId={clientId} />
       </div>
     </AdminShell>
   );

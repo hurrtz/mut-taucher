@@ -14,6 +14,7 @@ import CancellationModal from './components/CancellationModal';
 import BookingList from './components/BookingList';
 import ClientForm from './components/ClientForm';
 import ClientList from './components/ClientList';
+import { ClientHistoryPanel } from '../pages/ClientDetail';
 import TherapyForm from './components/TherapyForm';
 import TherapyList from './components/TherapyList';
 import GroupForm from './components/GroupForm';
@@ -95,6 +96,7 @@ export default function AdminPage() {
   const [calendarSubTab, setCalendarSubTab] = useState<'calendar' | 'rules'>('calendar');
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   // Load data on auth
   useEffect(() => {
     if (authenticated) {
@@ -129,13 +131,6 @@ export default function AdminPage() {
       setActiveTab('kunden');
     }
   }, [migrateBookingToClient]);
-
-  // Cross-tab navigation: new therapy from Patienten → switch to Einzel
-  const handleNewTherapyFromClient = useCallback((clientId: number) => {
-    setNewTherapyClientId(clientId);
-    setShowNewTherapy(true);
-    setActiveTab('einzel');
-  }, []);
 
   const combinedError = error || clientsError || therapiesError || groupsError || templatesError;
 
@@ -378,46 +373,63 @@ export default function AdminPage() {
 
         {activeTab === 'kunden' && (
           <div>
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
-              {showNewClient || editingClient ? (
-                <Card size="small">
-                  <Space style={{ marginBottom: 16 }}>
-                    {editingClient ? (
-                      <><EditOutlined style={{ fontSize: 20, color: '#2dd4bf' }} /> <Typography.Text strong style={{ fontSize: 16 }}>Patient:in bearbeiten</Typography.Text></>
-                    ) : (
-                      <><UserAddOutlined style={{ fontSize: 20, color: '#2dd4bf' }} /> <Typography.Text strong style={{ fontSize: 16 }}>Neue:r Patient:in</Typography.Text></>
-                    )}
-                  </Space>
-                  <ClientForm
-                    key={editingClientId ?? 'new'}
-                    initial={editingClient ?? undefined}
-                    onSave={async (data) => {
-                      if (editingClient) {
-                        await updateClient(editingClientId!, data);
-                      } else {
-                        await addClient(data);
-                      }
-                      setEditingClientId(null);
-                      setShowNewClient(false);
-                    }}
-                    onCancel={() => { setEditingClientId(null); setShowNewClient(false); }}
-                  />
-                </Card>
-              ) : (
-                <Button type="primary" icon={<UserAddOutlined />} onClick={() => setShowNewClient(true)}>
-                  Neue:r Patient:in
-                </Button>
-              )}
+            {showNewClient || editingClient ? (
+              <Card size="small" style={{ marginBottom: 24 }}>
+                <Space style={{ marginBottom: 16 }}>
+                  {editingClient ? (
+                    <><EditOutlined style={{ fontSize: 20, color: '#2dd4bf' }} /> <Typography.Text strong style={{ fontSize: 16 }}>Patient:in bearbeiten</Typography.Text></>
+                  ) : (
+                    <><UserAddOutlined style={{ fontSize: 20, color: '#2dd4bf' }} /> <Typography.Text strong style={{ fontSize: 16 }}>Neue:r Patient:in</Typography.Text></>
+                  )}
+                </Space>
+                <ClientForm
+                  key={editingClientId ?? 'new'}
+                  initial={editingClient ?? undefined}
+                  onSave={async (data) => {
+                    if (editingClient) {
+                      await updateClient(editingClientId!, data);
+                    } else {
+                      await addClient(data);
+                    }
+                    setEditingClientId(null);
+                    setShowNewClient(false);
+                  }}
+                  onCancel={() => { setEditingClientId(null); setShowNewClient(false); }}
+                />
+              </Card>
+            ) : null}
 
-              <div>
+            <div style={{ position: 'relative', marginBottom: 16 }}>
+              <Button
+                type="primary"
+                icon={<UserAddOutlined />}
+                onClick={() => setShowNewClient(true)}
+                style={{ position: 'absolute', right: 0, top: -60, zIndex: 1 }}
+              >
+                Neue:r Patient:in
+              </Button>
+            </div>
+
+            <Row gutter={24}>
+              <Col xs={24} lg={12}>
                 <ClientList
                   clients={clients}
                   onEdit={(id) => { setEditingClientId(id); setShowNewClient(false); }}
                   onDelete={removeClient}
-                  onNewTherapy={handleNewTherapyFromClient}
+                  selectedId={selectedClientId}
+                  onSelect={(id) => setSelectedClientId(prev => prev === id ? null : id)}
                 />
-              </div>
-            </Space>
+              </Col>
+              <Col xs={24} lg={12}>
+                {selectedClientId ? (
+                  <ClientHistoryPanel key={selectedClientId} clientId={selectedClientId} />
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 256, color: 'rgba(0,0,0,0.25)' }}>
+                    <Typography.Text type="secondary">Patient:in auswählen, um den Verlauf zu sehen</Typography.Text>
+                  </div>
+                )}
+              </Col>
+            </Row>
           </div>
         )}
 
