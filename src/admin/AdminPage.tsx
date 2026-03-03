@@ -482,9 +482,6 @@ export default function AdminPage() {
             {/* Sidebar: template list */}
             <Col xs={24} lg={6}>
               <Space direction="vertical" size={4} style={{ width: '100%', alignItems: 'flex-start' }}>
-                <Typography.Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'block' }}>
-                  Vorlagen
-                </Typography.Text>
                 {templates.map(t => (
                   <Button
                     key={t.key}
