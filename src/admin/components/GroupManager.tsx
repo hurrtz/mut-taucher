@@ -9,7 +9,7 @@ import dayjs from 'dayjs';
 import {
   SyncOutlined, CalendarOutlined, EuroCircleOutlined, VideoCameraOutlined,
   DeleteOutlined, HomeOutlined, CloseOutlined, CheckCircleOutlined, FileTextOutlined,
-  ContainerOutlined, PlusOutlined,
+  ContainerOutlined,
 } from '@ant-design/icons';
 import {
   Card, Button, Tag, Space, Typography, Modal, Select, Statistic,
@@ -555,7 +555,7 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
   onDelete, onArchive, onToggleHomepage, onAddParticipant, onRemoveParticipant,
   onGenerateSessions, onUpdateSession, onDeleteSession,
   onUpdatePayment, onBulkPay, onSendInvoice,
-  showNewForm, onToggleNewForm, newForm }: {
+  showNewForm, newForm }: {
   groups: TherapyGroup[];
   archivedGroups: TherapyGroup[];
   clients: Client[];
@@ -573,17 +573,13 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
   onBulkPay?: (groupId: number, clientId: number, count?: number | null) => void;
   onSendInvoice: (paymentId: number, groupId: number) => void;
   showNewForm: boolean;
-  onToggleNewForm: () => void;
   newForm: ReactNode;
 }) {
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ marginBottom: 12 }}>
           <Text strong style={{ fontSize: 16 }}>Aktive Gruppen ({groups.length})</Text>
-          <Button size="small" icon={<PlusOutlined />} onClick={onToggleNewForm}>
-            Neue Gruppe
-          </Button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {showNewForm && newForm}

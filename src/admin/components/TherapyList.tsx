@@ -8,7 +8,7 @@ import { de } from 'date-fns/locale';
 import {
   SyncOutlined, CalendarOutlined, EuroCircleOutlined,
   VideoCameraOutlined, DeleteOutlined, CheckCircleOutlined,
-  FileTextOutlined, ContainerOutlined, PlusOutlined,
+  FileTextOutlined, ContainerOutlined,
 } from '@ant-design/icons';
 import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse } from 'antd';
 import type { ReactNode } from 'react';
@@ -300,7 +300,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onArchive, on
 
 export default function TherapyList({ therapies, archivedTherapies, sessionsByTherapy, fetchSessions,
   onDelete, onArchive, onGenerateSessions, onUpdateSession, onDeleteSession, onSendInvoice,
-  showNewForm, onToggleNewForm, newForm }: {
+  showNewForm, newForm }: {
   therapies: Therapy[];
   archivedTherapies: Therapy[];
   sessionsByTherapy: Record<number, TherapySession[]>;
@@ -312,17 +312,13 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
   onDeleteSession: (id: number, therapyId: number) => void;
   onSendInvoice: (id: number) => void;
   showNewForm: boolean;
-  onToggleNewForm: () => void;
   newForm: ReactNode;
 }) {
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ marginBottom: 12 }}>
           <Typography.Title level={5} style={{ margin: 0 }}>Aktive Therapien ({therapies.length})</Typography.Title>
-          <Button size="small" icon={<PlusOutlined />} onClick={onToggleNewForm}>
-            Neue Therapie
-          </Button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {showNewForm && newForm}

@@ -199,7 +199,30 @@ export default function AdminPage() {
       onLogout={logout}
     >
       <div style={{ maxWidth: 1280 }}>
-        <Title style={{ marginBottom: 24 }}>{sectionTitles[activeTab]}</Title>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <Title style={{ margin: 0 }}>{sectionTitles[activeTab]}</Title>
+          {activeTab === 'rules' && (
+            <Space>
+              <Button type="primary" icon={<ScheduleOutlined />} onClick={() => setShowRuleModal(true)}>neuer Regeltermin</Button>
+              <Button type="primary" icon={<ScheduleOutlined />} onClick={() => setShowEventModal(true)}>neuer Einzeltermin</Button>
+            </Space>
+          )}
+          {activeTab === 'einzel' && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowNewTherapy(!showNewTherapy)}>
+              Neue Therapie
+            </Button>
+          )}
+          {activeTab === 'groups' && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowNewGroup(!showNewGroup)}>
+              Neue Gruppe
+            </Button>
+          )}
+          {activeTab === 'kunden' && (
+            <Button type="primary" icon={<UserAddOutlined />} onClick={() => setShowNewClient(true)}>
+              Neue:r Patient:in
+            </Button>
+          )}
+        </div>
 
         {combinedError && (
           <Alert message={combinedError} type="error" showIcon closable style={{ marginBottom: 16 }} />
@@ -216,12 +239,6 @@ export default function AdminPage() {
             <Tabs
               activeKey={calendarSubTab}
               onChange={(key) => setCalendarSubTab(key as 'calendar' | 'rules')}
-              tabBarExtraContent={
-                <Space>
-                  <Button icon={<ScheduleOutlined />} onClick={() => setShowRuleModal(true)}>neuer Regeltermin</Button>
-                  <Button icon={<ScheduleOutlined />} onClick={() => setShowEventModal(true)}>neuer Einzeltermin</Button>
-                </Space>
-              }
               items={[
                 {
                   key: 'calendar',
@@ -348,7 +365,6 @@ export default function AdminPage() {
               onDeleteSession={(id, tid) => removeSession(id, tid)}
               onSendInvoice={sendInvoice}
               showNewForm={showNewTherapy}
-              onToggleNewForm={() => setShowNewTherapy(!showNewTherapy)}
               newForm={
                 <Card size="small">
                   <Space style={{ marginBottom: 16 }}>
@@ -399,17 +415,6 @@ export default function AdminPage() {
               </Card>
             ) : null}
 
-            <div style={{ position: 'relative', marginBottom: 16 }}>
-              <Button
-                type="primary"
-                icon={<UserAddOutlined />}
-                onClick={() => setShowNewClient(true)}
-                style={{ position: 'absolute', right: 0, top: -60, zIndex: 1 }}
-              >
-                Neue:r Patient:in
-              </Button>
-            </div>
-
             <Row gutter={24}>
               <Col xs={24} lg={12}>
                 <ClientList
@@ -453,7 +458,6 @@ export default function AdminPage() {
               onBulkPay={bulkPayGroupPayments}
               onSendInvoice={(pid, gid) => sendGroupInvoice(pid, gid)}
               showNewForm={showNewGroup}
-              onToggleNewForm={() => setShowNewGroup(!showNewGroup)}
               newForm={
                 <Card size="small">
                   <Space style={{ marginBottom: 16 }}>
