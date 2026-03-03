@@ -7,6 +7,7 @@ let initialized = false;
 export function initAnalytics(): void {
   if (initialized) return;
   if (getConsent() !== 'accepted') return;
+  if (location.hostname === 'localhost' || location.pathname.startsWith('/admin')) return;
 
   const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
   if (!apiKey) return;

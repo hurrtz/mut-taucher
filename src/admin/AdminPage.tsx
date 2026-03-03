@@ -24,7 +24,7 @@ import TherapyList from './components/TherapyList';
 import GroupForm from './components/GroupForm';
 import GroupManager from './components/GroupManager';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, Input, Button, Alert, Spin, Space, Typography, Row, Col, Badge, Tabs, Modal } from 'antd';
 import {
   CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
@@ -95,14 +95,36 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>('rules');
+  const { section } = useParams<{ section?: string }>();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const sectionToTab: Record<string, TabKey> = {
+    kalender: 'rules', erstgespraeche: 'erstgespraeche', einzel: 'einzel',
+    kunden: 'kunden', gruppen: 'groups', dokumente: 'dokumente', arbeitsmappe: 'arbeitsmappe',
+  };
+  const tabToSection: Record<TabKey, string> = {
+    rules: 'kalender', erstgespraeche: 'erstgespraeche', einzel: 'einzel',
+    kunden: 'kunden', groups: 'gruppen', dokumente: 'dokumente', arbeitsmappe: 'arbeitsmappe',
+  };
+
+  const activeTab = (section && sectionToTab[section]) || 'rules';
+  const calendarSubTab = (['kalender', 'regeln'].includes(searchParams.get('tab') ?? '') ? searchParams.get('tab') as string : 'kalender') as 'kalender' | 'regeln';
+
+  const setActiveTab = (tab: TabKey) => {
+    navigate(`/admin/${tabToSection[tab]}`, { replace: true });
+  };
+
+  const setCalendarSubTab = (sub: 'kalender' | 'regeln') => {
+    setSearchParams({ tab: sub }, { replace: true });
+  };
+
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [editingClientId, setEditingClientId] = useState<number | null>(null);
   const [showNewClient, setShowNewClient] = useState(false);
   const [showNewTherapy, setShowNewTherapy] = useState(false);
   const [newTherapyClientId, setNewTherapyClientId] = useState<number | undefined>();
   const [showCancellationModal, setShowCancellationModal] = useState(false);
-  const [calendarSubTab, setCalendarSubTab] = useState<'calendar' | 'rules'>('calendar');
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
@@ -258,10 +280,10 @@ export default function AdminPage() {
           <>
             <Tabs
               activeKey={calendarSubTab}
-              onChange={(key) => setCalendarSubTab(key as 'calendar' | 'rules')}
+              onChange={(key) => setCalendarSubTab(key as 'kalender' | 'regeln')}
               items={[
                 {
-                  key: 'calendar',
+                  key: 'kalender',
                   label: 'Kalender',
                   children: (
                     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
@@ -296,7 +318,7 @@ export default function AdminPage() {
                   ),
                 },
                 {
-                  key: 'rules',
+                  key: 'regeln',
                   label: `Aktive Regeln (${rules.length})`,
                   children: rules.length === 0 && !loading ? (
                     <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '32px 0' }}>

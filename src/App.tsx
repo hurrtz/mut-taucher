@@ -75,6 +75,7 @@ function App() {
         <Route path="/impressum" element={<Impressum />} />
         <Route path="/agb" element={<AGB />} />
         <Route path="/admin" element={<AdminSuspense><Admin /></AdminSuspense>} />
+        <Route path="/admin/:section" element={<AdminSuspense><Admin /></AdminSuspense>} />
         <Route path="/admin/client/:id" element={<AdminSuspense><ClientDetail /></AdminSuspense>} />
       </Routes>
       <ConsentBanner />
