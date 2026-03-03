@@ -578,15 +578,13 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
 }) {
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Card
-        size="small"
-        title={`Aktive Gruppen (${groups.length})`}
-        extra={
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <Text strong style={{ fontSize: 16 }}>Aktive Gruppen ({groups.length})</Text>
           <Button size="small" icon={<PlusOutlined />} onClick={onToggleNewForm}>
             Neue Gruppe
           </Button>
-        }
-      >
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {showNewForm && newForm}
           {groups.length === 0 ? (
@@ -616,10 +614,11 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
             ))
           )}
         </div>
-      </Card>
+      </div>
 
       {archivedGroups.length > 0 && (
-        <Card size="small" title={`Archivierte Gruppen (${archivedGroups.length})`}>
+        <div>
+          <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 12 }}>Archivierte Gruppen ({archivedGroups.length})</Text>
           <Collapse
             items={archivedGroups.map(group => ({
               key: String(group.id),
@@ -646,7 +645,7 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
               ),
             }))}
           />
-        </Card>
+        </div>
       )}
     </Space>
   );

@@ -317,15 +317,13 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
 }) {
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Card
-        size="small"
-        title={`Aktive Therapien (${therapies.length})`}
-        extra={
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <Typography.Title level={5} style={{ margin: 0 }}>Aktive Therapien ({therapies.length})</Typography.Title>
           <Button size="small" icon={<PlusOutlined />} onClick={onToggleNewForm}>
             Neue Therapie
           </Button>
-        }
-      >
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {showNewForm && newForm}
           {therapies.length === 0 ? (
@@ -349,10 +347,11 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
             ))
           )}
         </div>
-      </Card>
+      </div>
 
       {archivedTherapies.length > 0 && (
-        <Card size="small" title={`Archivierte Therapien (${archivedTherapies.length})`}>
+        <div>
+          <Typography.Title level={5} style={{ marginBottom: 12 }}>Archivierte Therapien ({archivedTherapies.length})</Typography.Title>
           <Collapse
             items={archivedTherapies.map(t => ({
               key: String(t.id),
@@ -375,7 +374,7 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
               ),
             }))}
           />
-        </Card>
+        </div>
       )}
     </Space>
   );
