@@ -54,6 +54,7 @@ function handleGetRules(): void {
                 'frequency' => $d['frequency'],
             ], $rule['days']),
             'exceptions'      => $rule['exceptions'],
+            'category'        => $rule['category'] ?? 'erstgespraech',
         ];
     }, $rules);
 
@@ -72,15 +73,16 @@ function handleCreateRule(): void {
     $db->beginTransaction();
     try {
         $stmt = $db->prepare(
-            'INSERT INTO recurring_rules (label, time, duration_minutes, start_date, end_date)
-             VALUES (?, ?, ?, ?, ?)'
+            'INSERT INTO recurring_rules (label, time, duration_minutes, start_date, end_date, category)
+             VALUES (?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $input['label'] ?? '',
             $input['time'],
-            $input['durationMinutes'] ?? 50,
+            $input['durationMinutes'] ?? 60,
             $input['startDate'],
             $input['endDate'] ?: null,
+            $input['category'] ?? 'erstgespraech',
         ]);
         $ruleId = $db->lastInsertId();
 
@@ -111,15 +113,16 @@ function handleUpdateRule(int $id): void {
     $db->beginTransaction();
     try {
         $stmt = $db->prepare(
-            'UPDATE recurring_rules SET label = ?, time = ?, duration_minutes = ?, start_date = ?, end_date = ?
+            'UPDATE recurring_rules SET label = ?, time = ?, duration_minutes = ?, start_date = ?, end_date = ?, category = ?
              WHERE id = ?'
         );
         $stmt->execute([
             $input['label'] ?? '',
             $input['time'],
-            $input['durationMinutes'] ?? 50,
+            $input['durationMinutes'] ?? 60,
             $input['startDate'],
             $input['endDate'] ?: null,
+            $input['category'] ?? 'erstgespraech',
             $id,
         ]);
 
@@ -215,6 +218,7 @@ function handleGetEvents(): void {
         'date'            => $e['event_date'],
         'time'            => $e['time'],
         'durationMinutes' => (int)$e['duration_minutes'],
+        'category'        => $e['category'] ?? 'erstgespraech',
     ], $events);
 
     echo json_encode(array_values($result));
@@ -239,13 +243,14 @@ function handleCreateEvent(): void {
     }
 
     $stmt = $db->prepare(
-        'INSERT INTO events (label, event_date, time, duration_minutes) VALUES (?, ?, ?, ?)'
+        'INSERT INTO events (label, event_date, time, duration_minutes, category) VALUES (?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $input['label'] ?? '',
         $date,
         $time,
-        $input['durationMinutes'] ?? 50,
+        $input['durationMinutes'] ?? 60,
+        $input['category'] ?? 'erstgespraech',
     ]);
 
     echo json_encode(['id' => (int)$db->lastInsertId(), 'message' => 'Einzeltermin angelegt']);
@@ -606,4 +611,390 @@ function handleDocumentStatus(): void {
 function handleDocumentRegistry(): void {
     requireAuth();
     echo json_encode(DocumentRegistry::getAll());
+}
+
+// ─── Calendar Sessions ──────────────────────────────────────────
+
+/**
+ * GET /api/admin/calendar-sessions?from=&to=
+ * Returns therapy + group sessions for calendar display.
+ */
+function handleGetCalendarSessions(): void {
+    requireAuth();
+    $from = $_GET['from'] ?? '';
+    $to   = $_GET['to']   ?? '';
+
+    if (!$from || !$to) {
+        http_response_code(400);
+        echo json_encode(['error' => 'from und to sind erforderlich']);
+        return;
+    }
+
+    $db = getDB();
+
+    $sql = "
+        SELECT 'einzeltherapie' AS category, ts.session_date AS sessionDate, ts.session_time AS sessionTime,
+               ts.duration_minutes AS durationMinutes, t.label, ts.status, ts.id AS sessionId, t.id AS sourceId
+        FROM therapy_sessions ts
+        JOIN therapies t ON ts.therapy_id = t.id
+        WHERE ts.session_date BETWEEN ? AND ? AND ts.status != 'cancelled'
+        UNION ALL
+        SELECT 'gruppentherapie', gs.session_date, gs.session_time,
+               gs.duration_minutes, tg.label, gs.status, gs.id, tg.id
+        FROM group_sessions gs
+        JOIN therapy_groups tg ON gs.group_id = tg.id
+        WHERE gs.session_date BETWEEN ? AND ? AND gs.status != 'cancelled'
+        ORDER BY sessionDate ASC, sessionTime ASC
+    ";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$from, $to, $from, $to]);
+    $rows = $stmt->fetchAll();
+
+    $result = array_map(fn($r) => [
+        'category'        => $r['category'],
+        'sessionDate'     => $r['sessionDate'],
+        'sessionTime'     => $r['sessionTime'],
+        'durationMinutes' => (int)$r['durationMinutes'],
+        'label'           => $r['label'],
+        'status'          => $r['status'],
+        'sessionId'       => (int)$r['sessionId'],
+        'sourceId'        => (int)$r['sourceId'],
+    ], $rows);
+
+    echo json_encode(array_values($result));
+}
+
+// ─── Block Day ──────────────────────────────────────────────────
+
+/**
+ * POST /api/admin/calendar/block-day
+ * Blocks an entire day: adds exceptions to all schedules, cancels all sessions.
+ */
+function handleBlockDay(): void {
+    requireAuth();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $date = $input['date'] ?? '';
+    $reason = $input['reason'] ?? '';
+
+    if (!$date) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Datum erforderlich']);
+        return;
+    }
+
+    $db = getDB();
+    $cancelled = [];
+
+    $db->beginTransaction();
+    try {
+        // 1. Insert into blocked_days
+        $stmt = $db->prepare('INSERT IGNORE INTO blocked_days (block_date, reason) VALUES (?, ?)');
+        $stmt->execute([$date, $reason]);
+
+        // 2. Add exceptions for all active recurring_rules
+        $rules = $db->query('SELECT id FROM recurring_rules')->fetchAll();
+        $excStmt = $db->prepare('INSERT IGNORE INTO rule_exceptions (rule_id, exception_date) VALUES (?, ?)');
+        foreach ($rules as $rule) {
+            $excStmt->execute([$rule['id'], $date]);
+        }
+
+        // 3. Add exceptions for all active therapies
+        $therapies = $db->query("SELECT id FROM therapies WHERE status = 'active'")->fetchAll();
+        $therapyExcStmt = $db->prepare('INSERT IGNORE INTO therapy_schedule_exceptions (therapy_id, exception_date) VALUES (?, ?)');
+        foreach ($therapies as $therapy) {
+            $therapyExcStmt->execute([$therapy['id'], $date]);
+        }
+
+        // 4. Add exceptions for all active groups
+        $groups = $db->query("SELECT id FROM therapy_groups WHERE status = 'active'")->fetchAll();
+        $groupExcStmt = $db->prepare('INSERT IGNORE INTO group_schedule_exceptions (group_id, exception_date) VALUES (?, ?)');
+        foreach ($groups as $group) {
+            $groupExcStmt->execute([$group['id'], $date]);
+        }
+
+        // 5. Cancel bookings on that date
+        $bookingStmt = $db->prepare(
+            "SELECT b.id, b.booking_date, b.booking_time, b.client_first_name, b.client_last_name, b.client_email
+             FROM bookings b WHERE b.booking_date = ? AND b.status != 'cancelled'"
+        );
+        $bookingStmt->execute([$date]);
+        $bookings = $bookingStmt->fetchAll();
+        foreach ($bookings as $b) {
+            $cancelled[] = [
+                'type' => 'erstgespraech',
+                'id' => (int)$b['id'],
+                'date' => $b['booking_date'],
+                'time' => $b['booking_time'],
+                'clientName' => trim($b['client_first_name'] . ' ' . $b['client_last_name']),
+                'clientEmail' => $b['client_email'],
+            ];
+        }
+        $db->prepare("DELETE FROM bookings WHERE booking_date = ?")->execute([$date]);
+
+        // 6. Cancel therapy sessions
+        $tsStmt = $db->prepare(
+            "SELECT ts.id AS session_id, t.id AS therapy_id, ts.session_date, ts.session_time,
+                    t.label, c.first_name, c.last_name, c.email
+             FROM therapy_sessions ts
+             JOIN therapies t ON ts.therapy_id = t.id
+             JOIN clients c ON t.client_id = c.id
+             WHERE ts.session_date = ? AND ts.status != 'cancelled'"
+        );
+        $tsStmt->execute([$date]);
+        $therapySessions = $tsStmt->fetchAll();
+        foreach ($therapySessions as $ts) {
+            $cancelled[] = [
+                'type' => 'einzeltherapie',
+                'id' => (int)$ts['therapy_id'],
+                'sessionId' => (int)$ts['session_id'],
+                'date' => $ts['session_date'],
+                'time' => $ts['session_time'],
+                'label' => $ts['label'],
+                'clientName' => trim($ts['first_name'] . ' ' . $ts['last_name']),
+                'clientEmail' => $ts['email'],
+            ];
+        }
+        $db->prepare("UPDATE therapy_sessions SET status = 'cancelled' WHERE session_date = ? AND status != 'cancelled'")->execute([$date]);
+
+        // 7. Cancel group sessions
+        $gsStmt = $db->prepare(
+            "SELECT gs.id AS session_id, tg.id AS group_id, gs.session_date, gs.session_time, tg.label
+             FROM group_sessions gs
+             JOIN therapy_groups tg ON gs.group_id = tg.id
+             WHERE gs.session_date = ? AND gs.status != 'cancelled'"
+        );
+        $gsStmt->execute([$date]);
+        $groupSessions = $gsStmt->fetchAll();
+        foreach ($groupSessions as $gs) {
+            // Get participants
+            $partStmt = $db->prepare(
+                "SELECT c.first_name, c.last_name, c.email
+                 FROM group_participants gp JOIN clients c ON gp.client_id = c.id
+                 WHERE gp.group_id = ? AND gp.status = 'active'"
+            );
+            $partStmt->execute([$gs['group_id']]);
+            $participants = array_map(fn($p) => [
+                'name' => trim($p['first_name'] . ' ' . $p['last_name']),
+                'email' => $p['email'],
+            ], $partStmt->fetchAll());
+
+            $cancelled[] = [
+                'type' => 'gruppentherapie',
+                'id' => (int)$gs['group_id'],
+                'sessionId' => (int)$gs['session_id'],
+                'date' => $gs['session_date'],
+                'time' => $gs['session_time'],
+                'label' => $gs['label'],
+                'participants' => $participants,
+            ];
+        }
+        $db->prepare("UPDATE group_sessions SET status = 'cancelled' WHERE session_date = ? AND status != 'cancelled'")->execute([$date]);
+
+        $db->commit();
+    } catch (\Exception $e) {
+        $db->rollBack();
+        throw $e;
+    }
+
+    echo json_encode(['cancelled' => $cancelled]);
+}
+
+/**
+ * DELETE /api/admin/calendar/block-day
+ * Removes a blocked day (does NOT undo cancellations).
+ */
+function handleUnblockDay(): void {
+    requireAuth();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $date = $input['date'] ?? '';
+
+    if (!$date) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Datum erforderlich']);
+        return;
+    }
+
+    $db = getDB();
+    $db->prepare('DELETE FROM blocked_days WHERE block_date = ?')->execute([$date]);
+    echo json_encode(['message' => 'Tag entsperrt']);
+}
+
+/**
+ * GET /api/admin/calendar/blocked-days
+ * Returns all blocked dates.
+ */
+function handleGetBlockedDays(): void {
+    requireAuth();
+    $db = getDB();
+    $rows = $db->query('SELECT block_date, reason FROM blocked_days ORDER BY block_date ASC')->fetchAll();
+    $result = array_map(fn($r) => [
+        'date' => $r['block_date'],
+        'reason' => $r['reason'],
+    ], $rows);
+    echo json_encode(array_values($result));
+}
+
+/**
+ * POST /api/admin/calendar/cancel-session
+ * Cancels an individual therapy or group session.
+ */
+function handleCancelCalendarSession(): void {
+    requireAuth();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $type = $input['type'] ?? '';
+    $sessionId = (int)($input['sessionId'] ?? 0);
+
+    if (!in_array($type, ['einzeltherapie', 'gruppentherapie']) || !$sessionId) {
+        http_response_code(400);
+        echo json_encode(['error' => 'type und sessionId erforderlich']);
+        return;
+    }
+
+    $db = getDB();
+    $cancelled = null;
+
+    if ($type === 'einzeltherapie') {
+        $stmt = $db->prepare(
+            "SELECT ts.id AS session_id, t.id AS therapy_id, ts.session_date, ts.session_time,
+                    t.label, c.first_name, c.last_name, c.email
+             FROM therapy_sessions ts
+             JOIN therapies t ON ts.therapy_id = t.id
+             JOIN clients c ON t.client_id = c.id
+             WHERE ts.id = ? AND ts.status != 'cancelled'"
+        );
+        $stmt->execute([$sessionId]);
+        $ts = $stmt->fetch();
+        if ($ts) {
+            $db->prepare("UPDATE therapy_sessions SET status = 'cancelled' WHERE id = ?")->execute([$sessionId]);
+            $cancelled = [
+                'type' => 'einzeltherapie',
+                'id' => (int)$ts['therapy_id'],
+                'sessionId' => (int)$ts['session_id'],
+                'date' => $ts['session_date'],
+                'time' => $ts['session_time'],
+                'label' => $ts['label'],
+                'clientName' => trim($ts['first_name'] . ' ' . $ts['last_name']),
+                'clientEmail' => $ts['email'],
+            ];
+        }
+    } else {
+        $stmt = $db->prepare(
+            "SELECT gs.id AS session_id, tg.id AS group_id, gs.session_date, gs.session_time, tg.label
+             FROM group_sessions gs
+             JOIN therapy_groups tg ON gs.group_id = tg.id
+             WHERE gs.id = ? AND gs.status != 'cancelled'"
+        );
+        $stmt->execute([$sessionId]);
+        $gs = $stmt->fetch();
+        if ($gs) {
+            $db->prepare("UPDATE group_sessions SET status = 'cancelled' WHERE id = ?")->execute([$sessionId]);
+            $partStmt = $db->prepare(
+                "SELECT c.first_name, c.last_name, c.email
+                 FROM group_participants gp JOIN clients c ON gp.client_id = c.id
+                 WHERE gp.group_id = ? AND gp.status = 'active'"
+            );
+            $partStmt->execute([$gs['group_id']]);
+            $participants = array_map(fn($p) => [
+                'name' => trim($p['first_name'] . ' ' . $p['last_name']),
+                'email' => $p['email'],
+            ], $partStmt->fetchAll());
+
+            $cancelled = [
+                'type' => 'gruppentherapie',
+                'id' => (int)$gs['group_id'],
+                'sessionId' => (int)$gs['session_id'],
+                'date' => $gs['session_date'],
+                'time' => $gs['session_time'],
+                'label' => $gs['label'],
+                'participants' => $participants,
+            ];
+        }
+    }
+
+    if (!$cancelled) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Sitzung nicht gefunden oder bereits abgesagt']);
+        return;
+    }
+
+    echo json_encode(['cancelled' => $cancelled]);
+}
+
+/**
+ * POST /api/admin/calendar/send-cancellation-emails
+ * Sends cancellation emails for selected items.
+ */
+function handleSendCancellationEmails(): void {
+    requireAuth();
+    require_once __DIR__ . '/../lib/Mailer.php';
+    $config = require __DIR__ . '/../config.php';
+    $input = json_decode(file_get_contents('php://input'), true);
+    $items = $input['items'] ?? [];
+
+    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $siteUrl = $config['site_url'] ?? '';
+    $db = getDB();
+    $results = [];
+
+    foreach ($items as $item) {
+        $type = $item['type'] ?? '';
+        try {
+            if ($type === 'erstgespraech') {
+                $bookingId = (int)($item['id'] ?? 0);
+                $clientName = $item['clientName'] ?? '';
+                $clientEmail = $item['clientEmail'] ?? '';
+                $dateFormatted = date('d.m.Y', strtotime($item['date'] ?? ''));
+                $timeFormatted = $item['time'] ?? '';
+
+                ob_start();
+                include __DIR__ . '/../templates/email/cancellation_erstgespraech.php';
+                $htmlBody = ob_get_clean();
+
+                $mailer = new Mailer();
+                $mailer->send($clientEmail, $clientName, 'Terminabsage — ' . $therapistName, $htmlBody);
+                $results[] = ['type' => $type, 'id' => $bookingId, 'success' => true];
+
+            } elseif ($type === 'einzeltherapie') {
+                $sessionId = (int)($item['sessionId'] ?? 0);
+                $clientName = $item['clientName'] ?? '';
+                $clientEmail = $item['clientEmail'] ?? '';
+                $dateFormatted = date('d.m.Y', strtotime($item['date'] ?? ''));
+                $timeFormatted = $item['time'] ?? '';
+                $label = $item['label'] ?? '';
+
+                ob_start();
+                include __DIR__ . '/../templates/email/cancellation_einzeltherapie.php';
+                $htmlBody = ob_get_clean();
+
+                $mailer = new Mailer();
+                $mailer->send($clientEmail, $clientName, 'Terminabsage — ' . $therapistName, $htmlBody);
+                $results[] = ['type' => $type, 'sessionId' => $sessionId, 'success' => true];
+
+            } elseif ($type === 'gruppentherapie') {
+                $sessionId = (int)($item['sessionId'] ?? 0);
+                $dateFormatted = date('d.m.Y', strtotime($item['date'] ?? ''));
+                $timeFormatted = $item['time'] ?? '';
+                $label = $item['label'] ?? '';
+                $participants = $item['participants'] ?? [];
+
+                foreach ($participants as $p) {
+                    $clientName = $p['name'] ?? '';
+                    $clientEmail = $p['email'] ?? '';
+
+                    ob_start();
+                    include __DIR__ . '/../templates/email/cancellation_gruppentherapie.php';
+                    $htmlBody = ob_get_clean();
+
+                    $mailer = new Mailer();
+                    $mailer->send($clientEmail, $clientName, 'Gruppentherapie-Absage — ' . $therapistName, $htmlBody);
+                }
+                $results[] = ['type' => $type, 'sessionId' => $sessionId, 'success' => true];
+            }
+        } catch (\Exception $e) {
+            $results[] = ['type' => $type, 'id' => $item['id'] ?? $item['sessionId'] ?? 0, 'success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    echo json_encode(['results' => $results]);
 }

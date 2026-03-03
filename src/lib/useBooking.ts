@@ -59,6 +59,7 @@ export function generateSlots(
               durationMinutes: rule.durationMinutes,
               available: true,
               ruleId: rule.id,
+              category: rule.category,
             });
           }
         }
@@ -79,6 +80,7 @@ export function generateSlots(
         durationMinutes: event.durationMinutes,
         available: true,
         eventId: event.id,
+        category: event.category,
       });
     }
   }

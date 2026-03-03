@@ -1,8 +1,36 @@
 import { useState, useCallback } from 'react';
 import { apiFetch, setToken, clearToken, isAuthenticated as checkAuth, ApiError } from './api';
-import type { RecurringRule, DayConfig, Event } from './data';
+import type { RecurringRule, DayConfig, Event, EventCategory } from './data';
 
 // ─── Types ───────────────────────────────────────────────────────
+
+export interface CalendarSession {
+  category: 'einzeltherapie' | 'gruppentherapie';
+  sessionDate: string;
+  sessionTime: string;
+  durationMinutes: number;
+  label: string;
+  status: string;
+  sessionId: number;
+  sourceId: number;
+}
+
+export interface BlockedDay {
+  date: string;
+  reason: string;
+}
+
+export interface CancelledItem {
+  type: 'erstgespraech' | 'einzeltherapie' | 'gruppentherapie';
+  id: number;
+  sessionId?: number;
+  date: string;
+  time: string;
+  label?: string;
+  clientName?: string;
+  clientEmail?: string;
+  participants?: { name: string; email: string }[];
+}
 
 export interface AdminBooking {
   id: number;
@@ -30,6 +58,7 @@ interface ApiRule {
   endDate: string | null;
   days: DayConfig[];
   exceptions: string[];
+  category: EventCategory;
 }
 
 // Convert API rule format to frontend RecurringRule format
@@ -43,6 +72,7 @@ function apiRuleToRule(r: ApiRule): RecurringRule {
     endDate: r.endDate,
     days: r.days,
     exceptions: r.exceptions,
+    category: r.category ?? 'erstgespraech',
   };
 }
 
@@ -53,6 +83,9 @@ export function useAdminBooking() {
   const [rules, setRules] = useState<RecurringRule[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
+  const [calendarSessions, setCalendarSessions] = useState<CalendarSession[]>([]);
+  const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
+  const [pendingCancellations, setPendingCancellations] = useState<CancelledItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -234,11 +267,101 @@ export function useAdminBooking() {
     }
   }, []);
 
+  // ─── Calendar Sessions ─────────────────────────────────────────
+
+  const fetchCalendarSessions = useCallback(async (from: string, to: string) => {
+    setError(null);
+    try {
+      const data = await apiFetch<CalendarSession[]>(`/admin/calendar-sessions?from=${from}&to=${to}`);
+      setCalendarSessions(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Laden der Kalendersitzungen');
+    }
+  }, []);
+
+  // ─── Blocked Days ─────────────────────────────────────────────
+
+  const fetchBlockedDays = useCallback(async () => {
+    setError(null);
+    try {
+      const data = await apiFetch<BlockedDay[]>('/admin/calendar/blocked-days');
+      setBlockedDays(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Laden der gesperrten Tage');
+    }
+  }, []);
+
+  const blockDay = useCallback(async (date: string, reason?: string): Promise<CancelledItem[]> => {
+    setError(null);
+    try {
+      const { cancelled } = await apiFetch<{ cancelled: CancelledItem[] }>('/admin/calendar/block-day', {
+        method: 'POST',
+        body: JSON.stringify({ date, reason }),
+      });
+      setPendingCancellations(prev => [...prev, ...cancelled]);
+      await fetchBlockedDays();
+      await fetchRules();
+      return cancelled;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Sperren des Tages');
+      return [];
+    }
+  }, [fetchBlockedDays, fetchRules]);
+
+  const unblockDay = useCallback(async (date: string) => {
+    setError(null);
+    try {
+      await apiFetch('/admin/calendar/block-day', {
+        method: 'DELETE',
+        body: JSON.stringify({ date }),
+      });
+      await fetchBlockedDays();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Entsperren des Tages');
+    }
+  }, [fetchBlockedDays]);
+
+  const cancelCalendarSession = useCallback(async (type: 'einzeltherapie' | 'gruppentherapie', sessionId: number): Promise<CancelledItem | null> => {
+    setError(null);
+    try {
+      const { cancelled } = await apiFetch<{ cancelled: CancelledItem }>('/admin/calendar/cancel-session', {
+        method: 'POST',
+        body: JSON.stringify({ type, sessionId }),
+      });
+      setPendingCancellations(prev => [...prev, cancelled]);
+      return cancelled;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Absagen der Sitzung');
+      return null;
+    }
+  }, []);
+
+  const sendCancellationEmails = useCallback(async (items: CancelledItem[]) => {
+    setError(null);
+    try {
+      const result = await apiFetch<{ results: { type: string; success: boolean }[] }>('/admin/calendar/send-cancellation-emails', {
+        method: 'POST',
+        body: JSON.stringify({ items }),
+      });
+      return result.results;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Senden der Absage-E-Mails');
+      return [];
+    }
+  }, []);
+
+  const clearPendingCancellations = useCallback(() => {
+    setPendingCancellations([]);
+  }, []);
+
   return {
     authenticated,
     rules,
     events,
     bookings,
+    calendarSessions,
+    blockedDays,
+    pendingCancellations,
     loading,
     error,
     login,
@@ -254,5 +377,12 @@ export function useAdminBooking() {
     fetchBookings,
     updateBooking,
     sendEmail,
+    fetchCalendarSessions,
+    fetchBlockedDays,
+    blockDay,
+    unblockDay,
+    cancelCalendarSession,
+    sendCancellationEmails,
+    clearPendingCancellations,
   };
 }

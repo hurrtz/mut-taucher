@@ -8,13 +8,14 @@ import {
   List,
   Modal,
   Radio,
+  Select,
   TimePicker,
   Typography,
 } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import type { Event } from '../../lib/data';
-import { DURATION_OPTIONS } from '../constants';
+import type { Event, EventCategory } from '../../lib/data';
+import { DURATION_OPTIONS, CATEGORY_OPTIONS } from '../constants';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -25,25 +26,28 @@ export default function EventForm({ onSave }: { onSave: (data: Omit<Event, 'id'>
     label: '',
     date: format(new Date(), 'yyyy-MM-dd'),
     time: '10:00',
-    durationMinutes: 50,
+    durationMinutes: 60,
     customDuration: '' as string | number,
+    category: 'erstgespraech' as EventCategory,
   });
 
   const handleSubmit = () => {
     const duration =
-      form.durationMinutes === 0 ? Number(form.customDuration) || 50 : form.durationMinutes;
+      form.durationMinutes === 0 ? Number(form.customDuration) || 60 : form.durationMinutes;
     onSave({
       label: form.label,
       date: form.date,
       time: form.time,
       durationMinutes: duration,
+      category: form.category,
     });
     setForm({
       label: '',
       date: format(new Date(), 'yyyy-MM-dd'),
       time: '10:00',
-      durationMinutes: 50,
+      durationMinutes: 60,
       customDuration: '',
+      category: 'erstgespraech',
     });
   };
 
@@ -54,6 +58,15 @@ export default function EventForm({ onSave }: { onSave: (data: Omit<Event, 'id'>
           value={form.label}
           onChange={e => setForm({ ...form, label: e.target.value })}
           placeholder="z.B. Sondertermin"
+        />
+      </Form.Item>
+
+      <Form.Item label="Kategorie" style={{ marginBottom: 0 }}>
+        <Select
+          value={form.category}
+          onChange={(val: EventCategory) => setForm({ ...form, category: val })}
+          options={CATEGORY_OPTIONS}
+          style={{ width: '100%' }}
         />
       </Form.Item>
 

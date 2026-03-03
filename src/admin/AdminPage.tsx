@@ -11,6 +11,7 @@ import RuleForm from './components/RuleForm';
 import RuleCard from './components/RuleCard';
 import EventForm, { EventList } from './components/EventForm';
 import CalendarPreview from './components/CalendarPreview';
+import CancellationModal from './components/CancellationModal';
 import BookingList from './components/BookingList';
 import ClientForm from './components/ClientForm';
 import ClientList from './components/ClientList';
@@ -18,13 +19,15 @@ import TherapyForm from './components/TherapyForm';
 import TherapyList from './components/TherapyList';
 import GroupForm from './components/GroupForm';
 import GroupManager from './components/GroupManager';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Tabs, Card, Input, Button, Alert, Spin, Space, Typography, Row, Col } from 'antd';
+import { Tabs, Card, Input, Button, Alert, Spin, Space, Typography, Row, Col, Badge } from 'antd';
 import {
   CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
   VideoCameraOutlined, SyncOutlined, LogoutOutlined,
   HomeOutlined, BarChartOutlined, LinkOutlined,
   PlusOutlined, EditOutlined, ScheduleOutlined, UserAddOutlined,
+  SendOutlined,
 } from '@ant-design/icons';
 
 const { Title } = Typography;
@@ -45,10 +48,13 @@ export default function AdminPage() {
   }, []);
 
   const {
-    authenticated, rules, events, bookings, loading, error,
+    authenticated, rules, events, bookings, calendarSessions, blockedDays,
+    pendingCancellations, loading, error,
     login, logout, fetchRules, addRule, updateRule, removeRule,
     toggleException, fetchEvents, addEvent, removeEvent,
     fetchBookings, updateBooking, sendEmail,
+    fetchCalendarSessions, fetchBlockedDays, blockDay, unblockDay, cancelCalendarSession,
+    sendCancellationEmails, clearPendingCancellations,
   } = useAdminBooking();
 
   const {
@@ -87,6 +93,7 @@ export default function AdminPage() {
   const [showNewClient, setShowNewClient] = useState(false);
   const [showNewTherapy, setShowNewTherapy] = useState(false);
   const [newTherapyClientId, setNewTherapyClientId] = useState<number | undefined>();
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
   // Load data on auth
   useEffect(() => {
     if (authenticated) {
@@ -99,8 +106,9 @@ export default function AdminPage() {
       fetchTherapies();
       fetchArchivedTherapies();
       fetchTemplates();
+      fetchBlockedDays();
     }
-  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchArchivedGroups, fetchClients, fetchTherapies, fetchArchivedTherapies, fetchTemplates]);
+  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchArchivedGroups, fetchClients, fetchTherapies, fetchArchivedTherapies, fetchTemplates, fetchBlockedDays]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -306,11 +314,35 @@ export default function AdminPage() {
 
             {/* Right: Calendar Preview */}
             <Col xs={24} lg={16}>
-              <CalendarPreview
-                rules={rules}
-                events={events}
-                onToggleException={toggleException}
-              />
+              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <CalendarPreview
+                  rules={rules}
+                  events={events}
+                  onToggleException={toggleException}
+                  calendarSessions={calendarSessions}
+                  blockedDays={blockedDays}
+                  onBlockDay={async (date) => { await blockDay(date); await fetchCalendarSessions(format(startOfMonth(new Date()), 'yyyy-MM-dd'), format(endOfMonth(new Date()), 'yyyy-MM-dd')); }}
+                  onUnblockDay={async (date) => { await unblockDay(date); }}
+                  onCancelSession={async (type, sessionId) => { await cancelCalendarSession(type, sessionId); }}
+                  onMonthChange={(from, to) => fetchCalendarSessions(from, to)}
+                />
+                {pendingCancellations.length > 0 && (
+                  <Badge count={pendingCancellations.length}>
+                    <Button
+                      icon={<SendOutlined />}
+                      onClick={() => setShowCancellationModal(true)}
+                    >
+                      Absagen verwalten
+                    </Button>
+                  </Badge>
+                )}
+                <CancellationModal
+                  items={pendingCancellations}
+                  open={showCancellationModal}
+                  onClose={() => { setShowCancellationModal(false); clearPendingCancellations(); }}
+                  onSendEmails={sendCancellationEmails}
+                />
+              </Space>
             </Col>
           </Row>
         )}

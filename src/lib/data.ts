@@ -15,6 +15,8 @@ export interface DayConfig {
   frequency: 'weekly' | 'biweekly';
 }
 
+export type EventCategory = 'erstgespraech' | 'einzeltherapie' | 'gruppentherapie' | 'andere';
+
 export interface RecurringRule {
   id: string;
   label: string;              // e.g. "Montags Vormittag"
@@ -24,6 +26,7 @@ export interface RecurringRule {
   startDate: string;          // ISO date rule begins
   endDate: string | null;     // null = indefinite
   exceptions: string[];       // cancelled ISO dates
+  category: EventCategory;
 }
 
 export interface Event {
@@ -32,6 +35,7 @@ export interface Event {
   date: string;               // ISO date
   time: string;               // "HH:MM"
   durationMinutes: number;
+  category: EventCategory;
 }
 
 export interface Slot {
@@ -42,6 +46,7 @@ export interface Slot {
   available: boolean;
   ruleId?: string;            // links back to generating rule
   eventId?: number;           // links back to one-off event
+  category?: EventCategory;
 }
 
 export interface Article {

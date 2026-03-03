@@ -201,6 +201,11 @@ if ($method === 'PATCH' && preg_match('#^/admin/group-session-payments/(\d+)$#',
     exit;
 }
 
+if ($method === 'POST' && $uri === '/admin/group-session-payments/bulk-pay') {
+    handleBulkPayGroupPayments();
+    exit;
+}
+
 if ($method === 'POST' && preg_match('#^/admin/group-session-payments/(\d+)/invoice$#', $uri, $m)) {
     handleSendGroupInvoice((int)$m[1]);
     exit;
@@ -337,6 +342,37 @@ if ($method === 'DELETE' && preg_match('#^/admin/sessions/(\d+)$#', $uri, $m)) {
 
 if ($method === 'POST' && preg_match('#^/admin/sessions/(\d+)/invoice$#', $uri, $m)) {
     handleSendInvoice((int)$m[1]);
+    exit;
+}
+
+// Admin: calendar sessions & blocked days
+if ($method === 'GET' && $uri === '/admin/calendar-sessions') {
+    handleGetCalendarSessions();
+    exit;
+}
+
+if ($method === 'POST' && $uri === '/admin/calendar/block-day') {
+    handleBlockDay();
+    exit;
+}
+
+if ($method === 'DELETE' && $uri === '/admin/calendar/block-day') {
+    handleUnblockDay();
+    exit;
+}
+
+if ($method === 'GET' && $uri === '/admin/calendar/blocked-days') {
+    handleGetBlockedDays();
+    exit;
+}
+
+if ($method === 'POST' && $uri === '/admin/calendar/cancel-session') {
+    handleCancelCalendarSession();
+    exit;
+}
+
+if ($method === 'POST' && $uri === '/admin/calendar/send-cancellation-emails') {
+    handleSendCancellationEmails();
     exit;
 }
 

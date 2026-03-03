@@ -12,8 +12,8 @@ import {
   Space,
   TimePicker,
 } from 'antd';
-import type { RecurringRule, DayConfig } from '../../lib/data';
-import { DAY_LABELS, DURATION_OPTIONS } from '../constants';
+import type { RecurringRule, DayConfig, EventCategory } from '../../lib/data';
+import { DAY_LABELS, DURATION_OPTIONS, CATEGORY_OPTIONS } from '../constants';
 
 export interface RuleFormData {
   label: string;
@@ -24,6 +24,7 @@ export interface RuleFormData {
   startDate: string;
   endDate: string;
   indefinite: boolean;
+  category: EventCategory;
 }
 
 import { format } from 'date-fns';
@@ -31,7 +32,7 @@ import { format } from 'date-fns';
 export const emptyForm = (): RuleFormData => ({
   label: '',
   time: '10:00',
-  durationMinutes: 50,
+  durationMinutes: 60,
   customDuration: '',
   days: Object.fromEntries(
     [1, 2, 3, 4, 5, 6, 7].map(d => [d, { enabled: false, frequency: 'weekly' as const }])
@@ -39,6 +40,7 @@ export const emptyForm = (): RuleFormData => ({
   startDate: format(new Date(), 'yyyy-MM-dd'),
   endDate: '',
   indefinite: true,
+  category: 'erstgespraech',
 });
 
 export function ruleToForm(rule: RecurringRule): RuleFormData {
@@ -57,6 +59,7 @@ export function ruleToForm(rule: RecurringRule): RuleFormData {
     startDate: rule.startDate,
     endDate: rule.endDate ?? '',
     indefinite: !rule.endDate,
+    category: rule.category ?? 'erstgespraech',
   };
 }
 
@@ -78,7 +81,7 @@ export default function RuleForm({ initial, onSave, onCancel }: {
     const dayConfigs = formToDayConfigs(form.days);
     if (dayConfigs.length === 0) return;
 
-    const duration = form.durationMinutes === 0 ? Number(form.customDuration) || 50 : form.durationMinutes;
+    const duration = form.durationMinutes === 0 ? Number(form.customDuration) || 60 : form.durationMinutes;
     onSave({
       label: form.label || dayConfigs.map(d => DAY_LABELS[d.dayOfWeek]).join(', '),
       time: form.time,
@@ -86,6 +89,7 @@ export default function RuleForm({ initial, onSave, onCancel }: {
       days: dayConfigs,
       startDate: form.startDate,
       endDate: form.indefinite ? null : (form.endDate || null),
+      category: form.category,
     });
     if (!initial) setForm(emptyForm());
   };
@@ -116,6 +120,16 @@ export default function RuleForm({ initial, onSave, onCancel }: {
             value={form.label}
             onChange={e => setForm({ ...form, label: e.target.value })}
             placeholder="z.B. Montags Vormittag"
+          />
+        </Form.Item>
+
+        {/* Kategorie */}
+        <Form.Item label="Kategorie" colon={false} style={{ marginBottom: 0 }}>
+          <Select
+            value={form.category}
+            onChange={(val: EventCategory) => setForm({ ...form, category: val })}
+            options={CATEGORY_OPTIONS}
+            style={{ width: '100%' }}
           />
         </Form.Item>
 
