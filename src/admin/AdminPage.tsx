@@ -481,7 +481,7 @@ export default function AdminPage() {
           <Row gutter={24}>
             {/* Sidebar: template list */}
             <Col xs={24} lg={6}>
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              <Space direction="vertical" size={4} style={{ width: '100%', alignItems: 'flex-start' }}>
                 <Typography.Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'block' }}>
                   Vorlagen
                 </Typography.Text>
@@ -491,7 +491,7 @@ export default function AdminPage() {
                     type={activeTemplate?.key === t.key ? 'primary' : 'text'}
                     ghost={activeTemplate?.key === t.key}
                     block
-                    style={{ textAlign: 'left' }}
+                    style={{ textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
                     onClick={() => fetchTemplate(t.key)}
                   >
                     {t.label}
@@ -503,8 +503,7 @@ export default function AdminPage() {
             {/* Editor */}
             <Col xs={24} lg={18}>
               {activeTemplate ? (
-                <Card size="small">
-                  <Typography.Title level={5} style={{ marginBottom: 16 }}>{activeTemplate.label}</Typography.Title>
+                <Card title={activeTemplate.label}>
                   <TemplateEditor
                     key={activeTemplate.key}
                     htmlContent={activeTemplate.htmlContent}
