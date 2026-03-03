@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
-import heroImage from '@/assets/hero.jpg';
+import heroMobile from '@/assets/hero.jpg';
+import heroDesktop from '@/assets/hero-desktop.jpeg';
 import { trackCtaClicked } from '../lib/analytics';
 
 export default function Hero() {
@@ -10,7 +11,7 @@ export default function Hero() {
       <section id="home" className="md:hidden flex flex-col">
         <div className="relative h-[60vh] overflow-hidden">
           <img
-            src={heroImage}
+            src={heroMobile}
             alt="Psychotherapeutin vor einer Wand mit Efeu"
             className="w-full h-full object-cover"
           />
@@ -61,7 +62,7 @@ export default function Hero() {
       <section className="relative h-screen hidden md:flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
-            src={heroImage}
+            src={heroDesktop}
             alt="Psychotherapeutin vor einer Wand mit Efeu"
             className="w-full h-full object-cover"
           />
