@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent, type ReactNode } from 'react';
-import { AdminShell } from '../admin/AdminLayout';
+
 import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { useClientHistory, type TimelineEvent } from '../lib/useClientHistory';
@@ -185,46 +185,40 @@ export default function ClientDetail() {
 
   if (clientLoading) {
     return (
-      <AdminShell>
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Spin size="large" />
-        </div>
-      </AdminShell>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64 }}>
+        <Spin size="large" />
+      </div>
     );
   }
 
   if (!client) {
     return (
-      <AdminShell>
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <Text type="secondary">Patient:in nicht gefunden.</Text>
-          <Link to="/admin">
-            <Button type="link" icon={<ArrowLeftOutlined />}>Zurück zur Übersicht</Button>
-          </Link>
-        </div>
-      </AdminShell>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 16 }}>
+        <Text type="secondary">Patient:in nicht gefunden.</Text>
+        <Link to="/admin/kunden">
+          <Button type="link" icon={<ArrowLeftOutlined />}>Zurück zur Übersicht</Button>
+        </Link>
+      </div>
     );
   }
 
   return (
-    <AdminShell>
-      <div style={{ maxWidth: 768, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {/* Header */}
-        <Space align="center">
-          <Link to="/admin">
-            <Button type="text" icon={<ArrowLeftOutlined />} />
-          </Link>
-          <Title level={4} style={{ margin: 0 }}>
-            {client.name}
-          </Title>
-          {client.status === 'archived' && (
-            <Tag>Archiviert</Tag>
-          )}
-        </Space>
+    <div style={{ maxWidth: 768, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Header */}
+      <Space align="center">
+        <Link to="/admin/kunden">
+          <Button type="text" icon={<ArrowLeftOutlined />} />
+        </Link>
+        <Title level={4} style={{ margin: 0 }}>
+          {client.name}
+        </Title>
+        {client.status === 'archived' && (
+          <Tag>Archiviert</Tag>
+        )}
+      </Space>
 
-        <ClientHistoryPanel clientId={clientId} />
-      </div>
-    </AdminShell>
+      <ClientHistoryPanel clientId={clientId} />
+    </div>
   );
 }
 

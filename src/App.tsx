@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Article from './pages/Article';
 import Service from './pages/Service';
@@ -10,8 +10,16 @@ import UeberMich from './pages/UeberMich';
 import ConsentBanner from './components/ConsentBanner';
 import { trackPageView } from './lib/analytics';
 
-const Admin = lazy(() => import('./pages/Admin'));
+const AdminLayout = lazy(() => import('./admin/AdminLayout'));
+const CalendarTab = lazy(() => import('./admin/tabs/CalendarTab'));
+const BookingsTab = lazy(() => import('./admin/tabs/BookingsTab'));
+const TherapiesTab = lazy(() => import('./admin/tabs/TherapiesTab'));
+const GroupsTab = lazy(() => import('./admin/tabs/GroupsTab'));
+const PatientsTab = lazy(() => import('./admin/tabs/PatientsTab'));
+const TemplatesTab = lazy(() => import('./admin/tabs/TemplatesTab'));
+const WorkbookTab = lazy(() => import('./admin/tabs/WorkbookTab'));
 const ClientDetail = lazy(() => import('./pages/ClientDetail'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 function AdminSuspense({ children }: { children: React.ReactNode }) {
   return (
@@ -74,9 +82,20 @@ function App() {
         <Route path="/datenschutz" element={<Datenschutz />} />
         <Route path="/impressum" element={<Impressum />} />
         <Route path="/agb" element={<AGB />} />
-        <Route path="/admin" element={<AdminSuspense><Admin /></AdminSuspense>} />
-        <Route path="/admin/:section" element={<AdminSuspense><Admin /></AdminSuspense>} />
-        <Route path="/admin/client/:id" element={<AdminSuspense><ClientDetail /></AdminSuspense>} />
+
+        <Route path="/admin" element={<AdminSuspense><AdminLayout /></AdminSuspense>}>
+          <Route index element={<Navigate to="kalender" replace />} />
+          <Route path="kalender" element={<CalendarTab />} />
+          <Route path="erstgespraeche" element={<BookingsTab />} />
+          <Route path="einzel" element={<TherapiesTab />} />
+          <Route path="gruppen" element={<GroupsTab />} />
+          <Route path="kunden" element={<PatientsTab />} />
+          <Route path="dokumente" element={<TemplatesTab />} />
+          <Route path="arbeitsmappe" element={<WorkbookTab />} />
+          <Route path="client/:id" element={<ClientDetail />} />
+        </Route>
+
+        <Route path="*" element={<AdminSuspense><NotFound /></AdminSuspense>} />
       </Routes>
       <ConsentBanner />
     </Router>
