@@ -114,12 +114,3 @@ function LoginForm({ onLogin }: { onLogin: (password: string) => Promise<boolean
     </div>
   );
 }
-
-/** Wrapper for screens that need Ant Design theme but are outside the admin layout */
-export function AdminShell({ children }: { children: React.ReactNode }) {
-  return (
-    <ConfigProvider theme={adminTheme} locale={deDE}>
-      {children}
-    </ConfigProvider>
-  );
-}
