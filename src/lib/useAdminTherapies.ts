@@ -4,6 +4,7 @@ import type { Therapy, TherapySession, TherapyScheduleRule } from './data';
 
 export function useAdminTherapies() {
   const [therapies, setTherapies] = useState<Therapy[]>([]);
+  const [archivedTherapies, setArchivedTherapies] = useState<Therapy[]>([]);
   const [sessionsByTherapy, setSessionsByTherapy] = useState<Record<number, TherapySession[]>>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -14,6 +15,15 @@ export function useAdminTherapies() {
       setTherapies(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Laden der Therapien');
+    }
+  }, []);
+
+  const fetchArchivedTherapies = useCallback(async () => {
+    try {
+      const data = await apiFetch<Therapy[]>('/admin/therapies?status=archived');
+      setArchivedTherapies(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Laden der archivierten Therapien');
     }
   }, []);
 
@@ -173,9 +183,11 @@ export function useAdminTherapies() {
 
   return {
     therapies,
+    archivedTherapies,
     sessionsByTherapy,
     error,
     fetchTherapies,
+    fetchArchivedTherapies,
     addTherapy,
     updateTherapy,
     removeTherapy,

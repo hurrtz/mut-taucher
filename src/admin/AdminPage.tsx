@@ -57,14 +57,14 @@ export default function AdminPage() {
   } = useAdminClients();
 
   const {
-    therapies, sessionsByTherapy, error: therapiesError,
-    fetchTherapies, addTherapy, updateTherapy, removeTherapy,
+    therapies, archivedTherapies, sessionsByTherapy, error: therapiesError,
+    fetchTherapies, fetchArchivedTherapies, addTherapy, updateTherapy, removeTherapy,
     fetchSessions, generateSessions, updateSession, removeSession, sendInvoice,
   } = useAdminTherapies();
 
   const {
-    groups, groupSessionsByGroup, error: groupsError,
-    fetchGroups, addGroup, updateGroup, removeGroup,
+    groups, archivedGroups, groupSessionsByGroup, error: groupsError,
+    fetchGroups, fetchArchivedGroups, addGroup, updateGroup, removeGroup,
     addParticipant, removeParticipant,
     fetchGroupSessions, generateGroupSessions,
     updateGroupSession, removeGroupSession,
@@ -94,11 +94,13 @@ export default function AdminPage() {
       fetchEvents();
       fetchBookings();
       fetchGroups();
+      fetchArchivedGroups();
       fetchClients();
       fetchTherapies();
+      fetchArchivedTherapies();
       fetchTemplates();
     }
-  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchClients, fetchTherapies, fetchTemplates]);
+  }, [authenticated, fetchRules, fetchEvents, fetchBookings, fetchGroups, fetchArchivedGroups, fetchClients, fetchTherapies, fetchArchivedTherapies, fetchTemplates]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -326,8 +328,20 @@ export default function AdminPage() {
 
         {activeTab === 'einzel' && (
           <div style={{ maxWidth: 896 }}>
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
-              {showNewTherapy ? (
+            <TherapyList
+              therapies={therapies}
+              archivedTherapies={archivedTherapies}
+              sessionsByTherapy={sessionsByTherapy}
+              fetchSessions={fetchSessions}
+              onDelete={removeTherapy}
+              onArchive={async (id) => { await updateTherapy(id, { status: 'archived' }); await fetchArchivedTherapies(); }}
+              onGenerateSessions={async (tid, from, to) => { await generateSessions(tid, from, to); }}
+              onUpdateSession={(id, updates) => updateSession(id, updates)}
+              onDeleteSession={(id, tid) => removeSession(id, tid)}
+              onSendInvoice={sendInvoice}
+              showNewForm={showNewTherapy}
+              onToggleNewForm={() => setShowNewTherapy(!showNewTherapy)}
+              newForm={
                 <Card size="small">
                   <Space style={{ marginBottom: 16 }}>
                     <PlusOutlined style={{ fontSize: 20, color: '#2dd4bf' }} />
@@ -344,24 +358,8 @@ export default function AdminPage() {
                     onCancel={() => { setShowNewTherapy(false); setNewTherapyClientId(undefined); }}
                   />
                 </Card>
-              ) : (
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowNewTherapy(true)}>
-                  Neue Therapie
-                </Button>
-              )}
-
-              <TherapyList
-                therapies={therapies}
-                sessionsByTherapy={sessionsByTherapy}
-                fetchSessions={fetchSessions}
-                onDelete={removeTherapy}
-                onArchive={(id) => updateTherapy(id, { status: 'archived' })}
-                onGenerateSessions={async (tid, from, to) => { await generateSessions(tid, from, to); }}
-                onUpdateSession={(id, updates) => updateSession(id, updates)}
-                onDeleteSession={(id, tid) => removeSession(id, tid)}
-                onSendInvoice={sendInvoice}
-              />
-            </Space>
+              }
+            />
           </div>
         )}
 
@@ -416,8 +414,25 @@ export default function AdminPage() {
 
         {activeTab === 'groups' && (
           <div style={{ maxWidth: 896 }}>
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
-              {showNewGroup ? (
+            <GroupManager
+              groups={groups}
+              archivedGroups={archivedGroups}
+              clients={clients}
+              groupSessionsByGroup={groupSessionsByGroup}
+              fetchGroupSessions={fetchGroupSessions}
+              onDelete={removeGroup}
+              onArchive={async (id) => { await updateGroup(id, { status: 'archived' }); await fetchArchivedGroups(); }}
+              onToggleHomepage={(id, current) => updateGroup(id, { showOnHomepage: !current })}
+              onAddParticipant={addParticipant}
+              onRemoveParticipant={removeParticipant}
+              onGenerateSessions={async (gid, from, to) => { await generateGroupSessions(gid, from, to); }}
+              onUpdateSession={(id, updates) => updateGroupSession(id, updates)}
+              onDeleteSession={(id, gid) => removeGroupSession(id, gid)}
+              onUpdatePayment={(pid, updates, gid) => updatePayment(pid, updates, gid)}
+              onSendInvoice={(pid, gid) => sendGroupInvoice(pid, gid)}
+              showNewForm={showNewGroup}
+              onToggleNewForm={() => setShowNewGroup(!showNewGroup)}
+              newForm={
                 <Card size="small">
                   <Space style={{ marginBottom: 16 }}>
                     <PlusOutlined style={{ fontSize: 20, color: '#2dd4bf' }} />
@@ -431,29 +446,8 @@ export default function AdminPage() {
                     onCancel={() => setShowNewGroup(false)}
                   />
                 </Card>
-              ) : (
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowNewGroup(true)}>
-                  Neue Gruppe
-                </Button>
-              )}
-
-              <GroupManager
-                groups={groups}
-                clients={clients}
-                groupSessionsByGroup={groupSessionsByGroup}
-                fetchGroupSessions={fetchGroupSessions}
-                onDelete={removeGroup}
-                onArchive={(id) => updateGroup(id, { status: 'archived' })}
-                onToggleHomepage={(id, current) => updateGroup(id, { showOnHomepage: !current })}
-                onAddParticipant={addParticipant}
-                onRemoveParticipant={removeParticipant}
-                onGenerateSessions={async (gid, from, to) => { await generateGroupSessions(gid, from, to); }}
-                onUpdateSession={(id, updates) => updateGroupSession(id, updates)}
-                onDeleteSession={(id, gid) => removeGroupSession(id, gid)}
-                onUpdatePayment={(pid, updates, gid) => updatePayment(pid, updates, gid)}
-                onSendInvoice={(pid, gid) => sendGroupInvoice(pid, gid)}
-              />
-            </Space>
+              }
+            />
           </div>
         )}
 

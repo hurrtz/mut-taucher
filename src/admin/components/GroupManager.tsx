@@ -9,12 +9,13 @@ import dayjs from 'dayjs';
 import {
   SyncOutlined, CalendarOutlined, EuroCircleOutlined, VideoCameraOutlined,
   DeleteOutlined, HomeOutlined, CloseOutlined, CheckCircleOutlined, FileTextOutlined,
-  ContainerOutlined,
+  ContainerOutlined, PlusOutlined,
 } from '@ant-design/icons';
 import {
   Card, Button, Tag, Space, Typography, Modal, Select, Statistic,
   Row, Col, DatePicker, Progress, Collapse,
 } from 'antd';
+import type { ReactNode } from 'react';
 
 const { Text } = Typography;
 
@@ -310,9 +311,9 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
   clients: Client[];
   sessions: GroupSession[];
   fetchSessions: (groupId: number) => void;
-  onDelete: (id: number) => void;
-  onArchive: (id: number) => void;
-  onToggleHomepage: (id: number, current: boolean) => void;
+  onDelete?: (id: number) => void;
+  onArchive?: (id: number) => void;
+  onToggleHomepage?: (id: number, current: boolean) => void;
   onAddParticipant: (groupId: number, clientId: number) => void;
   onRemoveParticipant: (groupId: number, clientId: number) => void;
   onGenerateSessions: (groupId: number, from: string, to: string) => void;
@@ -343,47 +344,51 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
         </Space>
       }
       extra={
-        <Space size={0}>
-          <Button
-            type="text"
-            icon={<HomeOutlined />}
-            onClick={() => onToggleHomepage(group.id, group.showOnHomepage)}
-            title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}
-            style={{ color: group.showOnHomepage ? '#f43f5e' : undefined }}
-          />
-          {hasInteraction ? (
-            <Button
-              type="text"
-              icon={<ContainerOutlined />}
-              onClick={() => {
-                Modal.confirm({
-                  title: `Gruppe "${group.label || 'Ohne Bezeichnung'}" archivieren?`,
-                  content: 'Die Gruppe hat Sitzungen mit Interaktionen und kann nicht gelöscht werden.',
-                  okText: 'Archivieren',
-                  cancelText: 'Abbrechen',
-                  onOk: () => onArchive(group.id),
-                });
-              }}
-              title="Archivieren"
-            />
-          ) : (
-            <Button
-              type="text"
-              icon={<DeleteOutlined />}
-              danger
-              onClick={() => {
-                Modal.confirm({
-                  title: `Gruppe "${group.label || 'Ohne Bezeichnung'}" wirklich löschen?`,
-                  okText: 'Löschen',
-                  cancelText: 'Abbrechen',
-                  okType: 'danger',
-                  onOk: () => onDelete(group.id),
-                });
-              }}
-              title="Löschen"
-            />
-          )}
-        </Space>
+        (onDelete || onArchive || onToggleHomepage) ? (
+          <Space size={0}>
+            {onToggleHomepage && (
+              <Button
+                type="text"
+                icon={<HomeOutlined />}
+                onClick={() => onToggleHomepage(group.id, group.showOnHomepage)}
+                title={group.showOnHomepage ? 'Von Homepage entfernen' : 'Auf Homepage anzeigen'}
+                style={{ color: group.showOnHomepage ? '#f43f5e' : undefined }}
+              />
+            )}
+            {hasInteraction ? (
+              onArchive && <Button
+                type="text"
+                icon={<ContainerOutlined />}
+                onClick={() => {
+                  Modal.confirm({
+                    title: `Gruppe "${group.label || 'Ohne Bezeichnung'}" archivieren?`,
+                    content: 'Die Gruppe hat Sitzungen mit Interaktionen und kann nicht gelöscht werden.',
+                    okText: 'Archivieren',
+                    cancelText: 'Abbrechen',
+                    onOk: () => onArchive(group.id),
+                  });
+                }}
+                title="Archivieren"
+              />
+            ) : (
+              onDelete && <Button
+                type="text"
+                icon={<DeleteOutlined />}
+                danger
+                onClick={() => {
+                  Modal.confirm({
+                    title: `Gruppe "${group.label || 'Ohne Bezeichnung'}" wirklich löschen?`,
+                    okText: 'Löschen',
+                    cancelText: 'Abbrechen',
+                    okType: 'danger',
+                    onOk: () => onDelete(group.id),
+                  });
+                }}
+                title="Löschen"
+              />
+            )}
+          </Space>
+        ) : undefined
       }
     >
       <div style={{ fontSize: 12 }}>
@@ -461,11 +466,13 @@ function GroupCard({ group, clients, sessions, fetchSessions, onDelete, onArchiv
 
 // ─── Group Manager ───────────────────────────────────────────────
 
-export default function GroupManager({ groups, clients, groupSessionsByGroup, fetchGroupSessions,
+export default function GroupManager({ groups, archivedGroups, clients, groupSessionsByGroup, fetchGroupSessions,
   onDelete, onArchive, onToggleHomepage, onAddParticipant, onRemoveParticipant,
   onGenerateSessions, onUpdateSession, onDeleteSession,
-  onUpdatePayment, onSendInvoice }: {
+  onUpdatePayment, onSendInvoice,
+  showNewForm, onToggleNewForm, newForm }: {
   groups: TherapyGroup[];
+  archivedGroups: TherapyGroup[];
   clients: Client[];
   groupSessionsByGroup: Record<number, GroupSession[]>;
   fetchGroupSessions: (groupId: number) => void;
@@ -479,38 +486,80 @@ export default function GroupManager({ groups, clients, groupSessionsByGroup, fe
   onDeleteSession: (id: number, groupId: number) => void;
   onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null }, groupId: number) => void;
   onSendInvoice: (paymentId: number, groupId: number) => void;
+  showNewForm: boolean;
+  onToggleNewForm: () => void;
+  newForm: ReactNode;
 }) {
-  if (groups.length === 0) {
-    return (
-      <Card>
-        <Text type="secondary" style={{ display: 'block', textAlign: 'center' }}>
-          Noch keine Gruppen angelegt.
-        </Text>
-      </Card>
-    );
-  }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {groups.map(group => (
-        <GroupCard
-          key={group.id}
-          group={group}
-          clients={clients}
-          sessions={groupSessionsByGroup[group.id] ?? []}
-          fetchSessions={fetchGroupSessions}
-          onDelete={onDelete}
-          onArchive={onArchive}
-          onToggleHomepage={onToggleHomepage}
-          onAddParticipant={onAddParticipant}
-          onRemoveParticipant={onRemoveParticipant}
-          onGenerateSessions={onGenerateSessions}
-          onUpdateSession={onUpdateSession}
-          onDeleteSession={onDeleteSession}
-          onUpdatePayment={onUpdatePayment}
-          onSendInvoice={onSendInvoice}
-        />
-      ))}
-    </div>
+    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Card
+        size="small"
+        title={`Aktive Gruppen (${groups.length})`}
+        extra={
+          <Button size="small" icon={<PlusOutlined />} onClick={onToggleNewForm}>
+            Neue Gruppe
+          </Button>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {showNewForm && newForm}
+          {groups.length === 0 ? (
+            <Text type="secondary" style={{ display: 'block', textAlign: 'center' }}>
+              Noch keine Gruppen angelegt.
+            </Text>
+          ) : (
+            groups.map(group => (
+              <GroupCard
+                key={group.id}
+                group={group}
+                clients={clients}
+                sessions={groupSessionsByGroup[group.id] ?? []}
+                fetchSessions={fetchGroupSessions}
+                onDelete={onDelete}
+                onArchive={onArchive}
+                onToggleHomepage={onToggleHomepage}
+                onAddParticipant={onAddParticipant}
+                onRemoveParticipant={onRemoveParticipant}
+                onGenerateSessions={onGenerateSessions}
+                onUpdateSession={onUpdateSession}
+                onDeleteSession={onDeleteSession}
+                onUpdatePayment={onUpdatePayment}
+                onSendInvoice={onSendInvoice}
+              />
+            ))
+          )}
+        </div>
+      </Card>
+
+      {archivedGroups.length > 0 && (
+        <Card size="small" title={`Archivierte Gruppen (${archivedGroups.length})`}>
+          <Collapse
+            items={archivedGroups.map(group => ({
+              key: String(group.id),
+              label: (
+                <Space>
+                  <span>{group.label || 'Ohne Bezeichnung'}</span>
+                </Space>
+              ),
+              children: (
+                <GroupCard
+                  group={group}
+                  clients={clients}
+                  sessions={groupSessionsByGroup[group.id] ?? []}
+                  fetchSessions={fetchGroupSessions}
+                  onAddParticipant={onAddParticipant}
+                  onRemoveParticipant={onRemoveParticipant}
+                  onGenerateSessions={onGenerateSessions}
+                  onUpdateSession={onUpdateSession}
+                  onDeleteSession={onDeleteSession}
+                  onUpdatePayment={onUpdatePayment}
+                  onSendInvoice={onSendInvoice}
+                />
+              ),
+            }))}
+          />
+        </Card>
+      )}
+    </Space>
   );
 }

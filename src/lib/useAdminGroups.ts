@@ -4,6 +4,7 @@ import type { TherapyGroup, GroupSession, TherapyScheduleRule } from './data';
 
 export function useAdminGroups() {
   const [groups, setGroups] = useState<TherapyGroup[]>([]);
+  const [archivedGroups, setArchivedGroups] = useState<TherapyGroup[]>([]);
   const [groupSessionsByGroup, setGroupSessionsByGroup] = useState<Record<number, GroupSession[]>>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -14,6 +15,15 @@ export function useAdminGroups() {
       setGroups(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Laden der Gruppen');
+    }
+  }, []);
+
+  const fetchArchivedGroups = useCallback(async () => {
+    try {
+      const data = await apiFetch<TherapyGroup[]>('/admin/groups?status=archived');
+      setArchivedGroups(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Laden der archivierten Gruppen');
     }
   }, []);
 
@@ -205,9 +215,11 @@ export function useAdminGroups() {
 
   return {
     groups,
+    archivedGroups,
     groupSessionsByGroup,
     error,
     fetchGroups,
+    fetchArchivedGroups,
     addGroup,
     updateGroup,
     removeGroup,

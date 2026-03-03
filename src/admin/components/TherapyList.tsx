@@ -8,9 +8,10 @@ import { de } from 'date-fns/locale';
 import {
   SyncOutlined, CalendarOutlined, EuroCircleOutlined,
   VideoCameraOutlined, DeleteOutlined, CheckCircleOutlined,
-  FileTextOutlined, ContainerOutlined,
+  FileTextOutlined, ContainerOutlined, PlusOutlined,
 } from '@ant-design/icons';
 import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse } from 'antd';
+import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
 
 // ─── Session Panel ───────────────────────────────────────────────
@@ -190,8 +191,8 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onArchive, on
   therapy: Therapy;
   sessions: TherapySession[];
   fetchSessions: (therapyId: number) => void;
-  onDelete: (id: number) => void;
-  onArchive: (id: number) => void;
+  onDelete?: (id: number) => void;
+  onArchive?: (id: number) => void;
   onGenerateSessions: (therapyId: number, from: string, to: string) => void;
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number, therapyId: number) => void;
@@ -217,34 +218,36 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onArchive, on
         </Space>
       }
       extra={
-        hasInteraction ? (
-          <Button
-            type="text"
-            icon={<ContainerOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: `Therapie "${therapy.label || 'Einzeltherapie'}" archivieren?`,
-                content: 'Die Therapie hat Sitzungen mit Interaktionen und kann nicht gelöscht werden.',
-                okText: 'Archivieren',
-                cancelText: 'Abbrechen',
-                onOk: () => onArchive(therapy.id),
-              });
-            }}
-            title="Archivieren"
-          />
-        ) : (
-          <Button
-            type="text"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: `Therapie "${therapy.label || 'Einzeltherapie'}" löschen?`,
-                onOk: () => onDelete(therapy.id),
-              });
-            }}
-          />
-        )
+        (onDelete || onArchive) ? (
+          hasInteraction ? (
+            onArchive && <Button
+              type="text"
+              icon={<ContainerOutlined />}
+              onClick={() => {
+                Modal.confirm({
+                  title: `Therapie "${therapy.label || 'Einzeltherapie'}" archivieren?`,
+                  content: 'Die Therapie hat Sitzungen mit Interaktionen und kann nicht gelöscht werden.',
+                  okText: 'Archivieren',
+                  cancelText: 'Abbrechen',
+                  onOk: () => onArchive(therapy.id),
+                });
+              }}
+              title="Archivieren"
+            />
+          ) : (
+            onDelete && <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => {
+                Modal.confirm({
+                  title: `Therapie "${therapy.label || 'Einzeltherapie'}" löschen?`,
+                  onOk: () => onDelete(therapy.id),
+                });
+              }}
+            />
+          )
+        ) : undefined
       }
     >
       <div style={{ fontSize: 12 }}>
@@ -295,9 +298,11 @@ function TherapyCard({ therapy, sessions, fetchSessions, onDelete, onArchive, on
 
 // ─── Therapy List ────────────────────────────────────────────────
 
-export default function TherapyList({ therapies, sessionsByTherapy, fetchSessions, onDelete, onArchive, onGenerateSessions,
-  onUpdateSession, onDeleteSession, onSendInvoice }: {
+export default function TherapyList({ therapies, archivedTherapies, sessionsByTherapy, fetchSessions,
+  onDelete, onArchive, onGenerateSessions, onUpdateSession, onDeleteSession, onSendInvoice,
+  showNewForm, onToggleNewForm, newForm }: {
   therapies: Therapy[];
+  archivedTherapies: Therapy[];
   sessionsByTherapy: Record<number, TherapySession[]>;
   fetchSessions: (therapyId: number) => void;
   onDelete: (id: number) => void;
@@ -306,33 +311,72 @@ export default function TherapyList({ therapies, sessionsByTherapy, fetchSession
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number, therapyId: number) => void;
   onSendInvoice: (id: number) => void;
+  showNewForm: boolean;
+  onToggleNewForm: () => void;
+  newForm: ReactNode;
 }) {
-  if (therapies.length === 0) {
-    return (
-      <Card>
-        <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center' }}>
-          Noch keine Therapien angelegt.
-        </Typography.Text>
-      </Card>
-    );
-  }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {therapies.map(t => (
-        <TherapyCard
-          key={t.id}
-          therapy={t}
-          sessions={sessionsByTherapy[t.id] || []}
-          fetchSessions={fetchSessions}
-          onDelete={onDelete}
-          onArchive={onArchive}
-          onGenerateSessions={onGenerateSessions}
-          onUpdateSession={onUpdateSession}
-          onDeleteSession={onDeleteSession}
-          onSendInvoice={onSendInvoice}
-        />
-      ))}
-    </div>
+    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Card
+        size="small"
+        title={`Aktive Therapien (${therapies.length})`}
+        extra={
+          <Button size="small" icon={<PlusOutlined />} onClick={onToggleNewForm}>
+            Neue Therapie
+          </Button>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {showNewForm && newForm}
+          {therapies.length === 0 ? (
+            <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center' }}>
+              Noch keine Therapien angelegt.
+            </Typography.Text>
+          ) : (
+            therapies.map(t => (
+              <TherapyCard
+                key={t.id}
+                therapy={t}
+                sessions={sessionsByTherapy[t.id] || []}
+                fetchSessions={fetchSessions}
+                onDelete={onDelete}
+                onArchive={onArchive}
+                onGenerateSessions={onGenerateSessions}
+                onUpdateSession={onUpdateSession}
+                onDeleteSession={onDeleteSession}
+                onSendInvoice={onSendInvoice}
+              />
+            ))
+          )}
+        </div>
+      </Card>
+
+      {archivedTherapies.length > 0 && (
+        <Card size="small" title={`Archivierte Therapien (${archivedTherapies.length})`}>
+          <Collapse
+            items={archivedTherapies.map(t => ({
+              key: String(t.id),
+              label: (
+                <Space>
+                  <span>{t.label || 'Einzeltherapie'}</span>
+                  <Typography.Text type="secondary" style={{ fontWeight: 'normal' }}>— {t.clientName}</Typography.Text>
+                </Space>
+              ),
+              children: (
+                <TherapyCard
+                  therapy={t}
+                  sessions={sessionsByTherapy[t.id] || []}
+                  fetchSessions={fetchSessions}
+                  onGenerateSessions={onGenerateSessions}
+                  onUpdateSession={onUpdateSession}
+                  onDeleteSession={onDeleteSession}
+                  onSendInvoice={onSendInvoice}
+                />
+              ),
+            }))}
+          />
+        </Card>
+      )}
+    </Space>
   );
 }
