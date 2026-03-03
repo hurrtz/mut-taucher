@@ -6,7 +6,6 @@ import { useAdminTherapies } from '../lib/useAdminTherapies';
 import { useAdminGroups } from '../lib/useAdminGroups';
 import { useAdminTemplates } from '../lib/useAdminTemplates';
 import TemplateEditor from '../components/TemplateEditor';
-import { CollapsibleSection } from './components/CollapsibleSection';
 import RuleForm from './components/RuleForm';
 import RuleCard from './components/RuleCard';
 import EventForm, { EventList } from './components/EventForm';
@@ -21,10 +20,10 @@ import GroupForm from './components/GroupForm';
 import GroupManager from './components/GroupManager';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Card, Input, Button, Alert, Spin, Space, Typography, Row, Col, Badge } from 'antd';
+import { Card, Input, Button, Alert, Spin, Space, Typography, Row, Col, Badge, Tabs, Modal } from 'antd';
 import {
   CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
-  VideoCameraOutlined, SyncOutlined,
+  VideoCameraOutlined,
   PlusOutlined, EditOutlined, ScheduleOutlined, UserAddOutlined,
   SendOutlined,
 } from '@ant-design/icons';
@@ -93,6 +92,9 @@ export default function AdminPage() {
   const [showNewTherapy, setShowNewTherapy] = useState(false);
   const [newTherapyClientId, setNewTherapyClientId] = useState<number | undefined>();
   const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [calendarSubTab, setCalendarSubTab] = useState<'calendar' | 'rules'>('calendar');
+  const [showRuleModal, setShowRuleModal] = useState(false);
+  const [showEventModal, setShowEventModal] = useState(false);
   // Load data on auth
   useEffect(() => {
     if (authenticated) {
@@ -215,50 +217,57 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'rules' && (
-          <Row gutter={24}>
-            {/* Left: Create / Edit Rule + Events */}
-            <Col xs={24} lg={8}>
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                {editingRule ? (
-                  <Card size="small">
-                    <Space style={{ marginBottom: 16 }}>
-                      <EditOutlined style={{ fontSize: 20, color: '#2dd4bf' }} />
-                      <Typography.Text strong style={{ fontSize: 16 }}>Regel bearbeiten</Typography.Text>
+          <>
+            <Tabs
+              activeKey={calendarSubTab}
+              onChange={(key) => setCalendarSubTab(key as 'calendar' | 'rules')}
+              tabBarExtraContent={
+                <Space>
+                  <Button icon={<ScheduleOutlined />} onClick={() => setShowRuleModal(true)}>neuer Regeltermin</Button>
+                  <Button icon={<ScheduleOutlined />} onClick={() => setShowEventModal(true)}>neuer Einzeltermin</Button>
+                </Space>
+              }
+              items={[
+                {
+                  key: 'calendar',
+                  label: 'Kalender',
+                  children: (
+                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                      <CalendarPreview
+                        rules={rules}
+                        events={events}
+                        onToggleException={toggleException}
+                        calendarSessions={calendarSessions}
+                        blockedDays={blockedDays}
+                        onBlockDay={async (date) => { await blockDay(date); await fetchCalendarSessions(format(startOfMonth(new Date()), 'yyyy-MM-dd'), format(endOfMonth(new Date()), 'yyyy-MM-dd')); }}
+                        onUnblockDay={async (date) => { await unblockDay(date); }}
+                        onCancelSession={async (type, sessionId) => { await cancelCalendarSession(type, sessionId); }}
+                        onMonthChange={(from, to) => fetchCalendarSessions(from, to)}
+                      />
+                      {pendingCancellations.length > 0 && (
+                        <Badge count={pendingCancellations.length}>
+                          <Button
+                            icon={<SendOutlined />}
+                            onClick={() => setShowCancellationModal(true)}
+                          >
+                            Absagen verwalten
+                          </Button>
+                        </Badge>
+                      )}
+                      <CancellationModal
+                        items={pendingCancellations}
+                        open={showCancellationModal}
+                        onClose={() => { setShowCancellationModal(false); clearPendingCancellations(); }}
+                        onSendEmails={sendCancellationEmails}
+                      />
                     </Space>
-                    <RuleForm
-                      key={editingRuleId}
-                      initial={editingRule}
-                      onSave={data => {
-                        updateRule(editingRuleId!, { ...data, exceptions: editingRule.exceptions });
-                        setEditingRuleId(null);
-                      }}
-                      onCancel={() => setEditingRuleId(null)}
-                    />
-                  </Card>
-                ) : (
-                  <CollapsibleSection
-                    title="Regeltermine anlegen"
-                    icon={<ScheduleOutlined style={{ fontSize: 20, color: '#2dd4bf' }} />}
-                  >
-                    <RuleForm onSave={addRule} />
-                  </CollapsibleSection>
-                )}
-
-                <CollapsibleSection
-                  title="Einzeltermin anlegen"
-                  icon={<ScheduleOutlined style={{ fontSize: 20, color: '#2dd4bf' }} />}
-                >
-                  <EventForm onSave={addEvent} />
-                  <EventList events={events} onDelete={removeEvent} />
-                </CollapsibleSection>
-
-                {/* Active Rules */}
-                <Card
-                  size="default"
-                  title={<span><SyncOutlined style={{ color: '#9ca3af', marginRight: 8 }} />Aktive Regeln ({rules.length})</span>}
-                >
-                  {rules.length === 0 && !loading ? (
-                    <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center' }}>
+                  ),
+                },
+                {
+                  key: 'rules',
+                  label: `Aktive Regeln (${rules.length})`,
+                  children: rules.length === 0 && !loading ? (
+                    <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '32px 0' }}>
                       Noch keine Regeln angelegt.
                     </Typography.Text>
                   ) : (
@@ -278,44 +287,45 @@ export default function AdminPage() {
                         />
                       ))}
                     </Space>
-                  )}
-                </Card>
-              </Space>
-            </Col>
+                  ),
+                },
+              ]}
+            />
 
-            {/* Right: Calendar Preview */}
-            <Col xs={24} lg={16}>
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <CalendarPreview
-                  rules={rules}
-                  events={events}
-                  onToggleException={toggleException}
-                  calendarSessions={calendarSessions}
-                  blockedDays={blockedDays}
-                  onBlockDay={async (date) => { await blockDay(date); await fetchCalendarSessions(format(startOfMonth(new Date()), 'yyyy-MM-dd'), format(endOfMonth(new Date()), 'yyyy-MM-dd')); }}
-                  onUnblockDay={async (date) => { await unblockDay(date); }}
-                  onCancelSession={async (type, sessionId) => { await cancelCalendarSession(type, sessionId); }}
-                  onMonthChange={(from, to) => fetchCalendarSessions(from, to)}
-                />
-                {pendingCancellations.length > 0 && (
-                  <Badge count={pendingCancellations.length}>
-                    <Button
-                      icon={<SendOutlined />}
-                      onClick={() => setShowCancellationModal(true)}
-                    >
-                      Absagen verwalten
-                    </Button>
-                  </Badge>
-                )}
-                <CancellationModal
-                  items={pendingCancellations}
-                  open={showCancellationModal}
-                  onClose={() => { setShowCancellationModal(false); clearPendingCancellations(); }}
-                  onSendEmails={sendCancellationEmails}
-                />
-              </Space>
-            </Col>
-          </Row>
+            <Modal
+              title={editingRule ? 'Regel bearbeiten' : 'Regeltermin anlegen'}
+              open={showRuleModal || !!editingRuleId}
+              onCancel={() => { setShowRuleModal(false); setEditingRuleId(null); }}
+              footer={null}
+              destroyOnClose
+            >
+              <RuleForm
+                key={editingRuleId ?? 'new'}
+                initial={editingRule}
+                onSave={data => {
+                  if (editingRule) {
+                    updateRule(editingRuleId!, { ...data, exceptions: editingRule.exceptions });
+                  } else {
+                    addRule(data);
+                  }
+                  setShowRuleModal(false);
+                  setEditingRuleId(null);
+                }}
+                onCancel={() => { setShowRuleModal(false); setEditingRuleId(null); }}
+              />
+            </Modal>
+
+            <Modal
+              title="Einzeltermin anlegen"
+              open={showEventModal}
+              onCancel={() => setShowEventModal(false)}
+              footer={null}
+              destroyOnClose
+            >
+              <EventForm onSave={(data) => { addEvent(data); setShowEventModal(false); }} />
+              <EventList events={events} onDelete={removeEvent} />
+            </Modal>
+          </>
         )}
 
         {activeTab === 'erstgespraeche' && (
