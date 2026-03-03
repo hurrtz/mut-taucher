@@ -30,6 +30,7 @@ require_once __DIR__ . '/routes/groups.php';
 require_once __DIR__ . '/routes/templates.php';
 require_once __DIR__ . '/routes/client_history.php';
 require_once __DIR__ . '/routes/workbook.php';
+require_once __DIR__ . '/routes/branding.php';
 
 // Parse request
 $method = $_SERVER['REQUEST_METHOD'];
@@ -468,6 +469,27 @@ if ($method === 'GET' && preg_match('#^/admin/workbook/(\d+)/download$#', $uri, 
 
 if ($method === 'POST' && preg_match('#^/admin/workbook/(\d+)/send$#', $uri, $m)) {
     handleSendWorkbookMaterial((int)$m[1]);
+    exit;
+}
+
+// Admin: branding
+if ($method === 'GET' && $uri === '/admin/branding') {
+    handleGetBranding();
+    exit;
+}
+
+if ($method === 'GET' && $uri === '/admin/branding/logo') {
+    handleGetLogo();
+    exit;
+}
+
+if ($method === 'PUT' && $uri === '/admin/branding') {
+    handleUpdateBranding();
+    exit;
+}
+
+if ($method === 'POST' && $uri === '/admin/branding/logo') {
+    handleUploadLogo();
     exit;
 }
 

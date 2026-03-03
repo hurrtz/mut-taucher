@@ -79,6 +79,10 @@ class PdfGenerator {
     private function createPdf(string $title): TCPDF {
         require_once __DIR__ . '/PdfHeader.php';
 
+        $brand = loadBrandSettings();
+        $font = $brand['font_family'];
+        $bodySize = (int)$brand['font_size_body'];
+
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8');
         $pdf->SetCreator('Mut-Taucher');
         $pdf->SetAuthor($this->therapistName);
@@ -88,7 +92,7 @@ class PdfGenerator {
         $pdf->setPrintFooter(true);
         $pdf->setFooterData(['0', '0', '0'], ['200', '200', '200']);
 
-        $pdf->SetFont('helvetica', '', 11);
+        $pdf->SetFont($font, '', $bodySize);
         $pdf->SetMargins(25, 35, 25);
         $pdf->SetAutoPageBreak(true, 25);
         $pdf->AddPage();
@@ -123,20 +127,25 @@ class PdfGenerator {
      * Injects inline styles so both DB templates and preview get consistent branding.
      */
     private function applyBranding(string $html): string {
+        require_once __DIR__ . '/PdfHeader.php';
+        $brand = loadBrandSettings();
+        $color = $brand['primary_color'];
+        $headingSize = (int)$brand['font_size_heading'];
+
         // Only brand tags that don't already have a style attribute (user styles take priority)
         $html = preg_replace(
             '/<h1(?![^>]*\bstyle\b)(?=[\s>])/',
-            '<h1 style="color: #2dd4bf; font-size: 16pt;"',
+            '<h1 style="color: ' . $color . '; font-size: ' . $headingSize . 'pt;"',
             $html
         );
         $html = preg_replace(
             '/<h2(?![^>]*\bstyle\b)(?=[\s>])/',
-            '<h2 style="color: #2dd4bf; font-size: 12pt; border-bottom: 1px solid #e2e8f0;"',
+            '<h2 style="color: ' . $color . '; font-size: 12pt; border-bottom: 1px solid #e2e8f0;"',
             $html
         );
         $html = preg_replace(
             '/<th(?![^>]*\bstyle\b)(?=[\s>])/',
-            '<th style="background-color: #2dd4bf; color: #ffffff; padding: 6px;"',
+            '<th style="background-color: ' . $color . '; color: #ffffff; padding: 6px;"',
             $html
         );
         return $html;

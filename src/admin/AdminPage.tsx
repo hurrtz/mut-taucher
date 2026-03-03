@@ -6,12 +6,14 @@ import { useAdminTherapies } from '../lib/useAdminTherapies';
 import { useAdminGroups } from '../lib/useAdminGroups';
 import { useAdminTemplates } from '../lib/useAdminTemplates';
 import { useAdminWorkbook } from '../lib/useAdminWorkbook';
+import { useAdminBranding } from '../lib/useAdminBranding';
 import { getToken } from '../lib/api';
 import TemplateEditor, { type TemplateEditorHandle } from '../components/TemplateEditor';
 import TemplateCreateModal from './components/TemplateCreateModal';
 import TemplateMappingModal from './components/TemplateMappingModal';
 import WorkbookUploadModal from './components/WorkbookUploadModal';
 import WorkbookShareModal from './components/WorkbookShareModal';
+import BrandingForm from './components/BrandingForm';
 import RuleForm from './components/RuleForm';
 import RuleCard from './components/RuleCard';
 import EventForm, { EventList } from './components/EventForm';
@@ -127,6 +129,11 @@ export default function AdminPage() {
     fetchMaterials, uploadMaterial, removeMaterial, sendMaterial,
   } = useAdminWorkbook();
 
+  const {
+    settings: brandSettings, saving: brandingSaving, error: brandingError,
+    fetchBranding, updateBranding, uploadLogo,
+  } = useAdminBranding();
+
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
@@ -171,6 +178,7 @@ export default function AdminPage() {
   const editorRef = useRef<TemplateEditorHandle>(null);
   const [showWorkbookUpload, setShowWorkbookUpload] = useState(false);
   const [showWorkbookShare, setShowWorkbookShare] = useState(false);
+  const [dokumenteSubTab, setDokumenteSubTab] = useState<'vorlagen' | 'branding'>('vorlagen');
   // Load data on auth
   useEffect(() => {
     if (authenticated) {
@@ -206,6 +214,13 @@ export default function AdminPage() {
       setActiveTab('kunden');
     }
   }, [migrateBookingToClient]);
+
+  // Load branding when sub-tab switches to branding
+  useEffect(() => {
+    if (authenticated && dokumenteSubTab === 'branding' && !brandSettings) {
+      fetchBranding();
+    }
+  }, [authenticated, dokumenteSubTab, brandSettings, fetchBranding]);
 
   const combinedError = error || clientsError || therapiesError || groupsError || templatesError || workbookError;
 
@@ -299,7 +314,7 @@ export default function AdminPage() {
               Neue:r Patient:in
             </Button>
           )}
-          {activeTab === 'dokumente' && (
+          {activeTab === 'dokumente' && dokumenteSubTab === 'vorlagen' && (
             <Space>
               <Button icon={<SettingOutlined />} onClick={() => setShowMappingModal(true)}>
                 Zuordnungen
@@ -571,133 +586,158 @@ export default function AdminPage() {
           </div>
         )}
 
-        {activeTab === 'dokumente' && (() => {
-          const existingGroups = [...new Set(templates.map(t => t.groupName).filter((g): g is string => !!g))];
-          const grouped = templates.reduce<Record<string, typeof templates>>((acc, t) => {
-            const key = t.groupName || '';
-            (acc[key] ??= []).push(t);
-            return acc;
-          }, {});
-          const ungrouped = grouped[''] || [];
-          const groupNames = Object.keys(grouped).filter(k => k !== '').sort((a, b) => a.localeCompare(b, 'de'));
+        {activeTab === 'dokumente' && (
+          <Tabs
+            activeKey={dokumenteSubTab}
+            onChange={(key) => setDokumenteSubTab(key as 'vorlagen' | 'branding')}
+            items={[
+              {
+                key: 'vorlagen',
+                label: 'Vorlagen',
+                children: (() => {
+                  const existingGroups = [...new Set(templates.map(t => t.groupName).filter((g): g is string => !!g))];
+                  const grouped = templates.reduce<Record<string, typeof templates>>((acc, t) => {
+                    const key = t.groupName || '';
+                    (acc[key] ??= []).push(t);
+                    return acc;
+                  }, {});
+                  const ungrouped = grouped[''] || [];
+                  const groupNames = Object.keys(grouped).filter(k => k !== '').sort((a, b) => a.localeCompare(b, 'de'));
 
-          return (
-            <>
-              <Row gutter={24}>
-                {/* Sidebar: grouped template list */}
-                <Col xs={24} lg={6}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {ungrouped.map(t => (
-                      <Button
-                        key={t.key}
-                        type={activeTemplate?.key === t.key ? 'primary' : 'text'}
-                        ghost={activeTemplate?.key === t.key}
-                        block
-                        style={{ justifyContent: 'flex-start', textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
-                        onClick={() => fetchTemplate(t.key)}
-                      >
-                        {t.label}
-                      </Button>
-                    ))}
-                    {groupNames.map(g => (
-                      <div key={g}>
-                        <Typography.Text type="secondary" style={{ display: 'block', padding: '12px 16px 4px', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
-                          {g}
-                        </Typography.Text>
-                        {grouped[g].map(t => (
-                          <Button
-                            key={t.key}
-                            type={activeTemplate?.key === t.key ? 'primary' : 'text'}
-                            ghost={activeTemplate?.key === t.key}
-                            block
-                            style={{ justifyContent: 'flex-start', textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
-                            onClick={() => fetchTemplate(t.key)}
-                          >
-                            {t.label}
-                          </Button>
-                        ))}
-                      </div>
-                    ))}
-                    {templates.length === 0 && (
-                      <Typography.Text type="secondary" style={{ padding: 16 }}>
-                        Noch keine Vorlagen vorhanden.
-                      </Typography.Text>
-                    )}
-                  </div>
-                </Col>
+                  return (
+                    <>
+                      <Row gutter={24}>
+                        {/* Sidebar: grouped template list */}
+                        <Col xs={24} lg={6}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {ungrouped.map(t => (
+                              <Button
+                                key={t.key}
+                                type={activeTemplate?.key === t.key ? 'primary' : 'text'}
+                                ghost={activeTemplate?.key === t.key}
+                                block
+                                style={{ justifyContent: 'flex-start', textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
+                                onClick={() => fetchTemplate(t.key)}
+                              >
+                                {t.label}
+                              </Button>
+                            ))}
+                            {groupNames.map(g => (
+                              <div key={g}>
+                                <Typography.Text type="secondary" style={{ display: 'block', padding: '12px 16px 4px', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                  {g}
+                                </Typography.Text>
+                                {grouped[g].map(t => (
+                                  <Button
+                                    key={t.key}
+                                    type={activeTemplate?.key === t.key ? 'primary' : 'text'}
+                                    ghost={activeTemplate?.key === t.key}
+                                    block
+                                    style={{ justifyContent: 'flex-start', textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
+                                    onClick={() => fetchTemplate(t.key)}
+                                  >
+                                    {t.label}
+                                  </Button>
+                                ))}
+                              </div>
+                            ))}
+                            {templates.length === 0 && (
+                              <Typography.Text type="secondary" style={{ padding: 16 }}>
+                                Noch keine Vorlagen vorhanden.
+                              </Typography.Text>
+                            )}
+                          </div>
+                        </Col>
 
-                {/* Editor */}
-                <Col xs={24} lg={18}>
-                  {activeTemplate ? (
-                    <Card
-                      title={activeTemplate.label}
-                      extra={
-                        <Space>
-                          <Tooltip title="Gruppe">
-                            <Button icon={<FolderOutlined />} onClick={() => setShowGroupModal(true)} />
-                          </Tooltip>
-                          <Tooltip title="Vorschau">
-                            <Button icon={<EyeOutlined />} loading={templatePreviewing} onClick={() => { const html = editorRef.current?.getHTML(); if (html) previewTemplate(activeTemplate.key, html); }} />
-                          </Tooltip>
-                          <Tooltip title="Speichern">
-                            <Button type="primary" icon={<SaveOutlined />} loading={templateSaving} onClick={() => { const html = editorRef.current?.getHTML(); if (html) updateTemplate(activeTemplate.key, html); }} />
-                          </Tooltip>
-                          <Tooltip title="Löschen">
-                            <Button danger icon={<DeleteOutlined />} onClick={() => { if (confirm(`"${activeTemplate.label}" wirklich löschen?`)) removeTemplate(activeTemplate.key); }} />
-                          </Tooltip>
-                        </Space>
-                      }
-                    >
-                      <TemplateEditor
-                        ref={editorRef}
-                        key={activeTemplate.key}
-                        htmlContent={activeTemplate.htmlContent}
-                        placeholders={activeTemplate.placeholders}
-                        saving={templateSaving}
-                        previewing={templatePreviewing}
-                        onSave={(html) => updateTemplate(activeTemplate.key, html)}
-                        onPreview={(html) => previewTemplate(activeTemplate.key, html)}
-                        onUploadImage={uploadImage}
-                        hideActions
+                        {/* Editor */}
+                        <Col xs={24} lg={18}>
+                          {activeTemplate ? (
+                            <Card
+                              title={activeTemplate.label}
+                              extra={
+                                <Space>
+                                  <Tooltip title="Gruppe">
+                                    <Button icon={<FolderOutlined />} onClick={() => setShowGroupModal(true)} />
+                                  </Tooltip>
+                                  <Tooltip title="Vorschau">
+                                    <Button icon={<EyeOutlined />} loading={templatePreviewing} onClick={() => { const html = editorRef.current?.getHTML(); if (html) previewTemplate(activeTemplate.key, html); }} />
+                                  </Tooltip>
+                                  <Tooltip title="Speichern">
+                                    <Button type="primary" icon={<SaveOutlined />} loading={templateSaving} onClick={() => { const html = editorRef.current?.getHTML(); if (html) updateTemplate(activeTemplate.key, html); }} />
+                                  </Tooltip>
+                                  <Tooltip title="Löschen">
+                                    <Button danger icon={<DeleteOutlined />} onClick={() => { if (confirm(`"${activeTemplate.label}" wirklich löschen?`)) removeTemplate(activeTemplate.key); }} />
+                                  </Tooltip>
+                                </Space>
+                              }
+                            >
+                              <TemplateEditor
+                                ref={editorRef}
+                                key={activeTemplate.key}
+                                htmlContent={activeTemplate.htmlContent}
+                                placeholders={activeTemplate.placeholders}
+                                saving={templateSaving}
+                                previewing={templatePreviewing}
+                                onSave={(html) => updateTemplate(activeTemplate.key, html)}
+                                onPreview={(html) => previewTemplate(activeTemplate.key, html)}
+                                onUploadImage={uploadImage}
+                                hideActions
+                              />
+                            </Card>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 256 }}>
+                              <Typography.Text type="secondary">Vorlage aus der Liste auswählen</Typography.Text>
+                            </div>
+                          )}
+                        </Col>
+                      </Row>
+
+                      <TemplateCreateModal
+                        open={showTemplateCreate}
+                        onClose={() => setShowTemplateCreate(false)}
+                        onCreate={createTemplate}
+                        existingGroups={existingGroups}
                       />
-                    </Card>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 256 }}>
-                      <Typography.Text type="secondary">Vorlage aus der Liste auswählen</Typography.Text>
-                    </div>
-                  )}
-                </Col>
-              </Row>
 
-              <TemplateCreateModal
-                open={showTemplateCreate}
-                onClose={() => setShowTemplateCreate(false)}
-                onCreate={createTemplate}
-                existingGroups={existingGroups}
-              />
+                      <TemplateMappingModal
+                        open={showMappingModal}
+                        onClose={() => setShowMappingModal(false)}
+                        mappings={mappings}
+                        templates={templates}
+                        onUpdate={updateMapping}
+                        onLoad={fetchMappings}
+                      />
 
-              <TemplateMappingModal
-                open={showMappingModal}
-                onClose={() => setShowMappingModal(false)}
-                mappings={mappings}
-                templates={templates}
-                onUpdate={updateMapping}
-                onLoad={fetchMappings}
-              />
-
-              {activeTemplate && (
-                <TemplateGroupModal
-                  open={showGroupModal}
-                  onClose={() => setShowGroupModal(false)}
-                  templateKey={activeTemplate.key}
-                  groupName={activeTemplate.groupName}
-                  existingGroups={existingGroups}
-                  onUpdate={updateTemplateGroup}
-                />
-              )}
-            </>
-          );
-        })()}
+                      {activeTemplate && (
+                        <TemplateGroupModal
+                          open={showGroupModal}
+                          onClose={() => setShowGroupModal(false)}
+                          templateKey={activeTemplate.key}
+                          groupName={activeTemplate.groupName}
+                          existingGroups={existingGroups}
+                          onUpdate={updateTemplateGroup}
+                        />
+                      )}
+                    </>
+                  );
+                })(),
+              },
+              {
+                key: 'branding',
+                label: 'Branding',
+                children: (
+                  <BrandingForm
+                    settings={brandSettings}
+                    saving={brandingSaving}
+                    error={brandingError}
+                    onUpdate={updateBranding}
+                    onUploadLogo={uploadLogo}
+                  />
+                ),
+              },
+            ]}
+          />
+        )}
 
         {activeTab === 'arbeitsmappe' && (() => {
           const selectedMaterial = materials.find(m => m.id === selectedMaterialId);
