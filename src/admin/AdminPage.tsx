@@ -503,20 +503,20 @@ export default function AdminPage() {
           <Row gutter={24}>
             {/* Sidebar: template list */}
             <Col xs={24} lg={6}>
-              <Space direction="vertical" size={4} style={{ width: '100%', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {templates.map(t => (
                   <Button
                     key={t.key}
                     type={activeTemplate?.key === t.key ? 'primary' : 'text'}
                     ghost={activeTemplate?.key === t.key}
                     block
-                    style={{ justifyContent: 'flex-start', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
+                    style={{ justifyContent: 'flex-start', textAlign: 'left', whiteSpace: 'normal', height: 'auto', padding: '8px 16px' }}
                     onClick={() => fetchTemplate(t.key)}
                   >
                     {t.label}
                   </Button>
                 ))}
-              </Space>
+              </div>
             </Col>
 
             {/* Editor */}
