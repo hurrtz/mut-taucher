@@ -84,16 +84,16 @@ export default function Booking() {
                 {format(currentMonth, 'MMMM yyyy', { locale: de })}
               </h3>
               <div className="flex items-center space-x-2">
-                <button onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-primary transition-colors">
+                <button onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-primary transition-colors cursor-pointer">
                   <ChevronLeft className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => setCurrentMonth(startOfMonth(new Date()))}
-                  className="px-2 py-0.5 text-xs font-medium text-gray-500 hover:text-primary hover:bg-gray-100 rounded-full transition-colors"
+                  className="px-2 py-0.5 text-xs font-medium text-gray-500 hover:text-primary hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
                 >
                   Heute
                 </button>
-                <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-primary transition-colors">
+                <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-primary transition-colors cursor-pointer">
                   <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
@@ -155,7 +155,7 @@ export default function Booking() {
             )}
 
             <p className="mt-6 text-xs text-gray-400 text-center">
-              Wählen Sie ein Datum mit verfügbaren Terminen (markiert mit Punkt).
+              Wählen Sie ein hervorgehobenes Datum, um verfügbare Termine zu sehen.
             </p>
           </div>
 
