@@ -31,12 +31,18 @@ class Mailer {
         $mail->Timeout    = 10;
         $mail->Host       = $this->config['smtp_host'];
         $mail->Port       = $this->config['smtp_port'];
-        $mail->SMTPAuth   = true;
-        $mail->Username   = $this->config['smtp_user'];
-        $mail->Password   = $this->config['smtp_pass'];
-        $mail->SMTPSecure = $this->config['smtp_port'] == 465
-            ? PHPMailer::ENCRYPTION_SMTPS
-            : PHPMailer::ENCRYPTION_STARTTLS;
+        $hasAuth = !empty($this->config['smtp_user']);
+        $mail->SMTPAuth   = $hasAuth;
+        if ($hasAuth) {
+            $mail->Username   = $this->config['smtp_user'];
+            $mail->Password   = $this->config['smtp_pass'];
+            $mail->SMTPSecure = $this->config['smtp_port'] == 465
+                ? PHPMailer::ENCRYPTION_SMTPS
+                : PHPMailer::ENCRYPTION_STARTTLS;
+        } else {
+            $mail->SMTPSecure = false;
+            $mail->SMTPAutoTLS = false;
+        }
         $mail->CharSet    = 'UTF-8';
 
         $mail->setFrom(

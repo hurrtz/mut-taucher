@@ -270,7 +270,7 @@ export default function Booking() {
                     <button
                       type="submit"
                       disabled={booking}
-                      className="w-full py-3 px-6 bg-secondary hover:bg-rose-600 text-white font-semibold text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full py-3 px-6 bg-primary hover:bg-teal-500 text-white font-semibold text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {booking && <Loader2 className="h-5 w-5 animate-spin" />}
                       Termin jetzt buchen
