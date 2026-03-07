@@ -131,14 +131,14 @@ export default function BrandingForm({ settings, saving, error, onUpdate, onUplo
             <Form.Item label="Primärfarbe" help="Überschriften, Akzentlinie, Tabellenköpfe">
               <ColorPicker
                 value={primaryColor}
-                onChange={(_, hex) => setPrimaryColor(hex)}
+                onChange={(color) => setPrimaryColor(color.toHexString())}
                 showText
               />
             </Form.Item>
             <Form.Item label="Sekundärfarbe" help="Untertitel-Text">
               <ColorPicker
                 value={secondaryColor}
-                onChange={(_, hex) => setSecondaryColor(hex)}
+                onChange={(color) => setSecondaryColor(color.toHexString())}
                 showText
               />
             </Form.Item>

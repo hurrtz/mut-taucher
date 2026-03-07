@@ -10,7 +10,7 @@ export default function Booking() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<PublicSlot | null>(null);
-  const [bookingForm, setBookingForm] = useState({ firstName: '', lastName: '', email: '' });
+  const [bookingForm, setBookingForm] = useState({ firstName: '', lastName: '', email: '', street: '', zip: '', city: '' });
   const [isSuccess, setIsSuccess] = useState(false);
 
   const monthStart = startOfMonth(currentMonth);
@@ -29,7 +29,7 @@ export default function Booking() {
 
   const handleBook = async (e: FormEvent) => {
     e.preventDefault();
-    if (!selectedSlot || !bookingForm.firstName || !bookingForm.lastName || !bookingForm.email) return;
+    if (!selectedSlot || !bookingForm.firstName || !bookingForm.lastName || !bookingForm.email || !bookingForm.street || !bookingForm.zip || !bookingForm.city) return;
 
     const result = await bookSlot(
       { ruleId: selectedSlot.ruleId, eventId: selectedSlot.eventId },
@@ -38,6 +38,9 @@ export default function Booking() {
       bookingForm.firstName,
       bookingForm.lastName,
       bookingForm.email,
+      bookingForm.street,
+      bookingForm.zip,
+      bookingForm.city,
     );
 
     if (result) {
@@ -46,7 +49,7 @@ export default function Booking() {
       setTimeout(() => {
         setIsSuccess(false);
         setSelectedSlot(null);
-        setBookingForm({ firstName: '', lastName: '', email: '' });
+        setBookingForm({ firstName: '', lastName: '', email: '', street: '', zip: '', city: '' });
         // Refresh slots to reflect the booking
         fetchSlots(calendarStart, calendarEnd);
       }, 3000);
@@ -260,6 +263,44 @@ export default function Booking() {
                         onChange={e => setBookingForm({...bookingForm, email: e.target.value})}
                         placeholder="ihre@email.de"
                       />
+                    </div>
+                    <div>
+                      <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-1">Straße und Hausnummer</label>
+                      <input
+                        type="text"
+                        id="street"
+                        required
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                        value={bookingForm.street}
+                        onChange={e => setBookingForm({...bookingForm, street: e.target.value})}
+                        placeholder="Musterstraße 1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label htmlFor="zip" className="block text-sm font-medium text-gray-700 mb-1">PLZ</label>
+                        <input
+                          type="text"
+                          id="zip"
+                          required
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                          value={bookingForm.zip}
+                          onChange={e => setBookingForm({...bookingForm, zip: e.target.value})}
+                          placeholder="10115"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">Ort</label>
+                        <input
+                          type="text"
+                          id="city"
+                          required
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                          value={bookingForm.city}
+                          onChange={e => setBookingForm({...bookingForm, city: e.target.value})}
+                          placeholder="Berlin"
+                        />
+                      </div>
                     </div>
                     {error && (
                       <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-3">

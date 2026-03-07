@@ -490,7 +490,7 @@ function handleDocumentSend(): void {
         $clientCity = $row['city'] ?? '';
         $clientCountry = $row['country'] ?? '';
     } elseif ($contextType === 'erstgespraech') {
-        $stmt = $db->prepare('SELECT client_first_name, client_last_name, client_email FROM bookings WHERE id = ?');
+        $stmt = $db->prepare('SELECT client_first_name, client_last_name, client_email, client_street, client_zip, client_city FROM bookings WHERE id = ?');
         $stmt->execute([$contextId]);
         $row = $stmt->fetch();
         if (!$row) {
@@ -500,6 +500,9 @@ function handleDocumentSend(): void {
         }
         $clientName = trim($row['client_first_name'] . ' ' . $row['client_last_name']);
         $clientEmail = $row['client_email'];
+        $clientStreet = $row['client_street'] ?? '';
+        $clientZip = $row['client_zip'] ?? '';
+        $clientCity = $row['client_city'] ?? '';
     } elseif ($contextType === 'therapy') {
         $stmt = $db->prepare(
             'SELECT t.client_id, c.title, c.first_name, c.last_name, c.suffix, c.email, c.street, c.zip, c.city, c.country FROM therapies t JOIN clients c ON t.client_id = c.id WHERE t.id = ?'

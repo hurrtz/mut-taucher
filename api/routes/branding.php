@@ -69,23 +69,23 @@ function handleUpdateBranding(): void {
     }
 
     if (array_key_exists('primaryColor', $input)) {
-        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $input['primaryColor'])) {
+        if (!preg_match('/^#?[0-9a-fA-F]{6}$/', $input['primaryColor'])) {
             http_response_code(400);
             echo json_encode(['error' => 'Ungültiges Hex-Farbformat für Primärfarbe']);
             return;
         }
         $sets[] = 'primary_color = ?';
-        $params[] = $input['primaryColor'];
+        $params[] = ltrim($input['primaryColor'], '#');
     }
 
     if (array_key_exists('secondaryColor', $input)) {
-        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $input['secondaryColor'])) {
+        if (!preg_match('/^#?[0-9a-fA-F]{6}$/', $input['secondaryColor'])) {
             http_response_code(400);
             echo json_encode(['error' => 'Ungültiges Hex-Farbformat für Sekundärfarbe']);
             return;
         }
         $sets[] = 'secondary_color = ?';
-        $params[] = $input['secondaryColor'];
+        $params[] = ltrim($input['secondaryColor'], '#');
     }
 
     if (array_key_exists('fontFamily', $input)) {
