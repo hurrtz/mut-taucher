@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { usePublicBooking, type PublicSlot } from '../lib/usePublicBooking';
-import { format, startOfMonth, addMonths, isSameDay, isSameMonth, parseISO, startOfWeek, endOfWeek, endOfMonth, eachDayOfInterval } from 'date-fns';
+import { format, startOfMonth, addMonths, isSameDay, isSameMonth, parseISO, startOfWeek, endOfWeek, endOfMonth, eachDayOfInterval, isBefore, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { trackBookingDateSelected, trackBookingSlotSelected, trackBookingSubmitted } from '../lib/analytics';
@@ -116,24 +116,25 @@ export default function Booking() {
                   const daySlots = slots.filter(s => isSameDay(parseISO(s.date), day));
                   const hasSlots = daySlots.length > 0;
                   const isSelected = selectedDate && isSameDay(day, selectedDate);
+                  const isPast = isBefore(day, startOfDay(new Date()));
                   const isToday = isSameDay(day, new Date());
 
                   return (
                     <button
                       key={i}
                       onClick={() => {
-                        if (hasSlots && inCurrentMonth) {
+                        if (hasSlots && inCurrentMonth && !isPast) {
                           setSelectedDate(day);
                           trackBookingDateSelected(format(day, 'yyyy-MM-dd'));
                         }
                       }}
-                      disabled={!hasSlots || !inCurrentMonth}
+                      disabled={!hasSlots || !inCurrentMonth || isPast}
                       className={`
                         relative p-2 rounded-lg flex flex-col items-center justify-center transition-all duration-200 aspect-square
                         ${!inCurrentMonth ? 'text-gray-200 cursor-default' : ''}
                         ${inCurrentMonth && isSelected ? 'bg-primary text-white shadow-md transform scale-105 font-bold' : ''}
-                        ${inCurrentMonth && !isSelected && hasSlots ? 'bg-teal-50 text-teal-800 font-semibold hover:bg-teal-100 cursor-pointer ring-1 ring-teal-200' : ''}
-                        ${inCurrentMonth && !hasSlots && !isSelected ? 'text-gray-300 cursor-default' : ''}
+                        ${inCurrentMonth && !isSelected && hasSlots && !isPast ? 'bg-teal-50 text-teal-800 font-semibold hover:bg-teal-100 cursor-pointer ring-1 ring-teal-200' : ''}
+                        ${inCurrentMonth && (!hasSlots || isPast) && !isSelected ? 'text-gray-300 cursor-default' : ''}
                         ${isToday && !isSelected ? 'ring-1 ring-gray-400 ring-inset' : ''}
                       `}
                     >
@@ -200,7 +201,7 @@ export default function Booking() {
                               trackBookingSlotSelected(slot.date, slot.time);
                             }}
                             className={`
-                              px-4 py-2 rounded-md text-sm font-medium border transition-all flex flex-col items-center justify-center gap-0.5
+                              px-4 py-2 rounded-md text-sm font-medium border transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer
                               ${selectedSlot?.id === slot.id
                                 ? 'bg-primary text-white border-primary shadow-sm'
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-primary'}
