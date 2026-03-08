@@ -65,6 +65,12 @@ if ($method === 'POST' && $uri === '/login') {
     exit;
 }
 
+// Admin: counts
+if ($method === 'GET' && $uri === '/admin/counts') {
+    handleGetCounts();
+    exit;
+}
+
 // Admin: rules
 if ($method === 'GET' && $uri === '/admin/rules') {
     handleGetRules();
@@ -246,11 +252,6 @@ if ($method === 'POST' && $uri === '/admin/clients') {
 
 if ($method === 'PUT' && preg_match('#^/admin/clients/(\d+)$#', $uri, $m)) {
     handleUpdateClient((int)$m[1]);
-    exit;
-}
-
-if ($method === 'DELETE' && preg_match('#^/admin/clients/(\d+)$#', $uri, $m)) {
-    handleDeleteClient((int)$m[1]);
     exit;
 }
 

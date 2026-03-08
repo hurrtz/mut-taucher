@@ -1097,3 +1097,21 @@ function handleSendBookingInvoice(int $bookingId): void {
 
     echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber]);
 }
+
+/**
+ * GET /api/admin/counts
+ * Returns item counts for the admin sidebar navigation.
+ */
+function handleGetCounts(): void {
+    requireAuth();
+    $db = getDB();
+
+    $counts = [];
+    $counts['erstgespraeche'] = (int)$db->query("SELECT COUNT(*) FROM bookings WHERE status = 'confirmed'")->fetchColumn();
+    $counts['kunden'] = (int)$db->query("SELECT COUNT(*) FROM clients WHERE status = 'active'")->fetchColumn();
+    $counts['einzel'] = (int)$db->query("SELECT COUNT(*) FROM therapies WHERE status = 'active'")->fetchColumn();
+    $counts['gruppen'] = (int)$db->query("SELECT COUNT(*) FROM therapy_groups")->fetchColumn();
+    $counts['dokumente'] = (int)$db->query("SELECT COUNT(*) FROM document_templates")->fetchColumn();
+
+    echo json_encode($counts);
+}

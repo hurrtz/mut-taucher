@@ -6,10 +6,10 @@ export function useAdminClients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchClients = useCallback(async (status: string = 'active') => {
+  const fetchClients = useCallback(async () => {
     setError(null);
     try {
-      const data = await apiFetch<Client[]>(`/admin/clients?status=${status}`);
+      const data = await apiFetch<Client[]>('/admin/clients?status=all');
       setClients(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Laden der Patient:innen');
@@ -47,13 +47,29 @@ export function useAdminClients() {
     }
   }, [clients, fetchClients]);
 
-  const removeClient = useCallback(async (id: number) => {
+  const archiveClient = useCallback(async (id: number) => {
     setError(null);
     try {
-      await apiFetch(`/admin/clients/${id}`, { method: 'DELETE' });
+      await apiFetch(`/admin/clients/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'archived' }),
+      });
       await fetchClients();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Löschen');
+      setError(e instanceof Error ? e.message : 'Fehler beim Archivieren');
+    }
+  }, [fetchClients]);
+
+  const restoreClient = useCallback(async (id: number) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/clients/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'active' }),
+      });
+      await fetchClients();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Wiederherstellen');
     }
   }, [fetchClients]);
 
@@ -77,7 +93,8 @@ export function useAdminClients() {
     fetchClients,
     addClient,
     updateClient,
-    removeClient,
+    archiveClient,
+    restoreClient,
     migrateBookingToClient,
   };
 }

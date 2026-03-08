@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect, type FormEvent } from 'react';
+import { useState, useEffect, useLayoutEffect, type FormEvent } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { ConfigProvider, Layout, Menu, Typography, Button, FloatButton, Card, Input, Alert, theme } from 'antd';
 import {
@@ -9,24 +9,47 @@ import {
 import deDE from 'antd/locale/de_DE';
 import adminTheme from './theme';
 import { useAdminBooking } from '../lib/useAdminBooking';
+import { apiFetch } from '../lib/api';
 
 const { Sider, Content } = Layout;
 
-const MENU_ITEMS = [
-  { key: 'kalender', icon: <CalendarOutlined />, label: 'Kalender' },
-  { key: 'erstgespraeche', icon: <CalendarOutlined />, label: 'Erstgespräche' },
-  { key: 'einzel', icon: <VideoCameraOutlined />, label: 'Einzeltherapie' },
-  { key: 'gruppen', icon: <TeamOutlined />, label: 'Gruppentherapie' },
-  { key: 'kunden', icon: <UserOutlined />, label: 'Patienten' },
-  { key: 'dokumente', icon: <FileTextOutlined />, label: 'Vorlagen' },
-  { key: 'arbeitsmappe', icon: <BookOutlined />, label: 'Arbeitsmappe' },
-];
+interface NavCounts {
+  erstgespraeche: number;
+  kunden: number;
+  einzel: number;
+  gruppen: number;
+  dokumente: number;
+}
+
+function buildMenuItems(counts: NavCounts | null) {
+  const badge = (count: number | undefined) =>
+    count != null && count > 0 ? ` (${count})` : '';
+
+  return [
+    { key: 'kalender', icon: <CalendarOutlined />, label: 'Kalender' },
+    { key: 'erstgespraeche', icon: <CalendarOutlined />, label: `Erstgespräche${badge(counts?.erstgespraeche)}` },
+    { key: 'einzel', icon: <VideoCameraOutlined />, label: `Einzeltherapie${badge(counts?.einzel)}` },
+    { key: 'gruppen', icon: <TeamOutlined />, label: `Gruppentherapie${badge(counts?.gruppen)}` },
+    { key: 'kunden', icon: <UserOutlined />, label: `Patienten${badge(counts?.kunden)}` },
+    { key: 'dokumente', icon: <FileTextOutlined />, label: `Vorlagen${badge(counts?.dokumente)}` },
+    { key: 'arbeitsmappe', icon: <BookOutlined />, label: 'Arbeitsmappe' },
+  ];
+}
 
 export default function AdminLayout() {
   const { token } = theme.useToken();
   const { authenticated, login, logout } = useAdminBooking();
+  const [counts, setCounts] = useState<NavCounts | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (authenticated) {
+      apiFetch<NavCounts>('/admin/counts').then(setCounts).catch(() => {});
+    }
+  }, [authenticated]);
+
+  const MENU_ITEMS = buildMenuItems(counts);
 
   // Block indexing
   useLayoutEffect(() => {

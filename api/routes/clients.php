@@ -20,13 +20,22 @@ function handleGetClients(): void {
     $db = getDB();
     $status = $_GET['status'] ?? 'active';
 
-    $stmt = $db->prepare(
-        'SELECT c.*,
-                (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count,
-                (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count
-         FROM clients c WHERE c.status = ? ORDER BY c.created_at DESC'
-    );
-    $stmt->execute([$status]);
+    if ($status === 'all') {
+        $stmt = $db->query(
+            'SELECT c.*,
+                    (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count,
+                    (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count
+             FROM clients c ORDER BY c.status ASC, c.created_at DESC'
+        );
+    } else {
+        $stmt = $db->prepare(
+            'SELECT c.*,
+                    (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count,
+                    (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count
+             FROM clients c WHERE c.status = ? ORDER BY c.created_at DESC'
+        );
+        $stmt->execute([$status]);
+    }
     $clients = $stmt->fetchAll();
 
     $result = array_map(fn($c) => [
@@ -144,24 +153,39 @@ function handleUpdateClient(int $id): void {
     $input = json_decode(file_get_contents('php://input'), true);
     $db = getDB();
 
-    $stmt = $db->prepare(
-        'UPDATE clients SET title = ?, first_name = ?, last_name = ?, suffix = ?, email = ?, phone = ?, street = ?, zip = ?, city = ?, country = ?, notes = ?, status = ? WHERE id = ?'
-    );
-    $stmt->execute([
-        $input['title'] ?? null,
-        $input['firstName'] ?? '',
-        $input['lastName'] ?? '',
-        $input['suffix'] ?? null,
-        $input['email'] ?? '',
-        $input['phone'] ?? null,
-        $input['street'] ?? null,
-        $input['zip'] ?? null,
-        $input['city'] ?? null,
-        $input['country'] ?? 'Deutschland',
-        $input['notes'] ?? null,
-        $input['status'] ?? 'active',
-        $id,
-    ]);
+    $fieldMap = [
+        'title'     => 'title',
+        'firstName' => 'first_name',
+        'lastName'  => 'last_name',
+        'suffix'    => 'suffix',
+        'email'     => 'email',
+        'phone'     => 'phone',
+        'street'    => 'street',
+        'zip'       => 'zip',
+        'city'      => 'city',
+        'country'   => 'country',
+        'notes'     => 'notes',
+        'status'    => 'status',
+    ];
+
+    $sets = [];
+    $params = [];
+    foreach ($fieldMap as $jsonKey => $dbCol) {
+        if (array_key_exists($jsonKey, $input)) {
+            $sets[] = "$dbCol = ?";
+            $params[] = $input[$jsonKey];
+        }
+    }
+
+    if (empty($sets)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Keine Änderungen angegeben']);
+        return;
+    }
+
+    $params[] = $id;
+    $stmt = $db->prepare('UPDATE clients SET ' . implode(', ', $sets) . ' WHERE id = ?');
+    $stmt->execute($params);
 
     if ($stmt->rowCount() === 0) {
         http_response_code(404);
@@ -219,12 +243,15 @@ function handleMigrateBookingToClient(int $bookingId): void {
     }
 
     $stmt = $db->prepare(
-        'INSERT INTO clients (first_name, last_name, email, booking_id) VALUES (?, ?, ?, ?)'
+        'INSERT INTO clients (first_name, last_name, email, street, zip, city, booking_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $booking['client_first_name'],
         $booking['client_last_name'],
         $booking['client_email'],
+        $booking['client_street'],
+        $booking['client_zip'],
+        $booking['client_city'],
         $bookingId,
     ]);
 
