@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent, type ReactNode } from 'react';
 
 import { useParams, Link } from 'react-router-dom';
-import { apiFetch } from '../lib/api';
+import { apiFetch, getToken } from '../lib/api';
 import { useClientHistory, type TimelineEvent } from '../lib/useClientHistory';
 import type { Client } from '../lib/data';
 import { format, parseISO } from 'date-fns';
@@ -445,7 +445,7 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
         </Text>
         <Text>{data.label as string}</Text>
         <a
-          href={`/api/admin/client-documents/${docId}/download`}
+          href={`/api/admin/client-documents/${docId}/download?token=${getToken()}`}
           target="_blank"
           rel="noopener noreferrer"
         >
