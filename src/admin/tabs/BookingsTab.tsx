@@ -6,7 +6,7 @@ import { Typography, Alert } from 'antd';
 
 export default function BookingsTab() {
   const styles = useAdminStyles();
-  const { bookings, error, fetchBookings, updateBooking } = useAdminBooking();
+  const { bookings, error, fetchBookings, updateBooking, sendEmail, sendBookingInvoice } = useAdminBooking();
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
@@ -19,6 +19,8 @@ export default function BookingsTab() {
       <BookingList
         bookings={bookings}
         onUpdate={updateBooking}
+        onSendEmail={sendEmail}
+        onSendInvoice={sendBookingInvoice}
       />
     </div>
   );

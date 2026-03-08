@@ -258,6 +258,24 @@ export function useAdminBooking() {
     }
   }, []);
 
+  // ─── Send Email ─────────────────────────────────────────────
+
+  const sendEmail = useCallback(async (bookingId: number, type: 'intro' | 'reminder') => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}/email`, {
+        method: 'POST',
+        body: JSON.stringify({ type }),
+      });
+      const flag = type === 'intro' ? 'introEmailSent' : 'reminderSent';
+      setBookings(prev => prev.map(b =>
+        b.id === bookingId ? { ...b, [flag]: true } : b
+      ));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim E-Mail-Versand');
+    }
+  }, []);
+
   // ─── Booking Invoice ─────────────────────────────────────────
 
   const sendBookingInvoice = useCallback(async (bookingId: number) => {
@@ -381,6 +399,7 @@ export function useAdminBooking() {
     removeEvent,
     fetchBookings,
     updateBooking,
+    sendEmail,
     sendBookingInvoice,
     fetchCalendarSessions,
     fetchBlockedDays,

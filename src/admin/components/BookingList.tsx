@@ -8,7 +8,7 @@ import {
 import {
   CheckCircleOutlined, EuroCircleOutlined,
   CloseOutlined, CalendarOutlined, CreditCardOutlined, BankOutlined,
-  DownOutlined, RightOutlined,
+  DownOutlined, RightOutlined, MailOutlined, FileTextOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -74,9 +74,11 @@ function ArchivedBookingCard({ b }: { b: AdminBooking }) {
   );
 }
 
-export default function BookingList({ bookings, onUpdate }: {
+export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInvoice }: {
   bookings: AdminBooking[];
   onUpdate: (id: number, updates: Partial<AdminBooking>) => void;
+  onSendEmail?: (id: number, type: 'intro' | 'reminder') => void;
+  onSendInvoice?: (id: number) => void;
 }) {
   const [archivedExpanded, setArchivedExpanded] = useState(false);
 
@@ -151,6 +153,24 @@ export default function BookingList({ bookings, onUpdate }: {
                       <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : b.paymentMethod === 'paypal' ? 'PayPal' : b.paymentMethod === 'wire_transfer' ? 'Überweisung' : ''}>
                         {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : b.paymentMethod === 'paypal' ? <EuroCircleOutlined style={{ color: '#0070ba', marginRight: 4 }} /> : b.paymentMethod === 'wire_transfer' ? <BankOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : null}
                       </Tooltip>
+                      {onSendEmail && (
+                        <Tooltip title={b.introEmailSent ? 'Termininfo erneut senden' : 'Termininfo senden'}>
+                          <Button
+                            type="text"
+                            icon={<MailOutlined style={b.introEmailSent ? { color: '#52c41a' } : undefined} />}
+                            onClick={() => onSendEmail(b.id, 'intro')}
+                          />
+                        </Tooltip>
+                      )}
+                      {onSendInvoice && (
+                        <Tooltip title={b.invoiceSent ? 'Rechnung erneut senden' : 'Rechnung senden'}>
+                          <Button
+                            type="text"
+                            icon={<FileTextOutlined style={b.invoiceSent ? { color: '#52c41a' } : undefined} />}
+                            onClick={() => onSendInvoice(b.id)}
+                          />
+                        </Tooltip>
+                      )}
                       <Tooltip title="Als erledigt markieren">
                         <Button
                           type="text"
