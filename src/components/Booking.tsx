@@ -4,6 +4,7 @@ import { format, startOfMonth, addMonths, isSameDay, isSameMonth, parseISO, star
 import { de } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, CheckCircle, Loader2, AlertCircle, X } from 'lucide-react';
 import { trackBookingDateSelected, trackBookingSlotSelected, trackBookingSubmitted } from '../lib/analytics';
+import { validateEmail, validatePhone } from '../lib/validation';
 
 export default function Booking() {
   const { slots, loading, error, booking, fetchSlots, bookSlot } = usePublicBooking();
@@ -12,6 +13,7 @@ export default function Booking() {
   const [selectedSlot, setSelectedSlot] = useState<PublicSlot | null>(null);
   const [bookingForm, setBookingForm] = useState({ firstName: '', lastName: '', email: '', phone: '', street: '', zip: '', city: '', message: '' });
   const [consent, setConsent] = useState({ agb: false, datenschutz: false, widerruf: false });
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string | null; phone?: string | null }>({});
   const [isSuccess, setIsSuccess] = useState(false);
 
   const monthStart = startOfMonth(currentMonth);
@@ -32,6 +34,12 @@ export default function Booking() {
 
   const handleBook = async (e: FormEvent) => {
     e.preventDefault();
+    const emailErr = validateEmail(bookingForm.email);
+    const phoneErr = validatePhone(bookingForm.phone);
+    if (emailErr || phoneErr) {
+      setFieldErrors({ email: emailErr, phone: phoneErr });
+      return;
+    }
     if (!selectedSlot || !bookingForm.firstName || !bookingForm.lastName || !bookingForm.email || !bookingForm.phone || !bookingForm.street || !bookingForm.zip || !bookingForm.city || !allConsented) return;
 
     const result = await bookSlot(
@@ -305,11 +313,13 @@ export default function Booking() {
                     type="email"
                     id="modal-email"
                     required
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                    className={`w-full rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border ${fieldErrors.email ? 'border-red-400' : 'border-gray-300'}`}
                     value={bookingForm.email}
-                    onChange={e => setBookingForm({...bookingForm, email: e.target.value})}
+                    onChange={e => { setBookingForm({...bookingForm, email: e.target.value}); if (fieldErrors.email) setFieldErrors(p => ({ ...p, email: validateEmail(e.target.value) })); }}
+                    onBlur={e => setFieldErrors(p => ({ ...p, email: validateEmail(e.target.value) }))}
                     placeholder="ihre@email.de"
                   />
+                  {fieldErrors.email && <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>}
                 </div>
                 <div>
                   <label htmlFor="modal-phone" className="block text-sm font-medium text-gray-700 mb-1">Telefon *</label>
@@ -317,11 +327,13 @@ export default function Booking() {
                     type="tel"
                     id="modal-phone"
                     required
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                    className={`w-full rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border ${fieldErrors.phone ? 'border-red-400' : 'border-gray-300'}`}
                     value={bookingForm.phone}
-                    onChange={e => setBookingForm({...bookingForm, phone: e.target.value})}
+                    onChange={e => { setBookingForm({...bookingForm, phone: e.target.value}); if (fieldErrors.phone) setFieldErrors(p => ({ ...p, phone: validatePhone(e.target.value) })); }}
+                    onBlur={e => setFieldErrors(p => ({ ...p, phone: validatePhone(e.target.value) }))}
                     placeholder="+49 …"
                   />
+                  {fieldErrors.phone && <p className="text-xs text-red-500 mt-1">{fieldErrors.phone}</p>}
                 </div>
                 <div>
                   <label htmlFor="modal-street" className="block text-sm font-medium text-gray-700 mb-1">Straße und Hausnummer *</label>

@@ -3,19 +3,29 @@ import { CheckCircle, AlertCircle, Send } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import contactImage from '@/assets/contact.jpg';
 import { trackContactSubmitted } from '../lib/analytics';
+import { validateEmail, validatePhone } from '../lib/validation';
 
 type FormState = 'idle' | 'submitting' | 'success' | 'error';
 
 export default function Contact() {
   const [formState, setFormState] = useState<FormState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string | null; phone?: string | null }>({});
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setFormState('submitting');
 
     const form = e.currentTarget;
     const fd = new FormData(form);
+
+    const emailErr = validateEmail(fd.get('email') as string);
+    const phoneErr = validatePhone(fd.get('phone') as string);
+    if (emailErr || phoneErr) {
+      setFieldErrors({ email: emailErr, phone: phoneErr });
+      return;
+    }
+
+    setFormState('submitting');
     const data = {
       ...Object.fromEntries(fd),
       sendCopy: fd.has('sendCopy'),
@@ -103,8 +113,11 @@ export default function Contact() {
                     name="email"
                     type="email"
                     required
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-text focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors"
+                    className={`w-full rounded-lg border px-4 py-2.5 text-text focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors ${fieldErrors.email ? 'border-red-400' : 'border-gray-300'}`}
+                    onBlur={e => setFieldErrors(p => ({ ...p, email: validateEmail(e.target.value) }))}
+                    onChange={() => { if (fieldErrors.email) setFieldErrors(p => ({ ...p, email: null })); }}
                   />
+                  {fieldErrors.email && <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>}
                 </div>
 
                 <div>
@@ -115,8 +128,11 @@ export default function Contact() {
                     id="contact-phone"
                     name="phone"
                     type="tel"
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-text focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors"
+                    className={`w-full rounded-lg border px-4 py-2.5 text-text focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors ${fieldErrors.phone ? 'border-red-400' : 'border-gray-300'}`}
+                    onBlur={e => setFieldErrors(p => ({ ...p, phone: validatePhone(e.target.value) }))}
+                    onChange={() => { if (fieldErrors.phone) setFieldErrors(p => ({ ...p, phone: null })); }}
                   />
+                  {fieldErrors.phone && <p className="text-xs text-red-500 mt-1">{fieldErrors.phone}</p>}
                 </div>
 
                 <div>
