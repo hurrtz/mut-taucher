@@ -7,6 +7,9 @@
             "email": "info@tobiaswinkler.berlin"
         }
     ],
+    "config": {
+        "platform-check": false
+    },
     "require": {
         "phpmailer/phpmailer": "^7.0",
         "tecnickcom/tcpdf": "^6.11",
