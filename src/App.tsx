@@ -6,6 +6,8 @@ import Service from './pages/Service';
 import Datenschutz from './pages/Datenschutz';
 import Impressum from './pages/Impressum';
 import AGB from './pages/AGB';
+import BookingSuccess from './pages/BookingSuccess';
+import BookingCancelled from './pages/BookingCancelled';
 import UeberMich from './pages/UeberMich';
 import ConsentBanner from './components/ConsentBanner';
 import { trackPageView } from './lib/analytics';
@@ -77,6 +79,8 @@ function App() {
         <Route path="/datenschutz" element={<Datenschutz />} />
         <Route path="/impressum" element={<Impressum />} />
         <Route path="/agb" element={<AGB />} />
+        <Route path="/booking/success" element={<BookingSuccess />} />
+        <Route path="/booking/cancelled" element={<BookingCancelled />} />
 
         <Route path="/admin" element={<AdminSuspense><AdminLayout /></AdminSuspense>}>
           <Route index element={<Navigate to="kalender" replace />} />
