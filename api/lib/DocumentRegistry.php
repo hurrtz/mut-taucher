@@ -17,9 +17,7 @@ class DocumentRegistry {
             ['key' => 'email_einwilligung',    'label' => 'E-Mail-Einwilligung',                 'category' => 'sollte_unterschrieben', 'template' => 'email_einwilligung'],
         ],
         'erstgespraech' => [
-            ['key' => 'vertrag_erstgespraech', 'label' => 'Vertrag — Erstgespräch',              'category' => 'muss_vorhanden',        'template' => 'vertrag_erstgespraech'],
-            ['key' => 'vertrag_erstgespraech_sig','label' => 'Vertrag — Erstgespräch (unterschrieben)','category' => 'muss_unterschrieben','template' => null],
-['key' => 'video_einverstaendnis', 'label' => 'Video-Einverständnis',                'category' => 'sollte_unterschrieben', 'template' => 'video_einverstaendnis'],
+            ['key' => 'video_einverstaendnis', 'label' => 'Video-Einverständnis',                'category' => 'sollte_unterschrieben', 'template' => 'video_einverstaendnis'],
         ],
         'therapy' => [
             ['key' => 'vertrag_einzeltherapie',    'label' => 'Vertrag — Einzeltherapie',            'category' => 'muss_vorhanden',        'template' => 'vertrag_einzeltherapie'],

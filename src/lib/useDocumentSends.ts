@@ -16,8 +16,7 @@ export const DOCUMENT_DEFINITIONS: Record<string, DocumentDefinition[]> = {
     { key: 'email_einwilligung',    label: 'E-Mail-Einwilligung',                 category: 'sollte_unterschrieben', template: 'email_einwilligung' },
   ],
   erstgespraech: [
-    { key: 'vertrag_erstgespraech', label: 'Vertrag — Erstgespräch',              category: 'muss_vorhanden',        template: 'vertrag_erstgespraech', signedCounterpart: 'vertrag_erstgespraech_sig' },
-{ key: 'video_einverstaendnis', label: 'Video-Einverständnis',                category: 'sollte_unterschrieben', template: 'video_einverstaendnis' },
+    { key: 'video_einverstaendnis', label: 'Video-Einverständnis',                category: 'sollte_unterschrieben', template: 'video_einverstaendnis' },
   ],
   therapy: [
     { key: 'vertrag_einzeltherapie',    label: 'Vertrag — Einzeltherapie',            category: 'muss_vorhanden',        template: 'vertrag_einzeltherapie', signedCounterpart: 'vertrag_einzeltherapie_sig' },

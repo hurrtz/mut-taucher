@@ -17,7 +17,6 @@ const SENDING_POINT_LABELS: Record<string, string> = {
   'pdf:rechnung_erstgespraech': 'Rechnung Erstgespräch',
   'pdf:rechnung_einzeltherapie': 'Rechnung Einzeltherapie',
   'pdf:rechnung_gruppentherapie': 'Rechnung Gruppentherapie',
-  'pdf:vertrag_erstgespraech': 'Vertrag Erstgespräch',
   'pdf:vertrag_einzeltherapie': 'Vertrag Einzeltherapie',
   'pdf:vertrag_gruppentherapie': 'Vertrag Gruppentherapie',
   'pdf:datenschutzinfo': 'Datenschutzinformation',

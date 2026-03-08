@@ -8,14 +8,15 @@ class PdfGenerator {
     private string $therapistZip;
     private string $therapistCity;
     private string $therapistTaxId;
+    private array $config;
 
     public function __construct() {
-        $config = require __DIR__ . '/../config.php';
-        $this->therapistName   = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
-        $this->therapistStreet = $config['therapist_street'] ?? '';
-        $this->therapistZip    = $config['therapist_zip'] ?? '';
-        $this->therapistCity   = $config['therapist_city'] ?? '';
-        $this->therapistTaxId  = $config['therapist_tax_id'] ?? '';
+        $this->config = require __DIR__ . '/../config.php';
+        $this->therapistName   = $this->config['therapist_name'] ?? 'Mut-Taucher Praxis';
+        $this->therapistStreet = $this->config['therapist_street'] ?? '';
+        $this->therapistZip    = $this->config['therapist_zip'] ?? '';
+        $this->therapistCity   = $this->config['therapist_city'] ?? '';
+        $this->therapistTaxId  = $this->config['therapist_tax_id'] ?? '';
     }
 
     /**
@@ -91,6 +92,10 @@ class PdfGenerator {
             '{{session_count}}'     => htmlspecialchars((string)($extra['sessionCount'] ?? '')),
             '{{total_amount}}'      => htmlspecialchars($extra['totalAmount'] ?? ''),
             '{{payment_label}}'     => htmlspecialchars($extra['paymentLabel'] ?? ''),
+            '{{bank_account_holder}}' => htmlspecialchars($this->config['bank_account_holder'] ?? ''),
+            '{{bank_iban}}'           => htmlspecialchars($this->config['bank_iban'] ?? ''),
+            '{{bank_bic}}'            => htmlspecialchars($this->config['bank_bic'] ?? ''),
+            '{{bank_name}}'           => htmlspecialchars($this->config['bank_name'] ?? ''),
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $html);
@@ -103,14 +108,42 @@ class PdfGenerator {
         $font = $brand['font_family'];
         $bodySize = (int)$brand['font_size_body'];
 
-        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8');
+        $bankFooter = sprintf(
+            '%s  ·  IBAN: %s  ·  BIC: %s  ·  %s',
+            $this->config['bank_account_holder'] ?? '',
+            $this->config['bank_iban'] ?? '',
+            $this->config['bank_bic'] ?? '',
+            $this->config['bank_name'] ?? ''
+        );
+
+        $pdf = new class($bankFooter, $font) extends TCPDF {
+            private string $bankFooter;
+            private string $footerFont;
+
+            public function __construct(string $bankFooter, string $font) {
+                parent::__construct('P', 'mm', 'A4', true, 'UTF-8');
+                $this->bankFooter = $bankFooter;
+                $this->footerFont = $font;
+            }
+
+            public function Footer(): void {
+                $this->SetY(-15);
+                $this->SetDrawColor(200, 200, 200);
+                $this->SetLineWidth(0.3);
+                $this->Line(25, $this->GetY(), 185, $this->GetY());
+                $this->Ln(2);
+                $this->SetFont($this->footerFont, '', 7);
+                $this->SetTextColor(100, 116, 139);
+                $this->Cell(0, 4, $this->bankFooter, 0, 0, 'C');
+            }
+        };
+
         $pdf->SetCreator('Mut-Taucher');
         $pdf->SetAuthor($this->therapistName);
         $pdf->SetTitle($title);
 
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(true);
-        $pdf->setFooterData(['0', '0', '0'], ['200', '200', '200']);
 
         $pdf->SetFont($font, '', $bodySize);
         $pdf->SetMargins(25, 35, 25);
@@ -133,7 +166,7 @@ class PdfGenerator {
             'clientZip'      => '10115',
             'clientCity'     => 'Berlin',
             'clientCountry'  => 'Deutschland',
-            'invoiceNumber'  => 'RE-2026-0042',
+            'invoiceNumber'  => '26-0042',
             'amountFormatted'=> '95,00 €',
             'durationMinutes'=> '50',
             'therapyLabel'   => 'Einzeltherapie',
@@ -203,7 +236,6 @@ class PdfGenerator {
 
     public function generate(string $type, string $clientName, string $date, array $extra = []): string {
         $titles = [
-            'vertrag_erstgespraech'     => 'Vertrag — Erstgespräch',
             'vertrag_einzeltherapie'    => 'Vertrag — Einzeltherapie',
             'vertrag_gruppentherapie'   => 'Vertrag — Gruppentherapie',
             'datenschutzinfo'           => 'Datenschutzinformation nach Art. 13 DSGVO',
