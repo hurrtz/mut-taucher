@@ -49,7 +49,7 @@ function handleCreateBooking(): void {
     $city      = trim($input['city'] ?? '');
     $message       = trim($input['message'] ?? '');
     $paymentMethod = $input['paymentMethod'] ?? 'wire_transfer';
-    if (!in_array($paymentMethod, ['stripe', 'wire_transfer'], true)) {
+    if (!in_array($paymentMethod, ['stripe', 'paypal', 'wire_transfer'], true)) {
         $paymentMethod = 'wire_transfer';
     }
 
@@ -149,6 +149,18 @@ function handleCreateBooking(): void {
             );
         }
 
+        // For PayPal: create Order and return approval URL
+        $paypalApprovalUrl = null;
+        if ($paymentMethod === 'paypal') {
+            require_once __DIR__ . '/../lib/PayPalCheckout.php';
+            $paypalApprovalUrl = createPayPalOrder(
+                (int)$bookingId,
+                9500, // 95.00 EUR in cents
+                'Erstgespräch (50 Minuten)',
+                $email
+            );
+        }
+
         // For wire transfer: send email with bank details
         if ($paymentMethod === 'wire_transfer') {
             try {
@@ -194,6 +206,10 @@ function handleCreateBooking(): void {
             $response['stripeCheckoutUrl'] = $stripeCheckoutUrl;
         }
 
+        if ($paypalApprovalUrl) {
+            $response['paypalApprovalUrl'] = $paypalApprovalUrl;
+        }
+
         if ($paymentMethod === 'wire_transfer') {
             $response['bankDetails'] = [
                 'accountHolder' => $config['bank_account_holder'] ?? '',
@@ -214,6 +230,88 @@ function handleCreateBooking(): void {
             throw $e;
         }
     }
+}
+
+/**
+ * POST /api/paypal/capture
+ * Body: { orderId: string }
+ * Captures a PayPal order after buyer approval, confirms the booking.
+ */
+function handlePayPalCapture(): void {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $orderId = $input['orderId'] ?? '';
+
+    if (!$orderId) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Order ID fehlt']);
+        return;
+    }
+
+    $db = getDB();
+
+    // Find the booking by PayPal order ID
+    $stmt = $db->prepare('SELECT * FROM bookings WHERE payment_id = ? AND payment_method = "paypal" AND status = "pending_payment"');
+    $stmt->execute([$orderId]);
+    $booking = $stmt->fetch();
+
+    if (!$booking) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Buchung nicht gefunden']);
+        return;
+    }
+
+    // Capture the payment
+    require_once __DIR__ . '/../lib/PayPalCheckout.php';
+    try {
+        capturePayPalOrder($orderId);
+    } catch (\Exception $e) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Zahlung konnte nicht abgeschlossen werden']);
+        return;
+    }
+
+    // Confirm the booking
+    $stmt = $db->prepare('UPDATE bookings SET status = "confirmed" WHERE id = ? AND status = "pending_payment"');
+    $stmt->execute([$booking['id']]);
+
+    if ($stmt->rowCount() > 0) {
+        $config = require __DIR__ . '/../config.php';
+
+        // Send confirmation email
+        try {
+            require_once __DIR__ . '/../lib/Mailer.php';
+            $mailer = new Mailer();
+            $clientName = trim($booking['client_first_name'] . ' ' . $booking['client_last_name']);
+            $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
+            $time = $booking['booking_time'];
+            $duration = (int)$booking['duration_minutes'];
+            $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+            $siteUrl = $config['site_url'] ?? '';
+
+            ob_start();
+            include __DIR__ . '/../templates/email/booking_confirmation.php';
+            $htmlBody = ob_get_clean();
+
+            $mailer->send(
+                $booking['client_email'],
+                $clientName,
+                'Terminbestätigung — ' . $therapistName,
+                $htmlBody
+            );
+        } catch (\Exception $e) {
+            // Don't fail if email fails
+        }
+
+        // Send invoice
+        try {
+            require_once __DIR__ . '/../lib/BookingInvoice.php';
+            sendBookingInvoice($db, (int)$booking['id']);
+        } catch (\Exception $e) {
+            // Don't fail if invoice fails
+        }
+    }
+
+    echo json_encode(['message' => 'Zahlung erfolgreich']);
 }
 
 /**

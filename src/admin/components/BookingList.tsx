@@ -110,8 +110,8 @@ export default function BookingList({ bookings, onUpdate }: {
                 extra={
                   b.status === 'pending_payment' ? (
                     <Space size={0}>
-                      <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : 'Überweisung'}>
-                        {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 8 }} /> : <BankOutlined style={{ color: '#6366f1', marginRight: 8 }} />}
+                      <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : b.paymentMethod === 'paypal' ? 'PayPal' : 'Überweisung'}>
+                        {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 8 }} /> : b.paymentMethod === 'paypal' ? <EuroCircleOutlined style={{ color: '#0070ba', marginRight: 8 }} /> : <BankOutlined style={{ color: '#6366f1', marginRight: 8 }} />}
                       </Tooltip>
                       <Tooltip title="Zahlung bestätigen">
                         <Button
@@ -148,8 +148,8 @@ export default function BookingList({ bookings, onUpdate }: {
                     </Space>
                   ) : (
                     <Space size={0}>
-                      <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : b.paymentMethod === 'wire_transfer' ? 'Überweisung' : ''}>
-                        {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : b.paymentMethod === 'wire_transfer' ? <BankOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : null}
+                      <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : b.paymentMethod === 'paypal' ? 'PayPal' : b.paymentMethod === 'wire_transfer' ? 'Überweisung' : ''}>
+                        {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : b.paymentMethod === 'paypal' ? <EuroCircleOutlined style={{ color: '#0070ba', marginRight: 4 }} /> : b.paymentMethod === 'wire_transfer' ? <BankOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : null}
                       </Tooltip>
                       <Tooltip title="Als erledigt markieren">
                         <Button

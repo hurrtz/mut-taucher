@@ -50,6 +50,12 @@ if ($method === 'POST' && $uri === '/webhooks/stripe') {
     exit;
 }
 
+// PayPal capture (public — called from frontend after PayPal approval)
+if ($method === 'POST' && $uri === '/paypal/capture') {
+    handlePayPalCapture();
+    exit;
+}
+
 // Public routes
 if ($method === 'GET' && $uri === '/slots') {
     handleGetSlots();

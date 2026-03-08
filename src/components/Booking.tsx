@@ -14,7 +14,7 @@ export default function Booking() {
   const [bookingForm, setBookingForm] = useState({ firstName: '', lastName: '', email: '', phone: '', street: '', zip: '', city: '', message: '' });
   const [consent, setConsent] = useState({ agb: false, datenschutz: false, widerruf: false });
   const [fieldErrors, setFieldErrors] = useState<{ email?: string | null; phone?: string | null }>({});
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'wire_transfer'>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'wire_transfer'>('stripe');
   const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -65,6 +65,12 @@ export default function Booking() {
       // Stripe: redirect to hosted checkout
       if (result.stripeCheckoutUrl) {
         window.location.href = result.stripeCheckoutUrl;
+        return;
+      }
+
+      // PayPal: redirect to PayPal approval
+      if (result.paypalApprovalUrl) {
+        window.location.href = result.paypalApprovalUrl;
         return;
       }
 
@@ -418,6 +424,15 @@ export default function Booking() {
                     <div>
                       <span className="text-sm font-medium text-text">Kreditkarte / Online-Zahlung</span>
                       <span className="block text-xs text-gray-400">Sichere Zahlung über Stripe</span>
+                    </div>
+                  </label>
+                  <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'paypal' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="paymentMethod" value="paypal" checked={paymentMethod === 'paypal'}
+                      onChange={() => setPaymentMethod('paypal')}
+                      className="text-primary focus:ring-primary" />
+                    <div>
+                      <span className="text-sm font-medium text-text">PayPal</span>
+                      <span className="block text-xs text-gray-400">Sichere Zahlung über PayPal</span>
                     </div>
                   </label>
                   <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'wire_transfer' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>

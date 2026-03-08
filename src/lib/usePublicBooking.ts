@@ -25,6 +25,7 @@ export interface BookingResult {
   message: string;
   paymentMethod: string;
   stripeCheckoutUrl?: string;
+  paypalApprovalUrl?: string;
   bankDetails?: BankDetails;
 }
 
@@ -60,7 +61,7 @@ export function usePublicBooking() {
     street: string,
     zip: string,
     city: string,
-    paymentMethod: 'stripe' | 'wire_transfer',
+    paymentMethod: 'stripe' | 'paypal' | 'wire_transfer',
     message?: string,
   ): Promise<BookingResult | null> => {
     setBooking(true);

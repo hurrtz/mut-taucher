@@ -34,6 +34,11 @@ return [
     'stripe_publishable_key'  => '',
     'stripe_webhook_secret'   => '',
 
+    // PayPal
+    'paypal_client_id'     => '',
+    'paypal_client_secret' => '',
+    'paypal_sandbox'       => true, // set to false for production
+
     // Bank transfer details (shown to clients choosing Überweisung)
     'bank_account_holder' => '',
     'bank_iban'           => '',
