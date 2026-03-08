@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, type FormEvent } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
-import { ConfigProvider, Layout, Menu, Typography, Button, FloatButton, Card, Input, Alert, theme } from 'antd';
+import { ConfigProvider, Layout, Menu, Typography, Button, FloatButton, Card, Input, Alert, Tag, theme } from 'antd';
 import {
   BarChartOutlined, LogoutOutlined,
   CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
@@ -21,17 +21,25 @@ interface NavCounts {
   dokumente: number;
 }
 
-function buildMenuItems(counts: NavCounts | null) {
-  const badge = (count: number | undefined) =>
-    count != null && count > 0 ? ` (${count})` : '';
+function NavLabel({ text, count, color, style }: { text: string; count?: number; color?: string; style?: React.CSSProperties }) {
+  return (
+    <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {text}
+      {count != null && count > 0 && (
+        <Tag color={color} style={{ marginLeft: 8, marginRight: 0, minWidth: 24, textAlign: 'center', ...style }}>{count}</Tag>
+      )}
+    </span>
+  );
+}
 
+function buildMenuItems(counts: NavCounts | null) {
   return [
     { key: 'kalender', icon: <CalendarOutlined />, label: 'Kalender' },
-    { key: 'erstgespraeche', icon: <CalendarOutlined />, label: `Erstgespräche${badge(counts?.erstgespraeche)}` },
-    { key: 'einzel', icon: <VideoCameraOutlined />, label: `Einzeltherapie${badge(counts?.einzel)}` },
-    { key: 'gruppen', icon: <TeamOutlined />, label: `Gruppentherapie${badge(counts?.gruppen)}` },
-    { key: 'kunden', icon: <UserOutlined />, label: `Patienten${badge(counts?.kunden)}` },
-    { key: 'dokumente', icon: <FileTextOutlined />, label: `Vorlagen${badge(counts?.dokumente)}` },
+    { key: 'erstgespraeche', icon: <CalendarOutlined />, label: <NavLabel text="Erstgespräche" count={counts?.erstgespraeche} color="#fff" style={{ background: '#2dd4bf', color: '#fff', fontWeight: 700, borderColor: '#2dd4bf', boxShadow: '0 0 6px rgba(45,212,191,0.5)' }} /> },
+    { key: 'einzel', icon: <VideoCameraOutlined />, label: <NavLabel text="Einzeltherapie" count={counts?.einzel} /> },
+    { key: 'gruppen', icon: <TeamOutlined />, label: <NavLabel text="Gruppentherapie" count={counts?.gruppen} /> },
+    { key: 'kunden', icon: <UserOutlined />, label: <NavLabel text="Patienten" count={counts?.kunden} /> },
+    { key: 'dokumente', icon: <FileTextOutlined />, label: <NavLabel text="Vorlagen" count={counts?.dokumente} /> },
     { key: 'arbeitsmappe', icon: <BookOutlined />, label: 'Arbeitsmappe' },
   ];
 }
