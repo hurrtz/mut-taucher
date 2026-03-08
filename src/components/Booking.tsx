@@ -472,7 +472,7 @@ export default function Booking() {
                       className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
                     />
                     <span className="text-sm text-gray-600">
-                      Ich verlange ausdrücklich, dass die Dienstleistung (Erstgespräch) bereits vor Ablauf der gesetzlichen Widerrufsfrist beginnen kann. Mir ist bekannt, dass mein Widerrufsrecht bei vollständiger Vertragserfüllung erlischt. *
+                      Ich verlange ausdrücklich, dass die Dienstleistung bereits vor Ablauf der Widerrufsfrist beginnt. Mir ist bekannt, dass mein Widerrufsrecht mit vollständiger Vertragserfüllung erlischt. *
                     </span>
                   </label>
                 </div>
