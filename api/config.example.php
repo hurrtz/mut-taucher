@@ -21,13 +21,17 @@ return [
     // Site URL for email links
     'site_url'    => 'https://example.com',
 
-    // SMTP
+    // SMTP (used for local dev with Mailpit)
     'smtp_host'       => '',
     'smtp_port'       => 587,
     'smtp_user'       => '',
     'smtp_pass'       => '',
     'smtp_from_email' => 'info@mut-taucher.de',
     'smtp_from_name'  => 'Mut-Taucher Praxis',
+
+    // Brevo HTTP API (used on production when SMTP ports are blocked)
+    // If set, emails are sent via Brevo API instead of SMTP
+    'brevo_api_key'   => '',
 
     // Stripe
     'stripe_secret_key'       => '',

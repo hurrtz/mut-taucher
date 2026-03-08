@@ -11,7 +11,7 @@ class Mailer {
     }
 
     /**
-     * Send an email via SMTP.
+     * Send an email — uses Brevo HTTP API if configured, otherwise SMTP.
      */
     public function send(
         string $to,
@@ -20,6 +20,139 @@ class Mailer {
         string $htmlBody,
         string $textBody = '',
         array $attachments = []
+    ): void {
+        if (!empty($this->config['brevo_api_key'])) {
+            $this->sendViaBrevo($to, $toName, $subject, $htmlBody, $textBody, $attachments);
+        } else {
+            $this->sendViaSmtp($to, $toName, $subject, $htmlBody, $textBody, $attachments);
+        }
+    }
+
+    /**
+     * Send an email with a PDF attachment generated from a string (no temp file).
+     */
+    public function sendWithPdf(
+        string $to,
+        string $toName,
+        string $subject,
+        string $htmlBody,
+        string $pdfContent,
+        string $pdfFilename
+    ): void {
+        $this->send($to, $toName, $subject, $htmlBody, '', [
+            ['string' => $pdfContent, 'name' => $pdfFilename],
+        ]);
+    }
+
+    /**
+     * Resolve the logo file path for embedding/attaching.
+     */
+    private function getLogoFile(): ?string {
+        $db = getDB();
+        $stmt = $db->query('SELECT logo_tall_path, logo_path FROM brand_settings WHERE id = 1');
+        $row = $stmt->fetch();
+        $logoFile = null;
+        if ($row && !empty($row['logo_tall_path'])) {
+            $logoFile = __DIR__ . '/../' . $row['logo_tall_path'];
+        }
+        if (!$logoFile || !file_exists($logoFile)) {
+            $logoFile = $row && !empty($row['logo_path']) ? __DIR__ . '/../' . $row['logo_path'] : __DIR__ . '/../assets/logo.png';
+        }
+        return (file_exists($logoFile)) ? $logoFile : null;
+    }
+
+    /**
+     * Send via Brevo HTTP API (works when SMTP ports are blocked).
+     */
+    private function sendViaBrevo(
+        string $to,
+        string $toName,
+        string $subject,
+        string $htmlBody,
+        string $textBody,
+        array $attachments
+    ): void {
+        // Embed logo as base64 inline image
+        $logoFile = $this->getLogoFile();
+        if ($logoFile) {
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($logoFile);
+            $logoBase64 = base64_encode(file_get_contents($logoFile));
+            $htmlBody = str_replace('cid:logo', "data:{$mime};base64,{$logoBase64}", $htmlBody);
+        }
+
+        $payload = [
+            'sender' => [
+                'name' => $this->config['smtp_from_name'],
+                'email' => $this->config['smtp_from_email'],
+            ],
+            'to' => [
+                ['email' => $to, 'name' => $toName],
+            ],
+            'subject' => $subject,
+            'htmlContent' => $htmlBody,
+        ];
+
+        if ($textBody) {
+            $payload['textContent'] = $textBody;
+        }
+
+        if (!empty($attachments)) {
+            $payload['attachment'] = [];
+            foreach ($attachments as $att) {
+                if (isset($att['string'])) {
+                    $payload['attachment'][] = [
+                        'content' => base64_encode($att['string']),
+                        'name' => $att['name'],
+                    ];
+                } else {
+                    $payload['attachment'][] = [
+                        'content' => base64_encode(file_get_contents($att['path'])),
+                        'name' => $att['name'],
+                    ];
+                }
+            }
+        }
+
+        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'accept: application/json',
+                'content-type: application/json',
+                'api-key: ' . $this->config['brevo_api_key'],
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            throw new Exception('Brevo API error: ' . $curlError);
+        }
+
+        if ($httpCode >= 400) {
+            $body = json_decode($response, true);
+            $msg = $body['message'] ?? $response;
+            throw new Exception('Brevo API error (' . $httpCode . '): ' . $msg);
+        }
+    }
+
+    /**
+     * Send via SMTP (PHPMailer) — used for local dev with Mailpit.
+     */
+    private function sendViaSmtp(
+        string $to,
+        string $toName,
+        string $subject,
+        string $htmlBody,
+        string $textBody,
+        array $attachments
     ): void {
         if (empty($this->config['smtp_host'])) {
             throw new Exception('SMTP not configured');
@@ -56,18 +189,8 @@ class Mailer {
         $mail->Body    = $htmlBody;
         $mail->AltBody = $textBody ?: strip_tags($htmlBody);
 
-        // Embed tall logo for branded email header (fall back to default logo)
-        $db = getDB();
-        $stmt = $db->query('SELECT logo_tall_path, logo_path FROM brand_settings WHERE id = 1');
-        $row = $stmt->fetch();
-        $logoFile = null;
-        if ($row && !empty($row['logo_tall_path'])) {
-            $logoFile = __DIR__ . '/../' . $row['logo_tall_path'];
-        }
-        if (!$logoFile || !file_exists($logoFile)) {
-            $logoFile = $row && !empty($row['logo_path']) ? __DIR__ . '/../' . $row['logo_path'] : __DIR__ . '/../assets/logo.png';
-        }
-        if (file_exists($logoFile)) {
+        $logoFile = $this->getLogoFile();
+        if ($logoFile) {
             $finfo = new finfo(FILEINFO_MIME_TYPE);
             $mime = $finfo->file($logoFile);
             $mail->addEmbeddedImage($logoFile, 'logo', basename($logoFile), 'base64', $mime);
@@ -82,21 +205,5 @@ class Mailer {
         }
 
         $mail->send();
-    }
-
-    /**
-     * Send an email with a PDF attachment generated from a string (no temp file).
-     */
-    public function sendWithPdf(
-        string $to,
-        string $toName,
-        string $subject,
-        string $htmlBody,
-        string $pdfContent,
-        string $pdfFilename
-    ): void {
-        $this->send($to, $toName, $subject, $htmlBody, '', [
-            ['string' => $pdfContent, 'name' => $pdfFilename],
-        ]);
     }
 }
