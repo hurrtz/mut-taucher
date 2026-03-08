@@ -521,6 +521,21 @@ function handleUpdateSession(int $id): void {
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
 
+    // Auto-send invoice when session is completed or no-show
+    $newStatus = $input['status'] ?? null;
+    if (in_array($newStatus, ['completed', 'no_show'], true)) {
+        $check = $db->prepare('SELECT invoice_sent FROM therapy_sessions WHERE id = ?');
+        $check->execute([$id]);
+        $row = $check->fetch();
+        if ($row && !$row['invoice_sent']) {
+            try {
+                sendTherapySessionInvoice($db, $id);
+            } catch (\Exception $e) {
+                // Don't fail the status update if invoice fails
+            }
+        }
+    }
+
     echo json_encode(['message' => 'Sitzung aktualisiert']);
 }
 
@@ -544,15 +559,15 @@ function handleDeleteSession(int $id): void {
 }
 
 /**
- * POST /api/admin/sessions/:id/invoice
- * Generates and sends an invoice PDF for a therapy session.
+ * Send invoice for a therapy session (reusable core logic).
+ * @return string The generated invoice number
+ * @throws Exception if sending fails
  */
-function handleSendInvoice(int $sessionId): void {
-    requireAuth();
+function sendTherapySessionInvoice(PDO $db, int $sessionId): string {
     require_once __DIR__ . '/../lib/Mailer.php';
     require_once __DIR__ . '/../lib/PdfGenerator.php';
+    require_once __DIR__ . '/../lib/InvoiceNumber.php';
     $config = require __DIR__ . '/../config.php';
-    $db = getDB();
 
     $stmt = $db->prepare(
         'SELECT s.*, t.client_id, t.session_cost_cents, t.label as therapy_label,
@@ -569,9 +584,7 @@ function handleSendInvoice(int $sessionId): void {
     $session = $stmt->fetch();
 
     if (!$session) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Sitzung nicht gefunden']);
-        return;
+        throw new RuntimeException("Sitzung #{$sessionId} nicht gefunden");
     }
 
     $clientName = composeClientName($session['client_title'], $session['client_first_name'], $session['client_last_name'], $session['client_suffix']);
@@ -582,10 +595,9 @@ function handleSendInvoice(int $sessionId): void {
     $amountFormatted = number_format($amountCents / 100, 2, ',', '.') . ' €';
     $durationMinutes = (int)$session['duration_minutes'];
     $therapyLabel = $session['therapy_label'];
-    require_once __DIR__ . '/../lib/InvoiceNumber.php';
     $invoiceNumber = generateInvoiceNumber($db);
+    $paymentNote = 'Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.';
 
-    // Generate invoice PDF
     $pdfGen = new PdfGenerator();
     $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_einzeltherapie', 'rechnung');
     $pdfContent = $pdfGen->generate($templateKey, $clientName, $dateFormatted, [
@@ -599,39 +611,48 @@ function handleSendInvoice(int $sessionId): void {
         'clientZip'        => $session['client_zip'] ?? '',
         'clientCity'       => $session['client_city'] ?? '',
         'clientCountry'    => $session['client_country'] ?? '',
+        'paymentNote'      => $paymentNote,
     ]);
 
-    // Render invoice cover email
     $documentName = 'Rechnung';
     ob_start();
     include __DIR__ . '/../templates/email/invoice_cover.php';
     $htmlBody = ob_get_clean();
 
-    try {
-        $mailer = new Mailer();
-        $pdfFilename = "Rechnung_{$invoiceNumber}.pdf";
-        $mailer->sendWithPdf(
-            $session['client_email'],
-            $clientName,
-            "Rechnung {$invoiceNumber} — {$therapistName}",
-            $htmlBody,
-            $pdfContent,
-            $pdfFilename
-        );
-    } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Rechnung konnte nicht gesendet werden: ' . $e->getMessage()]);
-        return;
-    }
+    $mailer = new Mailer();
+    $pdfFilename = "Rechnung_{$invoiceNumber}.pdf";
+    $mailer->sendWithPdf(
+        $session['client_email'],
+        $clientName,
+        "Rechnung {$invoiceNumber} — {$therapistName}",
+        $htmlBody,
+        $pdfContent,
+        $pdfFilename
+    );
 
-    // Mark invoice as sent
     $db->prepare(
         'UPDATE therapy_sessions SET invoice_sent = 1, invoice_sent_at = NOW() WHERE id = ?'
     )->execute([$sessionId]);
 
-    // Archive invoice PDF to client documents
     require_once __DIR__ . '/client_history.php';
     archiveSentDocument((int)$session['client_id'], "Rechnung {$invoiceNumber}", $pdfContent, $pdfFilename);
 
-    echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber]);
+    return $invoiceNumber;
+}
+
+/**
+ * POST /api/admin/sessions/:id/invoice
+ * Generates and sends an invoice PDF for a therapy session.
+ */
+function handleSendInvoice(int $sessionId): void {
+    requireAuth();
+    $db = getDB();
+
+    try {
+        $invoiceNumber = sendTherapySessionInvoice($db, $sessionId);
+        echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber]);
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Rechnung konnte nicht gesendet werden: ' . $e->getMessage()]);
+    }
 }

@@ -1,21 +1,19 @@
 import type { AdminBooking } from '../../lib/useAdminBooking';
-import { DocumentCollapse } from './DocumentChecklist';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
   Card, Button, Tag, Space, Typography, Tooltip, Modal,
 } from 'antd';
 import {
-  MailOutlined, CheckCircleOutlined, ClockCircleOutlined,
+  CheckCircleOutlined, EuroCircleOutlined,
   CloseOutlined, CalendarOutlined, FileTextOutlined, CreditCardOutlined, BankOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
 
-export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInvoice }: {
+export default function BookingList({ bookings, onUpdate, onSendInvoice }: {
   bookings: AdminBooking[];
   onUpdate: (id: number, updates: Partial<AdminBooking>) => void;
-  onSendEmail: (id: number, type: 'intro' | 'reminder') => void;
   onSendInvoice: (bookingId: number) => void;
 }) {
   if (bookings.length === 0) {
@@ -32,7 +30,7 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
         <Card
           key={b.id}
           size="default"
-          title={<Typography.Text strong ellipsis>{b.clientName}</Typography.Text>}
+          title={<span>{b.clientName}{b.status === 'pending_payment' && <Tag color="orange" style={{ marginLeft: 8 }}>Zahlung ausstehend</Tag>}</span>}
           style={{
             opacity: b.status === 'cancelled' ? 0.6 : 1,
             borderColor: b.status === 'cancelled' ? '#fca5a5' : b.status === 'pending_payment' ? '#fbbf24' : undefined,
@@ -40,14 +38,13 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
           extra={
             b.status === 'pending_payment' ? (
               <Space size={0}>
-                <Tag color="orange">Zahlung ausstehend</Tag>
                 <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : 'Überweisung'}>
                   {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 8 }} /> : <BankOutlined style={{ color: '#6366f1', marginRight: 8 }} />}
                 </Tooltip>
                 <Tooltip title="Zahlung bestätigen">
                   <Button
                     type="text"
-                    icon={<CheckCircleOutlined style={{ color: '#22c55e' }} />}
+                    icon={<EuroCircleOutlined />}
                     onClick={() => {
                       Modal.confirm({
                         title: 'Zahlung bestätigen',
@@ -81,26 +78,6 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
               <Space size={0}>
                 <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : b.paymentMethod === 'wire_transfer' ? 'Überweisung' : ''}>
                   {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : b.paymentMethod === 'wire_transfer' ? <BankOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : null}
-                </Tooltip>
-                <Tooltip title={b.introEmailSent ? 'Intro-E-Mail gesendet' : 'Intro-E-Mail senden'}>
-                  <Button
-                    type="text"
-                    icon={b.introEmailSent
-                      ? <CheckCircleOutlined style={{ color: '#4ade80' }} />
-                      : <MailOutlined />}
-                    disabled={b.introEmailSent}
-                    onClick={() => onSendEmail(b.id, 'intro')}
-                  />
-                </Tooltip>
-                <Tooltip title={b.reminderSent ? 'Erinnerung gesendet' : 'Erinnerung senden'}>
-                  <Button
-                    type="text"
-                    icon={b.reminderSent
-                      ? <CheckCircleOutlined style={{ color: '#4ade80' }} />
-                      : <ClockCircleOutlined />}
-                    disabled={b.reminderSent}
-                    onClick={() => onSendEmail(b.id, 'reminder')}
-                  />
                 </Tooltip>
                 <Tooltip title={b.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}>
                   <Button
@@ -148,11 +125,6 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
             )}
           </Space>
 
-          {b.status === 'confirmed' && (
-            <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 12 }}>
-              <DocumentCollapse contextType="erstgespraech" contextId={b.id} />
-            </div>
-          )}
         </Card>
       ))}
     </Space>

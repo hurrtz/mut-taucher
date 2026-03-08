@@ -15,7 +15,7 @@ import {
 const { Text } = Typography;
 
 export default function DocumentChecklist({ contextType, contextId, onCompletionChange }: {
-  contextType: 'client' | 'erstgespraech' | 'therapy' | 'group';
+  contextType: 'therapy' | 'group';
   contextId: number;
   onCompletionChange?: (allDone: boolean) => void;
 }) {
@@ -37,8 +37,9 @@ export default function DocumentChecklist({ contextType, contextId, onCompletion
   }, [defs]);
 
   const allDone = useMemo(() => {
-    if (defs.length === 0) return false;
-    return defs.every(doc => {
+    const required = defs.filter(doc => doc.category.startsWith('muss_'));
+    if (required.length === 0) return false;
+    return required.every(doc => {
       if (!isSent(doc.key)) return false;
       if (doc.signedCounterpart && !isSent(doc.signedCounterpart)) return false;
       return true;
@@ -198,7 +199,7 @@ export default function DocumentChecklist({ contextType, contextId, onCompletion
 }
 
 export function DocumentCollapse({ contextType, contextId }: {
-  contextType: 'client' | 'erstgespraech' | 'therapy' | 'group';
+  contextType: 'therapy' | 'group';
   contextId: number;
 }) {
   const [allDone, setAllDone] = useState(false);

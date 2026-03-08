@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { Client } from '../../lib/data';
-import { DocumentCollapse } from './DocumentChecklist';
 import { EditOutlined, InboxOutlined, UndoOutlined, DownOutlined, RightOutlined } from '@ant-design/icons';
 import { Card, Button, Tag, Space, Typography, Modal, Tooltip } from 'antd';
 
@@ -73,9 +72,6 @@ function ArchivedClientCard({ client, onEdit, onRestore, selectedId, onSelect }:
           {c.notes}
         </div>
       )}
-      <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
-        <DocumentCollapse contextType="client" contextId={c.id} />
-      </div>
     </Card>
   );
 }
@@ -148,9 +144,6 @@ export default function ClientList({ clients, onEdit, onArchive, onRestore, sele
           {c.notes}
         </div>
       )}
-      <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
-        <DocumentCollapse contextType="client" contextId={c.id} />
-      </div>
     </Card>
   );
 

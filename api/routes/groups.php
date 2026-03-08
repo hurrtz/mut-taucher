@@ -771,6 +771,21 @@ function handleUpdateGroupPayment(int $id): void {
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
 
+    // Auto-send invoice when attendance is marked as attended or no-show
+    $newAttendance = $input['attendanceStatus'] ?? null;
+    if (in_array($newAttendance, ['attended', 'no_show'], true)) {
+        $check = $db->prepare('SELECT invoice_sent FROM group_session_payments WHERE id = ?');
+        $check->execute([$id]);
+        $row = $check->fetch();
+        if ($row && !$row['invoice_sent']) {
+            try {
+                sendGroupSessionInvoice($db, $id);
+            } catch (\Exception $e) {
+                // Don't fail the attendance update if invoice fails
+            }
+        }
+    }
+
     echo json_encode(['message' => 'Zahlung aktualisiert']);
 }
 
@@ -822,15 +837,15 @@ function handleBulkPayGroupPayments(): void {
 }
 
 /**
- * POST /api/admin/group-session-payments/:id/invoice
- * Generates and sends an invoice PDF for a group session payment.
+ * Send invoice for a group session payment (reusable core logic).
+ * @return string The generated invoice number
+ * @throws Exception if sending fails
  */
-function handleSendGroupInvoice(int $paymentId): void {
-    requireAuth();
+function sendGroupSessionInvoice(PDO $db, int $paymentId): string {
     require_once __DIR__ . '/../lib/Mailer.php';
     require_once __DIR__ . '/../lib/PdfGenerator.php';
+    require_once __DIR__ . '/../lib/InvoiceNumber.php';
     $config = require __DIR__ . '/../config.php';
-    $db = getDB();
 
     $stmt = $db->prepare(
         'SELECT gsp.*, gs.session_date, gs.session_time, gs.duration_minutes,
@@ -849,9 +864,7 @@ function handleSendGroupInvoice(int $paymentId): void {
     $payment = $stmt->fetch();
 
     if (!$payment) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Zahlung nicht gefunden']);
-        return;
+        throw new RuntimeException("Zahlung #{$paymentId} nicht gefunden");
     }
 
     $clientName = composeClientName($payment['client_title'], $payment['client_first_name'], $payment['client_last_name'], $payment['client_suffix']);
@@ -862,10 +875,9 @@ function handleSendGroupInvoice(int $paymentId): void {
     $amountFormatted = number_format($amountCents / 100, 2, ',', '.') . ' €';
     $durationMinutes = (int)$payment['duration_minutes'];
     $therapyLabel = $payment['group_label'];
-    require_once __DIR__ . '/../lib/InvoiceNumber.php';
     $invoiceNumber = generateInvoiceNumber($db);
+    $paymentNote = 'Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.';
 
-    // Generate invoice PDF
     $pdfGen = new PdfGenerator();
     $pdfContent = $pdfGen->generate('rechnung', $clientName, $dateFormatted, [
         'invoiceNumber'    => $invoiceNumber,
@@ -878,41 +890,50 @@ function handleSendGroupInvoice(int $paymentId): void {
         'clientZip'        => $payment['client_zip'] ?? '',
         'clientCity'       => $payment['client_city'] ?? '',
         'clientCountry'    => $payment['client_country'] ?? '',
+        'paymentNote'      => $paymentNote,
     ]);
 
-    // Render invoice cover email
     $documentName = 'Rechnung';
     ob_start();
     include __DIR__ . '/../templates/email/invoice_cover.php';
     $htmlBody = ob_get_clean();
 
-    try {
-        $mailer = new Mailer();
-        $pdfFilename = "Rechnung_{$invoiceNumber}.pdf";
-        $mailer->sendWithPdf(
-            $payment['client_email'],
-            $clientName,
-            "Rechnung {$invoiceNumber} — {$therapistName}",
-            $htmlBody,
-            $pdfContent,
-            $pdfFilename
-        );
-    } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Rechnung konnte nicht gesendet werden: ' . $e->getMessage()]);
-        return;
-    }
+    $mailer = new Mailer();
+    $pdfFilename = "Rechnung_{$invoiceNumber}.pdf";
+    $mailer->sendWithPdf(
+        $payment['client_email'],
+        $clientName,
+        "Rechnung {$invoiceNumber} — {$therapistName}",
+        $htmlBody,
+        $pdfContent,
+        $pdfFilename
+    );
 
-    // Mark invoice as sent
     $db->prepare(
         'UPDATE group_session_payments SET invoice_sent = 1, invoice_sent_at = NOW() WHERE id = ?'
     )->execute([$paymentId]);
 
-    // Archive invoice PDF to client documents
     require_once __DIR__ . '/client_history.php';
     archiveSentDocument((int)$payment['client_id'], "Rechnung {$invoiceNumber}", $pdfContent, $pdfFilename);
 
-    echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber]);
+    return $invoiceNumber;
+}
+
+/**
+ * POST /api/admin/group-session-payments/:id/invoice
+ * Generates and sends an invoice PDF for a group session payment.
+ */
+function handleSendGroupInvoice(int $paymentId): void {
+    requireAuth();
+    $db = getDB();
+
+    try {
+        $invoiceNumber = sendGroupSessionInvoice($db, $paymentId);
+        echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber]);
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Rechnung konnte nicht gesendet werden: ' . $e->getMessage()]);
+    }
 }
 
 /**
