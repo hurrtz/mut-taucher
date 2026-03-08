@@ -41,6 +41,15 @@ function sendBookingInvoice(PDO $db, int $bookingId): string {
     $therapyLabel = 'Erstgespräch';
     $invoiceNumber = generateInvoiceNumber($db);
 
+    $paymentMethod = $booking['payment_method'] ?? 'wire_transfer';
+    if ($paymentMethod === 'stripe') {
+        $paymentNote = 'Der Betrag wurde bereits per Kreditkarte beglichen. Vielen Dank!';
+    } elseif ($paymentMethod === 'paypal') {
+        $paymentNote = 'Der Betrag wurde bereits per PayPal beglichen. Vielen Dank!';
+    } else {
+        $paymentNote = 'Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.';
+    }
+
     $pdfGen = new PdfGenerator();
     $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_erstgespraech', 'rechnung');
     $pdfContent = $pdfGen->generate($templateKey, $clientName, $dateFormatted, [
@@ -50,6 +59,10 @@ function sendBookingInvoice(PDO $db, int $bookingId): string {
         'therapyLabel'     => $therapyLabel,
         'sessionDate'      => $dateFormatted,
         'sessionTime'      => $booking['booking_time'],
+        'clientStreet'     => $booking['client_street'] ?? '',
+        'clientZip'        => $booking['client_zip'] ?? '',
+        'clientCity'       => $booking['client_city'] ?? '',
+        'paymentNote'      => $paymentNote,
     ]);
 
     $documentName = 'Rechnung';
