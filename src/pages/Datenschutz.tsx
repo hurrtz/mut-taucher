@@ -58,16 +58,14 @@ export default function Datenschutz() {
 
             <h2 id="verantwortliche-stelle">Verantwortliche Stelle</h2>
             <p>Verantwortlich für die Datenverarbeitung auf dieser Website ist:</p>
-            <p>
+            <div className="not-prose bg-gray-50 border-l-4 border-primary/40 rounded-r-lg px-5 py-4 my-4 text-sm text-gray-700 leading-relaxed">
               Jana Fricke<br />
               M.Sc. Psychologie<br />
               Zeuschelstraße 97<br />
-              13127 Berlin
-            </p>
-            <p>
-              E-Mail: <a href="mailto:info@mut-taucher.de">info@mut-taucher.de</a><br />
-              Telefon: <a href="tel:+4915253432009">+49 152 53432009</a>
-            </p>
+              13127 Berlin<br /><br />
+              E-Mail: <a href="mailto:info@mut-taucher.de" className="text-primary hover:text-teal-600">info@mut-taucher.de</a><br />
+              Telefon: <a href="tel:+4915253432009" className="text-primary hover:text-teal-600">+49 152 53432009</a>
+            </div>
 
             <h2 id="erhebung-speicherung">Erhebung und Speicherung personenbezogener Daten beim Besuch der Website</h2>
             <p>
@@ -182,11 +180,11 @@ export default function Datenschutz() {
               Sie haben das Recht, sich bei einer Datenschutzaufsichtsbehörde über die Verarbeitung Ihrer personenbezogenen Daten zu beschweren.
             </p>
             <p>Zuständige Aufsichtsbehörde in Berlin ist:</p>
-            <p>
+            <div className="not-prose bg-gray-50 border-l-4 border-primary/40 rounded-r-lg px-5 py-4 my-4 text-sm text-gray-700 leading-relaxed">
               Berliner Beauftragte für Datenschutz und Informationsfreiheit<br />
               Alt-Moabit 59–61<br />
               10555 Berlin
-            </p>
+            </div>
 
             <h2 id="aenderungen">Änderungen dieser Datenschutzerklärung</h2>
             <p>
@@ -198,12 +196,12 @@ export default function Datenschutz() {
 
             <h2 id="hosting">Hosting und Datenbank</h2>
             <p>Diese Website wird bei folgendem Anbieter gehostet:</p>
-            <p>
+            <div className="not-prose bg-gray-50 border-l-4 border-primary/40 rounded-r-lg px-5 py-4 my-4 text-sm text-gray-700 leading-relaxed">
               Host Europe GmbH<br />
               Hansestraße 111<br />
               51149 Köln<br />
               Deutschland
-            </p>
+            </div>
             <p>
               Der Hostinganbieter stellt die technische Infrastruktur für den Betrieb der Website bereit. Dabei werden personenbezogene Daten verarbeitet, die beim Besuch der Website anfallen (z.&nbsp;B. IP-Adresse, Zugriffszeitpunkte, technische Informationen zum Browser).
             </p>
@@ -222,12 +220,12 @@ export default function Datenschutz() {
               Online-Sitzungen können über den Videodienst von therapie.de durchgeführt werden.
             </p>
             <p>Betreiber der Plattform ist:</p>
-            <p>
+            <div className="not-prose bg-gray-50 border-l-4 border-primary/40 rounded-r-lg px-5 py-4 my-4 text-sm text-gray-700 leading-relaxed">
               therapie.de GmbH<br />
               Eppendorfer Weg 24<br />
               20259 Hamburg<br />
               Deutschland
-            </p>
+            </div>
             <p>
               Wenn Sie an einer Videositzung teilnehmen, werden zur Durchführung der Kommunikation technische Verbindungsdaten verarbeitet. Dazu können insbesondere IP-Adresse, Zeitpunkt der Verbindung sowie technische Geräteinformationen gehören.
             </p>
@@ -246,12 +244,12 @@ export default function Datenschutz() {
 
             <h2 id="amplitude">Webanalyse mit Amplitude</h2>
             <p>Diese Website verwendet Amplitude, einen Webanalysedienst der</p>
-            <p>
+            <div className="not-prose bg-gray-50 border-l-4 border-primary/40 rounded-r-lg px-5 py-4 my-4 text-sm text-gray-700 leading-relaxed">
               Amplitude Inc.<br />
               201 Third Street, Suite 200<br />
               San Francisco, CA 94103<br />
               USA
-            </p>
+            </div>
             <p>
               Amplitude ermöglicht die Analyse des Nutzerverhaltens auf der Website, um das Angebot und die Benutzerfreundlichkeit zu verbessern.
             </p>
@@ -296,11 +294,11 @@ export default function Datenschutz() {
 
             <h3>Zahlung via PayPal</h3>
             <p>Wenn Sie PayPal als Zahlungsmethode wählen, erfolgt die Zahlungsabwicklung über:</p>
-            <p>
+            <div className="not-prose bg-gray-50 border-l-4 border-primary/40 rounded-r-lg px-5 py-4 my-4 text-sm text-gray-700 leading-relaxed">
               PayPal (Europe) S.à r.l. et Cie, S.C.A.<br />
               22–24 Boulevard Royal<br />
               L-2449 Luxemburg
-            </p>
+            </div>
             <p>
               Im Rahmen der Zahlungsabwicklung können personenbezogene Daten an PayPal übermittelt werden, insbesondere Name, E-Mail-Adresse, Zahlungsbetrag und Transaktionsdaten.
             </p>
@@ -310,13 +308,13 @@ export default function Datenschutz() {
 
             <h3>Zahlung via Stripe</h3>
             <p>Für Kreditkarten- und andere Onlinezahlungen kann der Zahlungsdienstleister Stripe eingesetzt werden.</p>
-            <p>
+            <div className="not-prose bg-gray-50 border-l-4 border-primary/40 rounded-r-lg px-5 py-4 my-4 text-sm text-gray-700 leading-relaxed">
               Stripe Payments Europe Ltd.<br />
               1 Grand Canal Street Lower<br />
               Grand Canal Dock<br />
               Dublin<br />
               Irland
-            </p>
+            </div>
             <p>
               Im Rahmen der Zahlungsabwicklung werden die für die Transaktion notwendigen Daten an Stripe übermittelt.
             </p>
