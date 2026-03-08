@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { usePublicBooking, type PublicSlot } from '../lib/usePublicBooking';
 import { format, startOfMonth, addMonths, isSameDay, isSameMonth, parseISO, startOfWeek, endOfWeek, endOfMonth, eachDayOfInterval, isBefore, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, CheckCircle, Loader2, AlertCircle, X } from 'lucide-react';
 import { trackBookingDateSelected, trackBookingSlotSelected, trackBookingSubmitted } from '../lib/analytics';
 
 export default function Booking() {
@@ -45,12 +45,11 @@ export default function Booking() {
 
     if (result) {
       trackBookingSubmitted(selectedSlot.date, selectedSlot.time);
+      setSelectedSlot(null);
       setIsSuccess(true);
       setTimeout(() => {
         setIsSuccess(false);
-        setSelectedSlot(null);
         setBookingForm({ firstName: '', lastName: '', email: '', street: '', zip: '', city: '' });
-        // Refresh slots to reflect the booking
         fetchSlots(calendarStart, calendarEnd);
       }, 3000);
     }
@@ -224,105 +223,127 @@ export default function Booking() {
                   })()}
                 </div>
 
-                {selectedSlot && (
-                  <form onSubmit={handleBook} className="space-y-4 pt-4 border-t border-gray-200">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">Vorname</label>
-                        <input
-                          type="text"
-                          id="firstName"
-                          required
-                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                          value={bookingForm.firstName}
-                          onChange={e => setBookingForm({...bookingForm, firstName: e.target.value})}
-                          placeholder="Vorname"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">Nachname</label>
-                        <input
-                          type="text"
-                          id="lastName"
-                          required
-                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                          value={bookingForm.lastName}
-                          onChange={e => setBookingForm({...bookingForm, lastName: e.target.value})}
-                          placeholder="Nachname"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
-                      <input
-                        type="email"
-                        id="email"
-                        required
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                        value={bookingForm.email}
-                        onChange={e => setBookingForm({...bookingForm, email: e.target.value})}
-                        placeholder="ihre@email.de"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-1">Straße und Hausnummer</label>
-                      <input
-                        type="text"
-                        id="street"
-                        required
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                        value={bookingForm.street}
-                        onChange={e => setBookingForm({...bookingForm, street: e.target.value})}
-                        placeholder="Musterstraße 1"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label htmlFor="zip" className="block text-sm font-medium text-gray-700 mb-1">PLZ</label>
-                        <input
-                          type="text"
-                          id="zip"
-                          required
-                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                          value={bookingForm.zip}
-                          onChange={e => setBookingForm({...bookingForm, zip: e.target.value})}
-                          placeholder="10115"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">Ort</label>
-                        <input
-                          type="text"
-                          id="city"
-                          required
-                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                          value={bookingForm.city}
-                          onChange={e => setBookingForm({...bookingForm, city: e.target.value})}
-                          placeholder="Berlin"
-                        />
-                      </div>
-                    </div>
-                    {error && (
-                      <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-3">
-                        <AlertCircle className="h-4 w-4 shrink-0" />
-                        {error}
-                      </div>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={booking}
-                      className="w-full py-3 px-6 bg-primary hover:bg-teal-500 text-white font-semibold text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      {booking && <Loader2 className="h-5 w-5 animate-spin" />}
-                      Termin jetzt buchen
-                    </button>
-                  </form>
-                )}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Booking Modal */}
+      {selectedSlot && !isSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedSlot(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-xl font-serif font-bold text-text">Termin buchen</h3>
+              <button onClick={() => setSelectedSlot(null)} className="p-1 hover:bg-gray-100 rounded-full transition-colors cursor-pointer">
+                <X className="h-5 w-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="flex items-center gap-2 text-sm text-primary bg-teal-50 rounded-lg p-3 mb-6">
+                <Clock className="h-4 w-4 shrink-0" />
+                <span>
+                  <strong>{format(parseISO(selectedSlot.date), 'EEEE, d. MMMM yyyy', { locale: de })}</strong> um <strong>{selectedSlot.time} Uhr</strong> ({formatDuration(selectedSlot.durationMinutes)})
+                </span>
+              </div>
+
+              <form onSubmit={handleBook} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="modal-firstName" className="block text-sm font-medium text-gray-700 mb-1">Vorname</label>
+                    <input
+                      type="text"
+                      id="modal-firstName"
+                      required
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                      value={bookingForm.firstName}
+                      onChange={e => setBookingForm({...bookingForm, firstName: e.target.value})}
+                      placeholder="Vorname"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="modal-lastName" className="block text-sm font-medium text-gray-700 mb-1">Nachname</label>
+                    <input
+                      type="text"
+                      id="modal-lastName"
+                      required
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                      value={bookingForm.lastName}
+                      onChange={e => setBookingForm({...bookingForm, lastName: e.target.value})}
+                      placeholder="Nachname"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="modal-email" className="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
+                  <input
+                    type="email"
+                    id="modal-email"
+                    required
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                    value={bookingForm.email}
+                    onChange={e => setBookingForm({...bookingForm, email: e.target.value})}
+                    placeholder="ihre@email.de"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="modal-street" className="block text-sm font-medium text-gray-700 mb-1">Straße und Hausnummer</label>
+                  <input
+                    type="text"
+                    id="modal-street"
+                    required
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                    value={bookingForm.street}
+                    onChange={e => setBookingForm({...bookingForm, street: e.target.value})}
+                    placeholder="Musterstraße 1"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label htmlFor="modal-zip" className="block text-sm font-medium text-gray-700 mb-1">PLZ</label>
+                    <input
+                      type="text"
+                      id="modal-zip"
+                      required
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                      value={bookingForm.zip}
+                      onChange={e => setBookingForm({...bookingForm, zip: e.target.value})}
+                      placeholder="10115"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label htmlFor="modal-city" className="block text-sm font-medium text-gray-700 mb-1">Ort</label>
+                    <input
+                      type="text"
+                      id="modal-city"
+                      required
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                      value={bookingForm.city}
+                      onChange={e => setBookingForm({...bookingForm, city: e.target.value})}
+                      placeholder="Berlin"
+                    />
+                  </div>
+                </div>
+                {error && (
+                  <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-3">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {error}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={booking}
+                  className="w-full py-3 px-6 bg-primary hover:bg-teal-500 text-white font-semibold text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {booking && <Loader2 className="h-5 w-5 animate-spin" />}
+                  Termin jetzt buchen
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
