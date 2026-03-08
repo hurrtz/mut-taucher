@@ -21,68 +21,119 @@ export default function AGB() {
             Zurück zur Startseite
           </Link>
 
-          <h1 className="text-3xl md:text-5xl font-serif font-bold text-text mb-6">Allgemeine Geschäftsbedingungen</h1>
+          <h1 className="text-3xl md:text-5xl font-serif font-bold text-text mb-2">Allgemeine Geschäftsbedingungen</h1>
+          <p className="text-lg text-gray-500 mb-8">Online-Praxis Mut-Taucher — Jana Fricke</p>
 
           <div className="prose prose-lg prose-slate max-w-none prose-headings:font-serif prose-headings:text-text">
 
             <h2>1. Geltungsbereich</h2>
             <p>
-              Diese Allgemeinen Geschäftsbedingungen gelten für alle therapeutischen Leistungen, die von Jana Fricke, M.Sc. Psychologin, Systemische Therapeutin / Familientherapeutin (DGSF), im Rahmen der Online-Psychotherapie-Praxis Mut-Taucher angeboten werden. Mit der Terminbuchung erkennen Sie diese Bedingungen an.
+              Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für alle therapeutischen Leistungen, die von Jana Fricke, M.Sc. Psychologin, Systemische Therapeutin / Familientherapeutin (DGSF), im Rahmen der Online-Praxis Mut-Taucher angeboten werden.
+            </p>
+            <p>
+              Das Angebot umfasst insbesondere Erstgespräche, Einzelsitzungen sowie Gruppentherapien, die per Videokommunikation durchgeführt werden.
+            </p>
+            <p>
+              Mit der Buchung eines Termins über die Website oder andere vereinbarte Kommunikationswege kommt ein Dienstleistungsvertrag zustande. Mit der Terminbuchung erkennen Sie diese Allgemeinen Geschäftsbedingungen an.
             </p>
 
-            <h2>2. Leistungsangebot</h2>
+            <h2>2. Art der Leistung</h2>
             <p>
-              Das Angebot umfasst psychotherapeutische Einzelsitzungen, Gruppentherapie und Erstgespräche per Videokommunikation. Die Therapie erfolgt auf Grundlage des Heilpraktikergesetzes (Erlaubnis beschränkt auf das Gebiet der Psychotherapie). Es handelt sich nicht um eine ärztliche Behandlung.
+              Die angebotenen Leistungen erfolgen im Rahmen der Heilpraktikererlaubnis, beschränkt auf das Gebiet der Psychotherapie gemäß Heilpraktikergesetz.
             </p>
             <p>
-              Die Therapie ersetzt keine ärztliche Diagnostik oder Behandlung. Bei akuten psychiatrischen Notfällen, Suizidalität oder schweren körperlichen Erkrankungen wird empfohlen, sich an den ärztlichen Bereitschaftsdienst (116 117), den Notruf (112) oder die TelefonSeelsorge (116 123) zu wenden.
+              Die angebotene Therapie stellt keine ärztliche Behandlung dar und ersetzt weder ärztliche Diagnostik noch medizinische Behandlung.
             </p>
+            <p>
+              Bei akuten psychiatrischen Notfällen, Suizidalität oder schweren körperlichen Erkrankungen wenden Sie sich bitte an:
+            </p>
+            <ul>
+              <li>den ärztlichen Bereitschaftsdienst (116 117)</li>
+              <li>den Notruf (112)</li>
+              <li>die TelefonSeelsorge (116 123)</li>
+            </ul>
 
-            <h2>3. Terminvereinbarung, Absage und Ausfallhonorar</h2>
+            <h2>3. Terminvereinbarung und Ausfallhonorar</h2>
             <p>
-              Vereinbarte Termine sind verbindlich. Eine kostenfreie Absage ist bis spätestens <strong>48 Stunden (zwei Tage) vor dem vereinbarten Termin</strong> möglich.
+              Vereinbarte Termine sind verbindlich.
             </p>
             <p>
-              Bei späterer Absage oder Nichterscheinen wird das Honorar für den Termin als Ausfallhonorar in voller Höhe berechnet. Dem Patienten bleibt der Nachweis vorbehalten, dass kein oder ein wesentlich geringerer Schaden entstanden ist.
+              Eine kostenfreie Absage oder Verschiebung eines Termins ist bis spätestens <strong>48 Stunden vor dem vereinbarten Termin</strong> möglich.
+            </p>
+            <p>
+              Bei Absagen weniger als 48 Stunden vor dem Termin sowie bei Nichterscheinen wird das vereinbarte Honorar in voller Höhe als Ausfallhonorar berechnet.
+            </p>
+            <p>
+              Das Ausfallhonorar wird erhoben, da der Termin kurzfristig in der Regel nicht anderweitig vergeben werden kann.
+            </p>
+            <p>
+              Dem Patienten bleibt der Nachweis vorbehalten, dass kein oder ein wesentlich geringerer Schaden entstanden ist.
             </p>
 
             <h2>4. Honorar und Zahlung</h2>
             <p>
-              Das Honorar richtet sich nach der jeweils gültigen Honorarvereinbarung und wird vor Beginn der Therapie transparent mitgeteilt. Die Leistungen sind gemäß § 4 Nr. 14 UStG von der Umsatzsteuer befreit.
+              Die Höhe des Honorars richtet sich nach der jeweils aktuell gültigen Honorarvereinbarung und wird vor der Terminbuchung transparent ausgewiesen.
             </p>
             <p>
-              Die Abrechnung erfolgt als Selbstzahlerleistung. Eine Erstattung durch gesetzliche Krankenkassen ist in der Regel nicht möglich. Private Krankenversicherungen und Zusatzversicherungen erstatten die Kosten je nach Tarif teilweise oder vollständig – bitte klären Sie dies vorab mit Ihrer Versicherung.
+              Die Leistungen werden als Selbstzahlerleistungen erbracht.
             </p>
             <p>
-              Die Zahlung erfolgt per Überweisung innerhalb von 14 Tagen nach Rechnungsstellung.
+              Eine Kostenübernahme durch gesetzliche Krankenkassen erfolgt in der Regel nicht. Private Krankenversicherungen oder Zusatzversicherungen können die Kosten je nach Tarif teilweise oder vollständig erstatten. Eine Klärung mit der jeweiligen Versicherung liegt in der Verantwortung des Patienten.
+            </p>
+            <p>
+              Die Zahlung erfolgt per Überweisung auf das angegebene Konto.
+            </p>
+            <p>
+              Sofern nicht anders vereinbart, ist der Rechnungsbetrag innerhalb von 14 Tagen nach Rechnungsstellung zu begleichen.
             </p>
 
             <h2>5. Schweigepflicht und Vertraulichkeit</h2>
             <p>
-              Alle Inhalte der therapeutischen Sitzungen unterliegen der gesetzlichen Schweigepflicht gemäß § 203 StGB. Informationen werden ohne Ihre ausdrückliche Einwilligung nicht an Dritte weitergegeben, es sei denn, es besteht eine gesetzliche Mitteilungspflicht.
+              Alle Inhalte der therapeutischen Sitzungen unterliegen der gesetzlichen Schweigepflicht gemäß § 203 StGB.
+            </p>
+            <p>
+              Informationen werden ohne ausdrückliche Einwilligung des Patienten nicht an Dritte weitergegeben, es sei denn, es besteht eine gesetzliche Offenlegungspflicht.
             </p>
 
-            <h2>6. Technische Voraussetzungen</h2>
+            <h2>6. Durchführung der Online-Sitzungen</h2>
             <p>
-              Für die Durchführung der Online-Sitzungen ist eine stabile Internetverbindung sowie ein Gerät mit Kamera und Mikrofon erforderlich. Es wird empfohlen, einen ruhigen, ungestörten Ort für die Sitzung zu wählen. Die Verantwortung für die technischen Voraussetzungen auf Klient:innenseite liegt bei den Teilnehmenden.
+              Die Sitzungen finden per Videokommunikation statt.
             </p>
             <p>
-              Sollte eine Sitzung aus technischen Gründen nicht stattfinden können, wird gemeinsam ein Ersatztermin vereinbart.
+              Voraussetzung für die Teilnahme ist eine stabile Internetverbindung sowie ein Endgerät mit Kamera und Mikrofon.
+            </p>
+            <p>
+              Die Verantwortung für die technischen Voraussetzungen auf Seiten des Patienten liegt bei den Teilnehmenden.
+            </p>
+            <p>
+              Sollte eine Sitzung aufgrund technischer Probleme nicht durchgeführt werden können, wird nach Möglichkeit ein Ersatztermin vereinbart.
             </p>
 
             <h2>7. Haftung</h2>
             <p>
-              Die therapeutische Arbeit erfolgt nach bestem Wissen und Gewissen. Ein bestimmter Therapieerfolg kann nicht garantiert werden. Die Haftung beschränkt sich auf Vorsatz und grobe Fahrlässigkeit.
+              Die therapeutische Arbeit erfolgt nach bestem Wissen und Gewissen. Ein bestimmter Behandlungserfolg kann nicht garantiert werden.
+            </p>
+            <p>
+              Die Haftung für Schäden ist auf Vorsatz und grobe Fahrlässigkeit beschränkt, soweit gesetzlich zulässig.
+            </p>
+            <p>
+              Die Haftung für Schäden aus der Verletzung von Leben, Körper oder Gesundheit bleibt hiervon unberührt.
             </p>
 
             <h2>8. Beendigung der Therapie</h2>
             <p>
-              Die Therapie kann von beiden Seiten jederzeit beendet werden. Eine Kündigung bedarf keiner besonderen Form. Bereits vereinbarte und nicht rechtzeitig abgesagte Termine werden gemäß Abschnitt 3 abgerechnet.
+              Die therapeutische Zusammenarbeit kann von beiden Seiten jederzeit beendet werden.
+            </p>
+            <p>
+              Bereits vereinbarte Termine müssen gemäß den Regelungen in Abschnitt 3 rechtzeitig abgesagt werden. Andernfalls wird das vereinbarte Honorar als Ausfallhonorar berechnet.
             </p>
 
             <h2>9. Schlussbestimmungen</h2>
             <p>
-              Sollten einzelne Bestimmungen dieser AGB unwirksam sein, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt. Es gilt deutsches Recht. Gerichtsstand ist Berlin.
+              Sollten einzelne Bestimmungen dieser AGB ganz oder teilweise unwirksam sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt.
+            </p>
+            <p>
+              Es gilt das Recht der Bundesrepublik Deutschland.
             </p>
 
           </div>
