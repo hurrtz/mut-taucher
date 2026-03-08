@@ -108,33 +108,37 @@ class PdfGenerator {
         $font = $brand['font_family'];
         $bodySize = (int)$brand['font_size_body'];
 
-        $bankFooter = sprintf(
+        $footerLine1 = sprintf(
             '%s  ·  IBAN: %s  ·  BIC: %s  ·  %s',
             $this->config['bank_account_holder'] ?? '',
             $this->config['bank_iban'] ?? '',
             $this->config['bank_bic'] ?? '',
             $this->config['bank_name'] ?? ''
         );
+        $footerLine2 = sprintf('Steuernummer: %s', $this->therapistTaxId);
 
-        $pdf = new class($bankFooter, $font) extends TCPDF {
-            private string $bankFooter;
+        $pdf = new class($footerLine1, $footerLine2, $font) extends TCPDF {
+            private string $footerLine1;
+            private string $footerLine2;
             private string $footerFont;
 
-            public function __construct(string $bankFooter, string $font) {
+            public function __construct(string $line1, string $line2, string $font) {
                 parent::__construct('P', 'mm', 'A4', true, 'UTF-8');
-                $this->bankFooter = $bankFooter;
+                $this->footerLine1 = $line1;
+                $this->footerLine2 = $line2;
                 $this->footerFont = $font;
             }
 
             public function Footer(): void {
-                $this->SetY(-15);
+                $this->SetY(-18);
                 $this->SetDrawColor(200, 200, 200);
                 $this->SetLineWidth(0.3);
                 $this->Line(25, $this->GetY(), 185, $this->GetY());
                 $this->Ln(2);
                 $this->SetFont($this->footerFont, '', 7);
                 $this->SetTextColor(100, 116, 139);
-                $this->Cell(0, 4, $this->bankFooter, 0, 0, 'C');
+                $this->Cell(0, 4, $this->footerLine1, 0, 1, 'C');
+                $this->Cell(0, 4, $this->footerLine2, 0, 0, 'C');
             }
         };
 
