@@ -7,7 +7,7 @@ import {
 } from 'antd';
 import {
   MailOutlined, CheckCircleOutlined, ClockCircleOutlined, UserAddOutlined,
-  CloseOutlined, CalendarOutlined, FileTextOutlined,
+  CloseOutlined, CalendarOutlined, FileTextOutlined, CreditCardOutlined, BankOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -36,11 +36,53 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
           title={<Typography.Text strong ellipsis>{b.clientName}</Typography.Text>}
           style={{
             opacity: b.status === 'cancelled' ? 0.6 : 1,
-            borderColor: b.status === 'cancelled' ? '#fca5a5' : undefined,
+            borderColor: b.status === 'cancelled' ? '#fca5a5' : b.status === 'pending_payment' ? '#fbbf24' : undefined,
           }}
           extra={
-            b.status === 'confirmed' ? (
+            b.status === 'pending_payment' ? (
               <Space size={0}>
+                <Tag color="orange">Zahlung ausstehend</Tag>
+                <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : 'Überweisung'}>
+                  {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 8 }} /> : <BankOutlined style={{ color: '#6366f1', marginRight: 8 }} />}
+                </Tooltip>
+                <Tooltip title="Zahlung bestätigen">
+                  <Button
+                    type="text"
+                    icon={<CheckCircleOutlined style={{ color: '#22c55e' }} />}
+                    onClick={() => {
+                      Modal.confirm({
+                        title: 'Zahlung bestätigen',
+                        content: `Zahlung von ${b.clientName} als eingegangen bestätigen?`,
+                        okText: 'Bestätigen',
+                        cancelText: 'Abbrechen',
+                        onOk: () => onUpdate(b.id, { status: 'confirmed' }),
+                      });
+                    }}
+                  />
+                </Tooltip>
+                <Tooltip title="Stornieren">
+                  <Button
+                    type="text"
+                    danger
+                    icon={<CloseOutlined />}
+                    onClick={() => {
+                      Modal.confirm({
+                        title: 'Buchung stornieren',
+                        content: `Buchung von ${b.clientName} wirklich stornieren?`,
+                        okText: 'Stornieren',
+                        okType: 'danger',
+                        cancelText: 'Abbrechen',
+                        onOk: () => onUpdate(b.id, { status: 'cancelled' }),
+                      });
+                    }}
+                  />
+                </Tooltip>
+              </Space>
+            ) : b.status === 'confirmed' ? (
+              <Space size={0}>
+                <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : b.paymentMethod === 'wire_transfer' ? 'Überweisung' : ''}>
+                  {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : b.paymentMethod === 'wire_transfer' ? <BankOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : null}
+                </Tooltip>
                 <Tooltip title={b.introEmailSent ? 'Intro-E-Mail gesendet' : 'Intro-E-Mail senden'}>
                   <Button
                     type="text"

@@ -43,7 +43,8 @@ export interface AdminBooking {
   clientLastName: string;
   clientName: string; // composed by backend
   clientEmail: string;
-  status: 'confirmed' | 'cancelled';
+  status: 'pending_payment' | 'confirmed' | 'cancelled';
+  paymentMethod: 'stripe' | 'wire_transfer' | null;
   introEmailSent: boolean;
   reminderSent: boolean;
   invoiceSent: boolean;
