@@ -128,6 +128,7 @@ class PdfGenerator {
                 $this->footerLine1 = $line1;
                 $this->footerLine2 = $line2;
                 $this->footerFont = $font;
+                $this->tcpdflink = false;
             }
 
             public function Footer(): void {
