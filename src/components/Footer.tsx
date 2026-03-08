@@ -10,8 +10,8 @@ export default function Footer() {
           
           <div>
             <div className="flex items-center gap-2 font-serif text-2xl font-bold mb-4">
-              <img src={favicon} alt="Mut Taucher Logo" className="h-7 w-7" />
-              <span>Mut Taucher</span>
+              <img src={favicon} alt="Mut-Taucher Logo" className="h-7 w-7" />
+              <span>Mut-Taucher</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
               Gemeinsam tauchen wir mutig.<br />
@@ -49,7 +49,7 @@ export default function Footer() {
         </div>
         
         <div className="border-t border-gray-800 mt-12 pt-8 text-center text-xs text-gray-500">
-          &copy; {new Date().getFullYear()} Mut Taucher. Alle Rechte vorbehalten.
+          &copy; {new Date().getFullYear()} Mut-Taucher. Alle Rechte vorbehalten.
         </div>
       </div>
     </footer>
