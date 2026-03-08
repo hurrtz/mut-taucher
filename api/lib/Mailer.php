@@ -56,10 +56,21 @@ class Mailer {
         $mail->Body    = $htmlBody;
         $mail->AltBody = $textBody ?: strip_tags($htmlBody);
 
-        // Embed logo for branded email header
-        $logoPath = __DIR__ . '/../assets/logo.png';
-        if (file_exists($logoPath)) {
-            $mail->addEmbeddedImage($logoPath, 'logo', 'logo.png', 'base64', 'image/png');
+        // Embed tall logo for branded email header (fall back to default logo)
+        $db = getDB();
+        $stmt = $db->query('SELECT logo_tall_path, logo_path FROM brand_settings WHERE id = 1');
+        $row = $stmt->fetch();
+        $logoFile = null;
+        if ($row && !empty($row['logo_tall_path'])) {
+            $logoFile = __DIR__ . '/../' . $row['logo_tall_path'];
+        }
+        if (!$logoFile || !file_exists($logoFile)) {
+            $logoFile = $row && !empty($row['logo_path']) ? __DIR__ . '/../' . $row['logo_path'] : __DIR__ . '/../assets/logo.png';
+        }
+        if (file_exists($logoFile)) {
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($logoFile);
+            $mail->addEmbeddedImage($logoFile, 'logo', basename($logoFile), 'base64', $mime);
         }
 
         foreach ($attachments as $att) {
