@@ -112,18 +112,31 @@ export default function BookingList({ bookings, onUpdate, onSendInvoice }: {
             )
           }
         >
-          <Space direction="vertical" size={2} style={{ width: '100%' }}>
-            <a href={`mailto:${b.clientEmail}`} style={{ fontSize: 13 }}>{b.clientEmail}</a>
-            <Space size={4} style={{ marginTop: 4 }}>
-              <CalendarOutlined style={{ fontSize: 13, color: '#9ca3af' }} />
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                {format(parseISO(b.date), 'd. MMMM yyyy', { locale: de })} · {b.time} Uhr · {b.durationMinutes} Min.
-              </Text>
+          <div style={{ display: 'flex', gap: 0 }}>
+            <Space direction="vertical" size={2} style={{ flex: 1 }}>
+              <Space size={4}>
+                <a href={`mailto:${b.clientEmail}`} style={{ fontSize: 13 }}>{b.clientEmail}</a>
+                {b.clientPhone && (
+                  <Text type="secondary" style={{ fontSize: 13 }}>· {b.clientPhone}</Text>
+                )}
+              </Space>
+              {(b.clientStreet || b.clientCity) && (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {[b.clientStreet, [b.clientZip, b.clientCity].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
+                </Text>
+              )}
+              <Space size={4}>
+                <CalendarOutlined style={{ fontSize: 13, color: '#9ca3af' }} />
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  {format(parseISO(b.date), 'd. MMMM yyyy', { locale: de })} · {b.time} Uhr · {b.durationMinutes} Min.
+                </Text>
+              </Space>
             </Space>
-            {b.ruleLabel && (
-              <Text type="secondary" style={{ fontSize: 12 }}>Regel: {b.ruleLabel}</Text>
-            )}
-          </Space>
+            <div style={{ width: '0.5px', background: '#d1d5db', margin: '0 12px', flexShrink: 0 }} />
+            <div style={{ flex: 1, fontSize: 12, color: 'rgba(0,0,0,0.45)', background: '#fafafa', borderRadius: 4, padding: 8 }}>
+              {b.clientMessage || <Text type="secondary" italic style={{ fontSize: 12 }}>Keine Nachricht</Text>}
+            </div>
+          </div>
 
         </Card>
       ))}

@@ -43,6 +43,11 @@ export interface AdminBooking {
   clientLastName: string;
   clientName: string; // composed by backend
   clientEmail: string;
+  clientPhone: string | null;
+  clientStreet: string | null;
+  clientZip: string | null;
+  clientCity: string | null;
+  clientMessage: string | null;
   status: 'pending_payment' | 'confirmed' | 'cancelled';
   paymentMethod: 'stripe' | 'wire_transfer' | null;
   introEmailSent: boolean;
