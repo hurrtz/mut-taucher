@@ -47,7 +47,11 @@ function handleCreateBooking(): void {
     $street    = trim($input['street'] ?? '');
     $zip       = trim($input['zip'] ?? '');
     $city      = trim($input['city'] ?? '');
-    $message   = trim($input['message'] ?? '');
+    $message       = trim($input['message'] ?? '');
+    $paymentMethod = $input['paymentMethod'] ?? 'wire_transfer';
+    if (!in_array($paymentMethod, ['stripe', 'wire_transfer'], true)) {
+        $paymentMethod = 'wire_transfer';
+    }
 
     if ((!$ruleId && !$eventId) || !$date || !$time || !$firstName || !$lastName || !$email || !$phone || !$street || !$zip || !$city) {
         http_response_code(400);
@@ -116,43 +120,76 @@ function handleCreateBooking(): void {
     // Insert booking
     try {
         $stmt = $db->prepare(
-            'INSERT INTO bookings (rule_id, event_id, booking_date, booking_time, duration_minutes, client_first_name, client_last_name, client_email, client_phone, client_street, client_zip, client_city, client_message)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO bookings (rule_id, event_id, booking_date, booking_time, duration_minutes, client_first_name, client_last_name, client_email, client_phone, client_street, client_zip, client_city, client_message, status, payment_method)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \'pending_payment\', ?)'
         );
-        $stmt->execute([$ruleId, $eventId, $date, $time, $durationMinutes, $firstName, $lastName, $email, $phone, $street, $zip, $city, $message ?: null]);
+        $stmt->execute([$ruleId, $eventId, $date, $time, $durationMinutes, $firstName, $lastName, $email, $phone, $street, $zip, $city, $message ?: null, $paymentMethod]);
 
         $bookingId = $db->lastInsertId();
 
-        // Send booking confirmation email
-        try {
-            require_once __DIR__ . '/../lib/Mailer.php';
-            $config = require __DIR__ . '/../config.php';
-            $mailer = new Mailer();
-
-            $clientName = "$firstName $lastName";
-            $dateFormatted = date('d.m.Y', strtotime($date));
-            $duration = $durationMinutes;
-            $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
-            $siteUrl = $config['site_url'] ?? '';
-
-            ob_start();
-            include __DIR__ . '/../templates/email/booking_confirmation.php';
-            $htmlBody = ob_get_clean();
-
-            $mailer->send(
-                $email,
-                $clientName,
-                'Terminbestätigung — ' . ($config['therapist_name'] ?? 'Mut-Taucher'),
-                $htmlBody
+        // For Stripe: create Checkout Session and return URL
+        $stripeCheckoutUrl = null;
+        if ($paymentMethod === 'stripe') {
+            require_once __DIR__ . '/../lib/StripeCheckout.php';
+            $stripeCheckoutUrl = createStripeCheckoutSession(
+                (int)$bookingId,
+                9500, // 95.00 EUR in cents
+                'Erstgespräch (50 Minuten)',
+                $email
             );
-        } catch (Exception $e) {
-            // Don't fail the booking if email fails
         }
 
-        echo json_encode([
-            'id'      => (int)$bookingId,
-            'message' => 'Termin erfolgreich gebucht',
-        ]);
+        // For wire transfer: send confirmation email immediately (Stripe sends via webhook)
+        if ($paymentMethod === 'wire_transfer') {
+            try {
+                require_once __DIR__ . '/../lib/Mailer.php';
+                $config = require __DIR__ . '/../config.php';
+                $mailer = new Mailer();
+
+                $clientName = "$firstName $lastName";
+                $dateFormatted = date('d.m.Y', strtotime($date));
+                $duration = $durationMinutes;
+                $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+                $siteUrl = $config['site_url'] ?? '';
+
+                ob_start();
+                include __DIR__ . '/../templates/email/booking_confirmation.php';
+                $htmlBody = ob_get_clean();
+
+                $mailer->send(
+                    $email,
+                    $clientName,
+                    'Terminbestätigung — ' . ($config['therapist_name'] ?? 'Mut-Taucher'),
+                    $htmlBody
+                );
+            } catch (Exception $e) {
+                // Don't fail the booking if email fails
+            }
+        }
+
+        $config = require __DIR__ . '/../config.php';
+        $response = [
+            'id'            => (int)$bookingId,
+            'message'       => 'Termin erfolgreich gebucht',
+            'paymentMethod' => $paymentMethod,
+        ];
+
+        if ($stripeCheckoutUrl) {
+            $response['stripeCheckoutUrl'] = $stripeCheckoutUrl;
+        }
+
+        if ($paymentMethod === 'wire_transfer') {
+            $response['bankDetails'] = [
+                'accountHolder' => $config['bank_account_holder'] ?? '',
+                'iban'          => $config['bank_iban'] ?? '',
+                'bic'           => $config['bank_bic'] ?? '',
+                'bankName'      => $config['bank_name'] ?? '',
+                'amount'        => '95,00 €',
+                'reference'     => "Erstgespräch #{$bookingId}",
+            ];
+        }
+
+        echo json_encode($response);
     } catch (PDOException $e) {
         if ($e->getCode() == 23000) {
             http_response_code(409);
