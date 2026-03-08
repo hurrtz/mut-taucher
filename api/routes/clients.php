@@ -243,12 +243,13 @@ function handleMigrateBookingToClient(int $bookingId): void {
     }
 
     $stmt = $db->prepare(
-        'INSERT INTO clients (first_name, last_name, email, street, zip, city, booking_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO clients (first_name, last_name, email, phone, street, zip, city, booking_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $booking['client_first_name'],
         $booking['client_last_name'],
         $booking['client_email'],
+        $booking['client_phone'] ?? null,
         $booking['client_street'],
         $booking['client_zip'],
         $booking['client_city'],

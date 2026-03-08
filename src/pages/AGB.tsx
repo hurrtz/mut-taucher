@@ -38,12 +38,12 @@ export default function AGB() {
               Die Therapie ersetzt keine ärztliche Diagnostik oder Behandlung. Bei akuten psychiatrischen Notfällen, Suizidalität oder schweren körperlichen Erkrankungen wird empfohlen, sich an den ärztlichen Bereitschaftsdienst (116 117), den Notruf (112) oder die TelefonSeelsorge (116 123) zu wenden.
             </p>
 
-            <h2>3. Terminvereinbarung und Absage</h2>
+            <h2>3. Terminvereinbarung, Absage und Ausfallhonorar</h2>
             <p>
-              Termine werden individuell vereinbart. Gebuchte Termine sind verbindlich. Sollten Sie einen Termin nicht wahrnehmen können, bitte ich um Absage mindestens <strong>24 Stunden vor dem vereinbarten Termin</strong>.
+              Vereinbarte Termine sind verbindlich. Eine kostenfreie Absage ist bis spätestens <strong>48 Stunden (zwei Tage) vor dem vereinbarten Termin</strong> möglich.
             </p>
             <p>
-              Bei verspäteter Absage oder Nichterscheinen kann die Sitzung in voller Höhe in Rechnung gestellt werden, es sei denn, die Absage erfolgt aus einem nicht vorhersehbaren, wichtigen Grund (z.&nbsp;B. akute Erkrankung).
+              Bei späterer Absage oder Nichterscheinen wird das Honorar für den Termin als Ausfallhonorar in voller Höhe berechnet. Dem Patienten bleibt der Nachweis vorbehalten, dass kein oder ein wesentlich geringerer Schaden entstanden ist.
             </p>
 
             <h2>4. Honorar und Zahlung</h2>

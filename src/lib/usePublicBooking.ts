@@ -44,14 +44,17 @@ export function usePublicBooking() {
     firstName: string,
     lastName: string,
     email: string,
+    phone: string,
     street: string,
     zip: string,
     city: string,
+    message?: string,
   ): Promise<BookingResult | null> => {
     setBooking(true);
     setError(null);
     try {
-      const body: Record<string, unknown> = { date, time, firstName, lastName, email, street, zip, city };
+      const body: Record<string, unknown> = { date, time, firstName, lastName, email, phone, street, zip, city };
+      if (message) body.message = message;
       if (slot.eventId) {
         body.eventId = slot.eventId;
       } else {

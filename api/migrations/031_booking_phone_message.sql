@@ -1,0 +1,2 @@
+ALTER TABLE bookings ADD COLUMN client_phone VARCHAR(50) DEFAULT NULL;
+ALTER TABLE bookings ADD COLUMN client_message TEXT DEFAULT NULL;

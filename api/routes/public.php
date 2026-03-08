@@ -43,11 +43,13 @@ function handleCreateBooking(): void {
     $firstName = trim($input['firstName'] ?? '');
     $lastName  = trim($input['lastName']  ?? '');
     $email     = trim($input['email'] ?? '');
+    $phone     = trim($input['phone'] ?? '');
     $street    = trim($input['street'] ?? '');
     $zip       = trim($input['zip'] ?? '');
     $city      = trim($input['city'] ?? '');
+    $message   = trim($input['message'] ?? '');
 
-    if ((!$ruleId && !$eventId) || !$date || !$time || !$firstName || !$lastName || !$email || !$street || !$zip || !$city) {
+    if ((!$ruleId && !$eventId) || !$date || !$time || !$firstName || !$lastName || !$email || !$phone || !$street || !$zip || !$city) {
         http_response_code(400);
         echo json_encode(['error' => 'Alle Felder sind erforderlich']);
         return;
@@ -114,10 +116,10 @@ function handleCreateBooking(): void {
     // Insert booking
     try {
         $stmt = $db->prepare(
-            'INSERT INTO bookings (rule_id, event_id, booking_date, booking_time, duration_minutes, client_first_name, client_last_name, client_email, client_street, client_zip, client_city)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO bookings (rule_id, event_id, booking_date, booking_time, duration_minutes, client_first_name, client_last_name, client_email, client_phone, client_street, client_zip, client_city, client_message)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
-        $stmt->execute([$ruleId, $eventId, $date, $time, $durationMinutes, $firstName, $lastName, $email, $street, $zip, $city]);
+        $stmt->execute([$ruleId, $eventId, $date, $time, $durationMinutes, $firstName, $lastName, $email, $phone, $street, $zip, $city, $message ?: null]);
 
         $bookingId = $db->lastInsertId();
 

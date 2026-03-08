@@ -9,5 +9,10 @@
         <p style="margin: 4px 0;"><strong>Dauer:</strong> <?= $duration ?> Minuten</p>
       </div>
       <p>Wir freuen uns auf Sie!</p>
+      <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0;">
+        <p style="margin: 0; font-size: 13px; color: #92400e;">
+          <strong>Bitte beachten Sie:</strong> Termine können bis 48 Stunden (zwei Tage) vorher kostenfrei abgesagt werden. Bei kurzfristiger Absage oder Nichterscheinen wird das Honorar als Ausfallhonorar berechnet.
+        </p>
+      </div>
       <p>Mit freundlichen Grüßen<br><strong><?= htmlspecialchars($therapistName) ?></strong></p>
 <?php include __DIR__ . '/_footer.php'; ?>
