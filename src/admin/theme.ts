@@ -10,6 +10,13 @@ const adminTheme: ThemeConfig = {
     fontFamily: "'Inter', sans-serif",
     borderRadius: 8,
   },
+  components: {
+    Menu: {
+      itemSelectedBg: '#ccfbf1',
+      itemSelectedColor: '#134e4a',
+      itemHoverBg: '#f0fdfa',
+    },
+  },
 };
 
 export default adminTheme;
