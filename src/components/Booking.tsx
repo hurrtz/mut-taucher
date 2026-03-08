@@ -14,7 +14,7 @@ export default function Booking() {
   const [bookingForm, setBookingForm] = useState({ firstName: '', lastName: '', email: '', phone: '', street: '', zip: '', city: '', message: '' });
   const [consent, setConsent] = useState({ agb: false, datenschutz: false, widerruf: false });
   const [fieldErrors, setFieldErrors] = useState<{ email?: string | null; phone?: string | null }>({});
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'wire_transfer'>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'wire_transfer'>('wire_transfer');
   const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -417,6 +417,7 @@ export default function Booking() {
                 {/* 3. Zahlungsart */}
                 <fieldset className="space-y-2">
                   <legend className="text-sm font-medium text-gray-700">Zahlungsart *</legend>
+                  {/* Stripe and PayPal temporarily disabled
                   <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'stripe' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
                     <input type="radio" name="paymentMethod" value="stripe" checked={paymentMethod === 'stripe'}
                       onChange={() => setPaymentMethod('stripe')}
@@ -435,6 +436,7 @@ export default function Booking() {
                       <span className="block text-xs text-gray-400">Sichere Zahlung über PayPal</span>
                     </div>
                   </label>
+                  */}
                   <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'wire_transfer' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
                     <input type="radio" name="paymentMethod" value="wire_transfer" checked={paymentMethod === 'wire_transfer'}
                       onChange={() => setPaymentMethod('wire_transfer')}
