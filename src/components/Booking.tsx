@@ -73,12 +73,7 @@ export default function Booking() {
       setSelectedSlot(null);
       setIsSuccess(true);
       setConsent({ agb: false, datenschutz: false, widerruf: false });
-      setTimeout(() => {
-        setIsSuccess(false);
-        setBankDetails(null);
-        setBookingForm({ firstName: '', lastName: '', email: '', phone: '', street: '', zip: '', city: '', message: '' });
-        fetchSlots(calendarStart, calendarEnd);
-      }, 5000);
+      fetchSlots(calendarStart, calendarEnd);
     }
   };
 

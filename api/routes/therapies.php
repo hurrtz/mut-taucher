@@ -582,7 +582,8 @@ function handleSendInvoice(int $sessionId): void {
     $amountFormatted = number_format($amountCents / 100, 2, ',', '.') . ' €';
     $durationMinutes = (int)$session['duration_minutes'];
     $therapyLabel = $session['therapy_label'];
-    $invoiceNumber = 'RE-' . date('Y') . '-' . str_pad($sessionId, 5, '0', STR_PAD_LEFT);
+    require_once __DIR__ . '/../lib/InvoiceNumber.php';
+    $invoiceNumber = generateInvoiceNumber($db);
 
     // Generate invoice PDF
     $pdfGen = new PdfGenerator();

@@ -127,6 +127,16 @@ function handleCreateBooking(): void {
 
         $bookingId = $db->lastInsertId();
 
+        // Auto-create client/patient from booking
+        try {
+            $clientStmt = $db->prepare(
+                'INSERT INTO clients (first_name, last_name, email, phone, street, zip, city, booking_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            );
+            $clientStmt->execute([$firstName, $lastName, $email, $phone, $street, $zip, $city, (int)$bookingId]);
+        } catch (Exception $e) {
+            // Don't fail the booking if client creation fails
+        }
+
         // For Stripe: create Checkout Session and return URL
         $stripeCheckoutUrl = null;
         if ($paymentMethod === 'stripe') {
@@ -139,7 +149,7 @@ function handleCreateBooking(): void {
             );
         }
 
-        // For wire transfer: send confirmation email immediately (Stripe sends via webhook)
+        // For wire transfer: send email with bank details
         if ($paymentMethod === 'wire_transfer') {
             try {
                 require_once __DIR__ . '/../lib/Mailer.php';
@@ -151,15 +161,21 @@ function handleCreateBooking(): void {
                 $duration = $durationMinutes;
                 $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
                 $siteUrl = $config['site_url'] ?? '';
+                $accountHolder = $config['bank_account_holder'] ?? '';
+                $iban = $config['bank_iban'] ?? '';
+                $bic = $config['bank_bic'] ?? '';
+                $bankName = $config['bank_name'] ?? '';
+                $amount = '95,00 €';
+                $reference = "Erstgespräch #{$bookingId}";
 
                 ob_start();
-                include __DIR__ . '/../templates/email/booking_confirmation.php';
+                include __DIR__ . '/../templates/email/booking_wire_transfer.php';
                 $htmlBody = ob_get_clean();
 
                 $mailer->send(
                     $email,
                     $clientName,
-                    'Terminbestätigung — ' . ($config['therapist_name'] ?? 'Mut-Taucher'),
+                    'Terminreservierung — ' . ($config['therapist_name'] ?? 'Mut-Taucher'),
                     $htmlBody
                 );
             } catch (Exception $e) {

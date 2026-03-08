@@ -6,18 +6,17 @@ import {
   Card, Button, Tag, Space, Typography, Tooltip, Modal,
 } from 'antd';
 import {
-  MailOutlined, CheckCircleOutlined, ClockCircleOutlined, UserAddOutlined,
+  MailOutlined, CheckCircleOutlined, ClockCircleOutlined,
   CloseOutlined, CalendarOutlined, FileTextOutlined, CreditCardOutlined, BankOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
 
-export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInvoice, onMigrateToClient }: {
+export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInvoice }: {
   bookings: AdminBooking[];
   onUpdate: (id: number, updates: Partial<AdminBooking>) => void;
   onSendEmail: (id: number, type: 'intro' | 'reminder') => void;
   onSendInvoice: (bookingId: number) => void;
-  onMigrateToClient: (bookingId: number) => void;
 }) {
   if (bookings.length === 0) {
     return (
@@ -111,13 +110,6 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
                       : <FileTextOutlined />}
                     disabled={b.invoiceSent}
                     onClick={() => onSendInvoice(b.id)}
-                  />
-                </Tooltip>
-                <Tooltip title="Patient:in anlegen">
-                  <Button
-                    type="text"
-                    icon={<UserAddOutlined />}
-                    onClick={() => onMigrateToClient(b.id)}
                   />
                 </Tooltip>
                 <Tooltip title="Stornieren">

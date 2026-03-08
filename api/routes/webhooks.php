@@ -12,6 +12,12 @@ function handleStripeWebhook(): void {
     $payload = file_get_contents('php://input');
     $sigHeader = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
 
+    if (empty($config['stripe_webhook_secret'])) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Webhook secret not configured']);
+        return;
+    }
+
     try {
         $event = \Stripe\Webhook::constructEvent(
             $payload,
@@ -20,7 +26,7 @@ function handleStripeWebhook(): void {
         );
     } catch (\Exception $e) {
         http_response_code(400);
-        echo json_encode(['error' => 'Webhook signature verification failed']);
+        echo json_encode(['error' => 'Webhook signature verification failed: ' . $e->getMessage()]);
         return;
     }
 
@@ -37,8 +43,9 @@ function handleStripeWebhook(): void {
             );
             $stmt->execute([$session->id, $bookingId]);
 
-            // Send confirmation email if booking was updated
+            // Send confirmation email and invoice if booking was updated
             if ($stmt->rowCount() > 0) {
+                // Confirmation email
                 try {
                     require_once __DIR__ . '/../lib/Mailer.php';
                     $stmt = $db->prepare('SELECT * FROM bookings WHERE id = ?');
@@ -66,7 +73,15 @@ function handleStripeWebhook(): void {
                         );
                     }
                 } catch (\Exception $e) {
-                    // Don't fail the webhook if email fails
+                    // Don't fail the webhook if confirmation email fails
+                }
+
+                // Invoice
+                try {
+                    require_once __DIR__ . '/../lib/BookingInvoice.php';
+                    sendBookingInvoice($db, $bookingId);
+                } catch (\Exception $e) {
+                    // Don't fail the webhook if invoice fails
                 }
             }
         }

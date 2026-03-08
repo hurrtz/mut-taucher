@@ -862,7 +862,8 @@ function handleSendGroupInvoice(int $paymentId): void {
     $amountFormatted = number_format($amountCents / 100, 2, ',', '.') . ' €';
     $durationMinutes = (int)$payment['duration_minutes'];
     $therapyLabel = $payment['group_label'];
-    $invoiceNumber = 'RE-' . date('Y') . '-G' . str_pad($paymentId, 5, '0', STR_PAD_LEFT);
+    require_once __DIR__ . '/../lib/InvoiceNumber.php';
+    $invoiceNumber = generateInvoiceNumber($db);
 
     // Generate invoice PDF
     $pdfGen = new PdfGenerator();
@@ -1010,7 +1011,8 @@ function handleSendGroupBundleInvoice(int $groupId, int $clientId): void {
     $dateFormatted = date('d.m.Y');
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
     $siteUrl = $config['site_url'] ?? '';
-    $invoiceNumber = 'RE-' . date('Y') . '-G' . $groupId . '-' . $clientId . $invoiceSuffix;
+    require_once __DIR__ . '/../lib/InvoiceNumber.php';
+    $invoiceNumber = generateInvoiceNumber($db);
 
     // Generate invoice PDF
     $pdfGen = new PdfGenerator();
