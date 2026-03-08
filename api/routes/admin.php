@@ -323,6 +323,8 @@ function handleGetBookings(): void {
         'clientName'      => trim($b['client_first_name'] . ' ' . $b['client_last_name']),
         'clientEmail'     => $b['client_email'],
         'status'          => $b['status'],
+        'paymentMethod'   => $b['payment_method'],
+        'paymentId'       => $b['payment_id'],
         'introEmailSent'  => (bool)$b['intro_email_sent'],
         'reminderSent'    => (bool)$b['reminder_sent'],
         'invoiceSent'     => (bool)$b['invoice_sent'],
@@ -346,10 +348,16 @@ function handleUpdateBooking(int $id): void {
     $fields = [];
     $params = [];
 
-    if (isset($input['status']) && $input['status'] === 'cancelled') {
-        $db->prepare('DELETE FROM bookings WHERE id = ?')->execute([$id]);
-        echo json_encode(['message' => 'Buchung gelöscht']);
-        return;
+    if (isset($input['status'])) {
+        if ($input['status'] === 'cancelled') {
+            $db->prepare('DELETE FROM bookings WHERE id = ?')->execute([$id]);
+            echo json_encode(['message' => 'Buchung gelöscht']);
+            return;
+        }
+        if ($input['status'] === 'confirmed') {
+            $fields[] = 'status = ?';
+            $params[] = 'confirmed';
+        }
     }
     if (isset($input['introEmailSent'])) {
         $fields[] = 'intro_email_sent = ?';
