@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAdminBooking } from '../../lib/useAdminBooking';
+import { useAdminClients } from '../../lib/useAdminClients';
 import { useAdminStyles } from '../styles';
 import BookingList from '../components/BookingList';
 import { Typography, Alert } from 'antd';
@@ -7,8 +8,14 @@ import { Typography, Alert } from 'antd';
 export default function BookingsTab() {
   const styles = useAdminStyles();
   const { bookings, error, fetchBookings, updateBooking, sendEmail, sendBookingInvoice } = useAdminBooking();
+  const { migrateBookingToClient } = useAdminClients();
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
+
+  const handleMigrateToClient = useCallback(async (bookingId: number) => {
+    await migrateBookingToClient(bookingId);
+    await fetchBookings();
+  }, [migrateBookingToClient, fetchBookings]);
 
   return (
     <div style={styles.pageContent}>
@@ -21,6 +28,7 @@ export default function BookingsTab() {
         onUpdate={updateBooking}
         onSendEmail={sendEmail}
         onSendInvoice={sendBookingInvoice}
+        onMigrateToClient={handleMigrateToClient}
       />
     </div>
   );

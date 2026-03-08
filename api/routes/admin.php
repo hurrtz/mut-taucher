@@ -293,7 +293,8 @@ function handleGetBookings(): void {
     $db = getDB();
 
     $sql = 'SELECT b.*, r.label as rule_label, e.label as event_label,
-                   r.price_cents as rule_price_cents, e.price_cents as event_price_cents
+                   r.price_cents as rule_price_cents, e.price_cents as event_price_cents,
+                   (SELECT COUNT(*) FROM clients c WHERE c.booking_id = b.id) as has_client
             FROM bookings b
             LEFT JOIN recurring_rules r ON b.rule_id = r.id
             LEFT JOIN events e ON b.event_id = e.id';
@@ -336,6 +337,7 @@ function handleGetBookings(): void {
         'invoiceSentAt'   => $b['invoice_sent_at'],
         'priceCents'      => $b['rule_price_cents'] !== null ? (int)$b['rule_price_cents'] : ($b['event_price_cents'] !== null ? (int)$b['event_price_cents'] : null),
         'createdAt'       => $b['created_at'],
+        'hasClient'       => (int)$b['has_client'] > 0,
     ], $bookings);
 
     echo json_encode(array_values($result));

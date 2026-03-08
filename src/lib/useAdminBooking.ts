@@ -56,6 +56,7 @@ export interface AdminBooking {
   invoiceSentAt: string | null;
   priceCents: number | null;
   createdAt: string;
+  hasClient: boolean;
 }
 
 interface ApiRule {

@@ -8,7 +8,7 @@ import {
 import {
   CheckCircleOutlined, EuroCircleOutlined,
   CloseOutlined, CalendarOutlined, CreditCardOutlined, BankOutlined,
-  DownOutlined, RightOutlined, MailOutlined, FileTextOutlined, UndoOutlined,
+  DownOutlined, RightOutlined, MailOutlined, FileTextOutlined, UndoOutlined, UserAddOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -85,11 +85,12 @@ function ArchivedBookingCard({ b, onUpdate }: { b: AdminBooking; onUpdate: (id: 
   );
 }
 
-export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInvoice }: {
+export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInvoice, onMigrateToClient }: {
   bookings: AdminBooking[];
   onUpdate: (id: number, updates: Partial<AdminBooking>) => void;
   onSendEmail?: (id: number, type: 'intro' | 'reminder') => void;
   onSendInvoice?: (id: number) => void;
+  onMigrateToClient?: (id: number) => void;
 }) {
   const [archivedExpanded, setArchivedExpanded] = useState(false);
 
@@ -179,6 +180,15 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
                             type="text"
                             icon={<FileTextOutlined style={b.invoiceSent ? { color: '#52c41a' } : undefined} />}
                             onClick={() => onSendInvoice(b.id)}
+                          />
+                        </Tooltip>
+                      )}
+                      {onMigrateToClient && !b.hasClient && (
+                        <Tooltip title="Patient anlegen">
+                          <Button
+                            type="text"
+                            icon={<UserAddOutlined />}
+                            onClick={() => onMigrateToClient(b.id)}
                           />
                         </Tooltip>
                       )}
