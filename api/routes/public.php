@@ -167,7 +167,7 @@ function handleCreateBooking(): void {
             );
         }
 
-        // For wire transfer: send email with bank details
+        // For wire transfer: send email with bank details + invoice
         if ($paymentMethod === 'wire_transfer') {
             try {
                 require_once __DIR__ . '/../lib/Mailer.php';
@@ -199,6 +199,14 @@ function handleCreateBooking(): void {
             } catch (Exception $e) {
                 // Don't fail the booking if email fails
             }
+
+            // Send invoice immediately for wire transfer
+            try {
+                require_once __DIR__ . '/../lib/BookingInvoice.php';
+                sendBookingInvoice($db, (int)$bookingId);
+            } catch (Exception $e) {
+                // Don't fail the booking if invoice fails
+            }
         }
 
         $config = require __DIR__ . '/../config.php';
@@ -223,7 +231,7 @@ function handleCreateBooking(): void {
                 'bic'           => $config['bank_bic'] ?? '',
                 'bankName'      => $config['bank_name'] ?? '',
                 'amount'        => '95,00 €',
-                'reference'     => "Erstgespräch #{$bookingId}",
+                'reference'     => $invoiceNumber,
             ];
         }
 
