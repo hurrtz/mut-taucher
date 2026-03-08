@@ -49,7 +49,7 @@ export interface AdminBooking {
   clientCity: string | null;
   clientMessage: string | null;
   status: 'pending_payment' | 'confirmed' | 'completed' | 'cancelled';
-  paymentMethod: 'stripe' | 'wire_transfer' | null;
+  paymentMethod: 'stripe' | 'paypal' | 'wire_transfer' | null;
   introEmailSent: boolean;
   reminderSent: boolean;
   invoiceSent: boolean;
