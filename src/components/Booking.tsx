@@ -298,7 +298,7 @@ export default function Booking() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Zahlung</span>
-                  <span className="font-medium text-text">Überweisung im Voraus</span>
+                  <span className="font-medium text-text">Im Voraus</span>
                 </div>
               </div>
 
