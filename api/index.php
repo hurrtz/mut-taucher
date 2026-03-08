@@ -31,6 +31,7 @@ require_once __DIR__ . '/routes/templates.php';
 require_once __DIR__ . '/routes/client_history.php';
 require_once __DIR__ . '/routes/workbook.php';
 require_once __DIR__ . '/routes/branding.php';
+require_once __DIR__ . '/routes/webhooks.php';
 
 // Parse request
 $method = $_SERVER['REQUEST_METHOD'];
@@ -42,6 +43,12 @@ $uri = preg_replace('#^/api#', '', $uri);
 if ($uri === '' || $uri === false) $uri = '/';
 
 // ─── Route matching ──────────────────────────────────────────────
+
+// Webhooks (no auth — verified via signature)
+if ($method === 'POST' && $uri === '/webhooks/stripe') {
+    handleStripeWebhook();
+    exit;
+}
 
 // Public routes
 if ($method === 'GET' && $uri === '/slots') {
