@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { usePublicBooking, type PublicSlot } from '../lib/usePublicBooking';
+import { usePublicBooking, type PublicSlot, type BankDetails } from '../lib/usePublicBooking';
 import { format, startOfMonth, addMonths, isSameDay, isSameMonth, parseISO, startOfWeek, endOfWeek, endOfMonth, eachDayOfInterval, isBefore, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, CheckCircle, Loader2, AlertCircle, X } from 'lucide-react';
@@ -14,6 +14,8 @@ export default function Booking() {
   const [bookingForm, setBookingForm] = useState({ firstName: '', lastName: '', email: '', phone: '', street: '', zip: '', city: '', message: '' });
   const [consent, setConsent] = useState({ agb: false, datenschutz: false, widerruf: false });
   const [fieldErrors, setFieldErrors] = useState<{ email?: string | null; phone?: string | null }>({});
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'wire_transfer'>('stripe');
+  const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const monthStart = startOfMonth(currentMonth);
@@ -53,19 +55,30 @@ export default function Booking() {
       bookingForm.street,
       bookingForm.zip,
       bookingForm.city,
+      paymentMethod,
       bookingForm.message || undefined,
     );
 
     if (result) {
       trackBookingSubmitted(selectedSlot.date, selectedSlot.time);
+
+      // Stripe: redirect to hosted checkout
+      if (result.stripeCheckoutUrl) {
+        window.location.href = result.stripeCheckoutUrl;
+        return;
+      }
+
+      // Wire transfer: show bank details
+      setBankDetails(result.bankDetails ?? null);
       setSelectedSlot(null);
       setIsSuccess(true);
       setConsent({ agb: false, datenschutz: false, widerruf: false });
       setTimeout(() => {
         setIsSuccess(false);
+        setBankDetails(null);
         setBookingForm({ firstName: '', lastName: '', email: '', phone: '', street: '', zip: '', city: '', message: '' });
         fetchSlots(calendarStart, calendarEnd);
-      }, 3000);
+      }, 5000);
     }
   };
 
@@ -191,8 +204,23 @@ export default function Booking() {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                   <CheckCircle className="h-8 w-8 text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">Termin bestätigt!</h3>
-                <p className="text-gray-600">Vielen Dank, {bookingForm.firstName}.<br/>Eine Bestätigung wurde an {bookingForm.email} gesendet.</p>
+                <h3 className="text-xl font-bold text-gray-900">Termin reserviert!</h3>
+                {bankDetails ? (
+                  <div className="space-y-3">
+                    <p className="text-gray-600">Bitte überweisen Sie den Betrag, um Ihren Termin zu bestätigen:</p>
+                    <div className="bg-gray-50 rounded-lg p-4 text-sm text-left space-y-1.5">
+                      <p><strong>Empfänger:</strong> {bankDetails.accountHolder}</p>
+                      <p><strong>IBAN:</strong> {bankDetails.iban}</p>
+                      <p><strong>BIC:</strong> {bankDetails.bic}</p>
+                      <p><strong>Bank:</strong> {bankDetails.bankName}</p>
+                      <p><strong>Betrag:</strong> {bankDetails.amount}</p>
+                      <p><strong>Verwendungszweck:</strong> {bankDetails.reference}</p>
+                    </div>
+                    <p className="text-xs text-gray-400">Eine Bestätigung wurde an {bookingForm.email} gesendet.</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-600">Zahlung erfolgreich. Eine Bestätigung wurde an {bookingForm.email} gesendet.</p>
+                )}
               </div>
             ) : (
               <div className="space-y-6 animate-in slide-in-from-right duration-300">
@@ -385,9 +413,31 @@ export default function Booking() {
                   />
                 </div>
 
-                {/* 3. Zahlungsinformation */}
+                {/* 3. Zahlungsart */}
+                <fieldset className="space-y-2">
+                  <legend className="text-sm font-medium text-gray-700">Zahlungsart *</legend>
+                  <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'stripe' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="paymentMethod" value="stripe" checked={paymentMethod === 'stripe'}
+                      onChange={() => setPaymentMethod('stripe')}
+                      className="text-primary focus:ring-primary" />
+                    <div>
+                      <span className="text-sm font-medium text-text">Kreditkarte / Online-Zahlung</span>
+                      <span className="block text-xs text-gray-400">Sichere Zahlung über Stripe</span>
+                    </div>
+                  </label>
+                  <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'wire_transfer' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="paymentMethod" value="wire_transfer" checked={paymentMethod === 'wire_transfer'}
+                      onChange={() => setPaymentMethod('wire_transfer')}
+                      className="text-primary focus:ring-primary" />
+                    <div>
+                      <span className="text-sm font-medium text-text">Überweisung</span>
+                      <span className="block text-xs text-gray-400">Bankdaten werden nach der Buchung angezeigt</span>
+                    </div>
+                  </label>
+                </fieldset>
+
+                {/* 4. Zahlungsinformation */}
                 <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 leading-relaxed space-y-2">
-                  <p>Nach der Buchung erhalten Sie die Kontodaten für die Überweisung des Honorars (95&nbsp;€). Der Termin wird nach Zahlungseingang verbindlich bestätigt.</p>
                   <p><strong className="text-gray-600">Hinweis:</strong> Termine können bis 48&nbsp;Stunden vorher kostenfrei abgesagt werden. Danach fällt ein Ausfallhonorar an.</p>
                 </div>
 

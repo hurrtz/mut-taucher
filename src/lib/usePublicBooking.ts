@@ -11,9 +11,21 @@ export interface PublicSlot {
   durationMinutes: number;
 }
 
-interface BookingResult {
+export interface BankDetails {
+  accountHolder: string;
+  iban: string;
+  bic: string;
+  bankName: string;
+  amount: string;
+  reference: string;
+}
+
+export interface BookingResult {
   id: number;
   message: string;
+  paymentMethod: string;
+  stripeCheckoutUrl?: string;
+  bankDetails?: BankDetails;
 }
 
 export function usePublicBooking() {
@@ -48,12 +60,13 @@ export function usePublicBooking() {
     street: string,
     zip: string,
     city: string,
+    paymentMethod: 'stripe' | 'wire_transfer',
     message?: string,
   ): Promise<BookingResult | null> => {
     setBooking(true);
     setError(null);
     try {
-      const body: Record<string, unknown> = { date, time, firstName, lastName, email, phone, street, zip, city };
+      const body: Record<string, unknown> = { date, time, firstName, lastName, email, phone, street, zip, city, paymentMethod };
       if (message) body.message = message;
       if (slot.eventId) {
         body.eventId = slot.eventId;
