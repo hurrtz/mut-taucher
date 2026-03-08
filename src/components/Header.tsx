@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import favicon from '/favicon.png';
+import logo from '/logo.png';
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,9 +18,8 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0">
-            <Link to="/" className="flex items-center gap-2 font-serif text-2xl text-primary font-bold">
-              <img src={favicon} alt="Mut-Taucher Logo" className="h-7 w-7" />
-              <span>Mut Taucher</span>
+            <Link to="/" className="flex items-center">
+              <img src={logo} alt="Mut-Taucher Logo" className="h-16" />
             </Link>
           </div>
           <div className="hidden md:block">
