@@ -15,7 +15,7 @@ return [
     'jwt_secret'  => 'CHANGE_ME_TO_A_RANDOM_SECRET_STRING',
 
     // Therapist email for notifications
-    'therapist_email' => 'therapist@example.com',
+    'therapist_email' => 'info@mut-taucher.de',
     'therapist_name'  => 'Mut-Taucher Praxis',
 
     // Site URL for email links
@@ -26,6 +26,6 @@ return [
     'smtp_port'       => 587,
     'smtp_user'       => '',
     'smtp_pass'       => '',
-    'smtp_from_email' => 'praxis@mut-taucher.de',
+    'smtp_from_email' => 'info@mut-taucher.de',
     'smtp_from_name'  => 'Mut-Taucher Praxis',
 ];

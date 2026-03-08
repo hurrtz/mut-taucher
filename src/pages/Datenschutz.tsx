@@ -36,7 +36,7 @@ export default function Datenschutz() {
               Jana Fricke<br />
               M.Sc. Psychologie<br />
               Zeuschelstraße 97, 13127 Berlin<br />
-              <a href="mailto:gruppentherapie@mut-taucher.de">gruppentherapie@mut-taucher.de</a><br />
+              <a href="mailto:info@mut-taucher.de">info@mut-taucher.de</a><br />
               <a href="tel:+4915253432009">+49 152 53432009</a>
             </p>
 

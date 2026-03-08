@@ -26,7 +26,7 @@ export function localBusinessData() {
     description: 'Professionelle Online-Psychotherapie per Video. Einzeltherapie, Gruppentherapie und kostenloses Erstgespräch.',
     url: 'https://mut-taucher.de',
     telephone: '+4915253432009',
-    email: 'gruppentherapie@mut-taucher.de',
+    email: 'info@mut-taucher.de',
     address: {
       '@type': 'PostalAddress',
       streetAddress: 'Zeuschelstraße 97',
