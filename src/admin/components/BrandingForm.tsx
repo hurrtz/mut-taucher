@@ -10,7 +10,7 @@ interface BrandingFormProps {
   saving: boolean;
   error: string | null;
   onUpdate: (updates: Partial<BrandSettings>) => Promise<void>;
-  onUploadLogo: (file: File) => Promise<void>;
+  onUploadLogo: (file: File, variant?: 'default' | 'long' | 'tall') => Promise<void>;
 }
 
 const fontOptions = [
@@ -20,6 +20,55 @@ const fontOptions = [
   { value: 'dejavusans', label: 'DejaVu Sans' },
 ];
 
+function LogoTabContent({
+  logoUrl,
+  description,
+  saving,
+  inputRef,
+  onUpload,
+}: {
+  logoUrl: string | null;
+  description: string;
+  saving: boolean;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      {logoUrl ? (
+        <Image
+          src={`${logoUrl}&token=${getToken()}`}
+          alt="Logo"
+          width={120}
+          style={{ objectFit: 'contain', background: '#f5f5f5', borderRadius: 4, padding: 8 }}
+          preview={false}
+        />
+      ) : (
+        <Typography.Text type="secondary" style={{ fontStyle: 'italic' }}>
+          Noch kein Logo hochgeladen
+        </Typography.Text>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/svg+xml"
+        style={{ display: 'none' }}
+        onChange={onUpload}
+      />
+      <Button
+        icon={<UploadOutlined />}
+        loading={saving}
+        onClick={() => inputRef.current?.click()}
+      >
+        Logo hochladen
+      </Button>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        {description} PNG, JPG oder SVG, max. 2 MB
+      </Typography.Text>
+    </Space>
+  );
+}
+
 export default function BrandingForm({ settings, saving, error, onUpdate, onUploadLogo }: BrandingFormProps) {
   const [practiceName, setPracticeName] = useState('');
   const [subtitle, setSubtitle] = useState('');
@@ -28,7 +77,10 @@ export default function BrandingForm({ settings, saving, error, onUpdate, onUplo
   const [fontFamily, setFontFamily] = useState('helvetica');
   const [fontSizeBody, setFontSizeBody] = useState(11);
   const [fontSizeHeading, setFontSizeHeading] = useState(16);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [logoTab, setLogoTab] = useState('default');
+  const fileInputDefaultRef = useRef<HTMLInputElement>(null);
+  const fileInputLongRef = useRef<HTMLInputElement>(null);
+  const fileInputTallRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (settings) {
@@ -58,15 +110,14 @@ export default function BrandingForm({ settings, saving, error, onUpdate, onUplo
     }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = (variant: 'default' | 'long' | 'tall') => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      await onUploadLogo(file);
+      await onUploadLogo(file, variant);
     } catch {
       // error handled by parent
     }
-    // Reset input so the same file can be re-selected
     e.target.value = '';
   };
 
@@ -76,35 +127,46 @@ export default function BrandingForm({ settings, saving, error, onUpdate, onUplo
     <div style={{ maxWidth: 640 }}>
       {error && <Alert message={error} type="error" showIcon closable style={{ marginBottom: 16 }} />}
 
-      <Card title="Logo" size="small" style={{ marginBottom: 16 }}>
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          {settings.logoUrl && (
-            <Image
-              src={`${settings.logoUrl}&token=${getToken()}`}
-              alt="Logo"
-              width={120}
-              style={{ objectFit: 'contain', background: '#f5f5f5', borderRadius: 4, padding: 8 }}
-              preview={false}
+      <Card
+        title="Logo"
+        size="small"
+        style={{ marginBottom: 16 }}
+        tabList={[
+          { key: 'default', tab: 'Klein' },
+          { key: 'long', tab: 'Lang' },
+          { key: 'tall', tab: 'Hoch' },
+        ]}
+        activeTabKey={logoTab}
+        onTabChange={setLogoTab}
+        className="logo-tabs-card"
+      >
+          {logoTab === 'default' && (
+            <LogoTabContent
+              logoUrl={settings.logoUrl}
+              description="Wird in PDFs und Dokumenten verwendet."
+              saving={saving}
+              inputRef={fileInputDefaultRef}
+              onUpload={handleLogoUpload('default')}
             />
           )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/svg+xml"
-            style={{ display: 'none' }}
-            onChange={handleLogoUpload}
-          />
-          <Button
-            icon={<UploadOutlined />}
-            loading={saving}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            Logo hochladen
-          </Button>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            PNG, JPG oder SVG, max. 2 MB
-          </Typography.Text>
-        </Space>
+          {logoTab === 'long' && (
+            <LogoTabContent
+              logoUrl={settings.logoLongUrl}
+              description="Wird im Header der Website verwendet (breit)."
+              saving={saving}
+              inputRef={fileInputLongRef}
+              onUpload={handleLogoUpload('long')}
+            />
+          )}
+          {logoTab === 'tall' && (
+            <LogoTabContent
+              logoUrl={settings.logoTallUrl}
+              description="Wird im Header von E-Mails verwendet (hoch)."
+              saving={saving}
+              inputRef={fileInputTallRef}
+              onUpload={handleLogoUpload('tall')}
+            />
+          )}
       </Card>
 
       <Card title="Allgemein" size="small" style={{ marginBottom: 16 }}>

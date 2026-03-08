@@ -133,6 +133,11 @@
   }
 }
 
+/* antd small card with tabs: restore title padding */
+.logo-tabs-card > .ant-card-head .ant-card-head-wrapper {
+  padding-top: 8px;
+}
+
 /* TipTap editor styles */
 .tiptap-editor .ProseMirror {
   min-height: 400px;

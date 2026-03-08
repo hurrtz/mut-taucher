@@ -43,11 +43,16 @@ function handleGetBranding(): void {
         return;
     }
 
+    $v = strtotime($row['updated_at'] ?? 'now');
     echo json_encode([
         'practiceName'    => $row['practice_name'],
         'subtitle'        => $row['subtitle'],
         'logoPath'        => $row['logo_path'],
-        'logoUrl'         => $row['logo_path'] ? '/api/admin/branding/logo?v=' . strtotime($row['updated_at'] ?? 'now') : null,
+        'logoUrl'         => $row['logo_path'] ? '/api/admin/branding/logo?v=' . $v : null,
+        'logoLongPath'    => $row['logo_long_path'] ?? null,
+        'logoLongUrl'     => !empty($row['logo_long_path']) ? '/api/admin/branding/logo?variant=long&v=' . $v : null,
+        'logoTallPath'    => $row['logo_tall_path'] ?? null,
+        'logoTallUrl'     => !empty($row['logo_tall_path']) ? '/api/admin/branding/logo?variant=tall&v=' . $v : null,
         'primaryColor'    => $row['primary_color'],
         'secondaryColor'  => $row['secondary_color'],
         'fontFamily'      => $row['font_family'],
@@ -164,9 +169,17 @@ function handleGetLogo(): void {
     requireAuth();
     $db = getDB();
 
-    $stmt = $db->query('SELECT logo_path FROM brand_settings WHERE id = 1');
+    $variant = $_GET['variant'] ?? 'default';
+    $colMap = ['default' => 'logo_path', 'long' => 'logo_long_path', 'tall' => 'logo_tall_path'];
+    $col = $colMap[$variant] ?? 'logo_path';
+
+    $stmt = $db->query("SELECT $col FROM brand_settings WHERE id = 1");
     $row = $stmt->fetch();
-    $logoPath = $row ? $row['logo_path'] : 'assets/logo.png';
+    $logoPath = $row ? ($row[$col] ?? null) : null;
+
+    if (!$logoPath) {
+        $logoPath = 'assets/logo.png';
+    }
 
     $filePath = __DIR__ . '/../' . $logoPath;
     if (!file_exists($filePath)) {
@@ -221,8 +234,13 @@ function handleUploadLogo(): void {
         return;
     }
 
+    $variant = $_POST['variant'] ?? 'default';
+    $colMap = ['default' => 'logo_path', 'long' => 'logo_long_path', 'tall' => 'logo_tall_path'];
+    $col = $colMap[$variant] ?? 'logo_path';
+
     $ext = $allowedMimes[$mime];
-    $filename = 'logo_' . time() . '.' . $ext;
+    $prefix = $variant === 'default' ? 'logo' : 'logo_' . $variant;
+    $filename = $prefix . '_' . time() . '.' . $ext;
     $uploadDir = __DIR__ . '/../assets/logos';
 
     if (!is_dir($uploadDir)) {
@@ -239,11 +257,12 @@ function handleUploadLogo(): void {
     $logoPath = 'assets/logos/' . $filename;
 
     $db = getDB();
-    $stmt = $db->prepare('UPDATE brand_settings SET logo_path = ? WHERE id = 1');
+    $stmt = $db->prepare("UPDATE brand_settings SET $col = ? WHERE id = 1");
     $stmt->execute([$logoPath]);
 
+    $variantParam = $variant === 'default' ? '' : "variant=$variant&";
     echo json_encode([
         'logoPath' => $logoPath,
-        'logoUrl'  => '/api/admin/branding/logo?v=' . time(),
+        'logoUrl'  => '/api/admin/branding/logo?' . $variantParam . 'v=' . time(),
     ]);
 }

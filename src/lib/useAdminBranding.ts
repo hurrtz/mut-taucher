@@ -6,6 +6,10 @@ export interface BrandSettings {
   subtitle: string;
   logoPath: string | null;
   logoUrl: string | null;
+  logoLongPath: string | null;
+  logoLongUrl: string | null;
+  logoTallPath: string | null;
+  logoTallUrl: string | null;
   primaryColor: string;
   secondaryColor: string;
   fontFamily: string;
@@ -49,13 +53,14 @@ export function useAdminBranding() {
     }
   }, []);
 
-  const uploadLogo = useCallback(async (file: File) => {
+  const uploadLogo = useCallback(async (file: File, variant: 'default' | 'long' | 'tall' = 'default') => {
     setSaving(true);
     setError(null);
     try {
       const token = getToken();
       const form = new FormData();
       form.append('logo', file);
+      form.append('variant', variant);
 
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -72,7 +77,13 @@ export function useAdminBranding() {
       }
 
       const data = await res.json();
-      setSettings(prev => prev ? { ...prev, logoPath: data.logoPath, logoUrl: data.logoUrl } : prev);
+      const keyMap = {
+        default: { path: 'logoPath', url: 'logoUrl' },
+        long: { path: 'logoLongPath', url: 'logoLongUrl' },
+        tall: { path: 'logoTallPath', url: 'logoTallUrl' },
+      } as const;
+      const keys = keyMap[variant];
+      setSettings(prev => prev ? { ...prev, [keys.path]: data.logoPath, [keys.url]: data.logoUrl } : prev);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Hochladen');
       throw e;
