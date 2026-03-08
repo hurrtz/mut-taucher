@@ -55,7 +55,40 @@ function sendBookingInvoice(PDO $db, int $bookingId): string {
     } elseif ($paymentMethod === 'paypal') {
         $paymentNote = 'Der Betrag wurde bereits per PayPal beglichen. Vielen Dank!';
     } else {
-        $paymentNote = 'Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.';
+        // Find the next relevant session date for the payment note
+        $nextSessionDate = null;
+
+        // First: the Erstgespräch date itself (if in the future)
+        if ($booking['booking_date'] >= date('Y-m-d')) {
+            $nextSessionDate = $booking['booking_date'];
+        }
+
+        // If no future booking date, check for upcoming therapy sessions via linked client
+        if (!$nextSessionDate) {
+            $clientStmt = $db->prepare('SELECT id FROM clients WHERE booking_id = ?');
+            $clientStmt->execute([$bookingId]);
+            $linkedClient = $clientStmt->fetch();
+            if ($linkedClient) {
+                $sessionStmt = $db->prepare(
+                    'SELECT s.session_date FROM therapy_sessions s
+                     JOIN therapies t ON s.therapy_id = t.id
+                     WHERE t.client_id = ? AND s.session_date >= CURDATE() AND s.status != \'cancelled\'
+                     ORDER BY s.session_date ASC LIMIT 1'
+                );
+                $sessionStmt->execute([$linkedClient['id']]);
+                $nextSession = $sessionStmt->fetch();
+                if ($nextSession) {
+                    $nextSessionDate = $nextSession['session_date'];
+                }
+            }
+        }
+
+        if ($nextSessionDate) {
+            $nextDateFormatted = date('d.m.Y', strtotime($nextSessionDate));
+            $paymentNote = "Bitte überweisen Sie den Betrag vor dem Termin am {$nextDateFormatted}.";
+        } else {
+            $paymentNote = 'Bitte überweisen Sie den Betrag vor dem nächsten Termin.';
+        }
     }
 
     $pdfGen = new PdfGenerator();
