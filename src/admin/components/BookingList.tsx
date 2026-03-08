@@ -6,15 +6,14 @@ import {
 } from 'antd';
 import {
   CheckCircleOutlined, EuroCircleOutlined,
-  CloseOutlined, CalendarOutlined, FileTextOutlined, CreditCardOutlined, BankOutlined,
+  CloseOutlined, CalendarOutlined, CreditCardOutlined, BankOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
 
-export default function BookingList({ bookings, onUpdate, onSendInvoice }: {
+export default function BookingList({ bookings, onUpdate }: {
   bookings: AdminBooking[];
   onUpdate: (id: number, updates: Partial<AdminBooking>) => void;
-  onSendInvoice: (bookingId: number) => void;
 }) {
   if (bookings.length === 0) {
     return (
@@ -32,8 +31,8 @@ export default function BookingList({ bookings, onUpdate, onSendInvoice }: {
           size="default"
           title={<span>{b.clientName}{b.status === 'pending_payment' && <Tag color="orange" style={{ marginLeft: 8 }}>Zahlung ausstehend</Tag>}</span>}
           style={{
-            opacity: b.status === 'cancelled' ? 0.6 : 1,
-            borderColor: b.status === 'cancelled' ? '#fca5a5' : b.status === 'pending_payment' ? '#fbbf24' : undefined,
+            opacity: b.status === 'cancelled' || b.status === 'completed' ? 0.6 : 1,
+            borderColor: b.status === 'cancelled' ? '#fca5a5' : b.status === 'completed' ? '#b7eb8f' : b.status === 'pending_payment' ? '#fbbf24' : undefined,
           }}
           extra={
             b.status === 'pending_payment' ? (
@@ -79,14 +78,11 @@ export default function BookingList({ bookings, onUpdate, onSendInvoice }: {
                 <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : b.paymentMethod === 'wire_transfer' ? 'Überweisung' : ''}>
                   {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : b.paymentMethod === 'wire_transfer' ? <BankOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : null}
                 </Tooltip>
-                <Tooltip title={b.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}>
+                <Tooltip title="Als erledigt markieren">
                   <Button
                     type="text"
-                    icon={b.invoiceSent
-                      ? <CheckCircleOutlined style={{ color: '#4ade80' }} />
-                      : <FileTextOutlined />}
-                    disabled={b.invoiceSent}
-                    onClick={() => onSendInvoice(b.id)}
+                    icon={<CheckCircleOutlined />}
+                    onClick={() => onUpdate(b.id, { status: 'completed' })}
                   />
                 </Tooltip>
                 <Tooltip title="Stornieren">
@@ -107,6 +103,8 @@ export default function BookingList({ bookings, onUpdate, onSendInvoice }: {
                   />
                 </Tooltip>
               </Space>
+            ) : b.status === 'completed' ? (
+              <Tag color="green">Erledigt</Tag>
             ) : (
               <Tag color="red">Storniert</Tag>
             )

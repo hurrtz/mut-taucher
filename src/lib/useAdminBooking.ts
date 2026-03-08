@@ -48,7 +48,7 @@ export interface AdminBooking {
   clientZip: string | null;
   clientCity: string | null;
   clientMessage: string | null;
-  status: 'pending_payment' | 'confirmed' | 'cancelled';
+  status: 'pending_payment' | 'confirmed' | 'completed' | 'cancelled';
   paymentMethod: 'stripe' | 'wire_transfer' | null;
   introEmailSent: boolean;
   reminderSent: boolean;

@@ -359,9 +359,9 @@ function handleUpdateBooking(int $id): void {
             echo json_encode(['message' => 'Buchung gelöscht']);
             return;
         }
-        if ($input['status'] === 'confirmed') {
+        if (in_array($input['status'], ['confirmed', 'completed'], true)) {
             $fields[] = 'status = ?';
-            $params[] = 'confirmed';
+            $params[] = $input['status'];
         }
     }
     if (isset($input['introEmailSent'])) {
