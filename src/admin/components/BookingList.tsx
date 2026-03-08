@@ -8,7 +8,7 @@ import {
 import {
   CheckCircleOutlined, EuroCircleOutlined,
   CloseOutlined, CalendarOutlined, CreditCardOutlined, BankOutlined,
-  DownOutlined, RightOutlined, MailOutlined, FileTextOutlined,
+  DownOutlined, RightOutlined, MailOutlined, FileTextOutlined, UndoOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -43,7 +43,7 @@ function BookingCardBody({ b }: { b: AdminBooking }) {
   );
 }
 
-function ArchivedBookingCard({ b }: { b: AdminBooking }) {
+function ArchivedBookingCard({ b, onUpdate }: { b: AdminBooking; onUpdate: (id: number, updates: Partial<AdminBooking>) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -63,9 +63,20 @@ function ArchivedBookingCard({ b }: { b: AdminBooking }) {
         </Space>
       }
       extra={
-        b.status === 'completed'
-          ? <Tag color="green">Erledigt</Tag>
-          : <Tag color="red">Storniert</Tag>
+        <Space size={4}>
+          {b.status === 'completed'
+            ? <Tag color="green">Erledigt</Tag>
+            : <Tag color="red">Storniert</Tag>
+          }
+          <Tooltip title="Wiederherstellen">
+            <Button
+              type="text"
+              size="small"
+              icon={<UndoOutlined style={{ fontSize: 12 }} />}
+              onClick={() => onUpdate(b.id, { status: 'confirmed' })}
+            />
+          </Tooltip>
+        </Space>
       }
       styles={{ body: expanded ? undefined : { display: 'none' } }}
     >
@@ -219,7 +230,7 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
           {archivedExpanded && (
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
               {archived.map(b => (
-                <ArchivedBookingCard key={b.id} b={b} />
+                <ArchivedBookingCard key={b.id} b={b} onUpdate={onUpdate} />
               ))}
             </Space>
           )}
