@@ -39,7 +39,15 @@ function sendBookingInvoice(PDO $db, int $bookingId): string {
     $amountFormatted = number_format($amountCents / 100, 2, ',', '.') . ' €';
     $durationMinutes = (int)$booking['duration_minutes'];
     $therapyLabel = 'Erstgespräch';
-    $invoiceNumber = generateInvoiceNumber($db);
+
+    // Use pre-generated invoice number from booking, or generate one if missing (legacy bookings)
+    if (!empty($booking['invoice_number'])) {
+        $invoiceNumber = $booking['invoice_number'];
+    } else {
+        $invoiceNumber = generateInvoiceNumber($db);
+        $db->prepare('UPDATE bookings SET invoice_number = ? WHERE id = ?')
+            ->execute([$invoiceNumber, $bookingId]);
+    }
 
     $paymentMethod = $booking['payment_method'] ?? 'wire_transfer';
     if ($paymentMethod === 'stripe') {

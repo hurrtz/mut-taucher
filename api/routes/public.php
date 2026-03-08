@@ -127,6 +127,12 @@ function handleCreateBooking(): void {
 
         $bookingId = $db->lastInsertId();
 
+        // Generate invoice number early so it can be used as payment reference
+        require_once __DIR__ . '/../lib/InvoiceNumber.php';
+        $invoiceNumber = generateInvoiceNumber($db);
+        $db->prepare('UPDATE bookings SET invoice_number = ? WHERE id = ?')
+            ->execute([$invoiceNumber, $bookingId]);
+
         // Auto-create client/patient from booking
         try {
             $clientStmt = $db->prepare(
@@ -178,7 +184,7 @@ function handleCreateBooking(): void {
                 $bic = $config['bank_bic'] ?? '';
                 $bankName = $config['bank_name'] ?? '';
                 $amount = '95,00 €';
-                $reference = "Erstgespräch #{$bookingId}";
+                $reference = $invoiceNumber;
 
                 ob_start();
                 include __DIR__ . '/../templates/email/booking_wire_transfer.php';
