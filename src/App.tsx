@@ -51,7 +51,21 @@ function ScrollToTop() {
 }
 
 
+function useBrandColors() {
+  useEffect(() => {
+    fetch('/api/branding/colors')
+      .then(r => r.json())
+      .then(data => {
+        if (data.primaryColor) {
+          document.documentElement.style.setProperty('--primary', data.primaryColor);
+        }
+      })
+      .catch(() => {});
+  }, []);
+}
+
 function App() {
+  useBrandColors();
   return (
     <Router>
       <ScrollToTop />

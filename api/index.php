@@ -49,6 +49,11 @@ if ($method === 'GET' && $uri === '/slots') {
     exit;
 }
 
+if ($method === 'GET' && $uri === '/branding/colors') {
+    handleGetBrandColors();
+    exit;
+}
+
 if ($method === 'POST' && $uri === '/bookings') {
     handleCreateBooking();
     exit;

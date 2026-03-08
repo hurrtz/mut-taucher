@@ -4,6 +4,29 @@ require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
 
 /**
+ * GET /api/branding/colors
+ * Returns brand colors (public, no auth).
+ */
+function handleGetBrandColors(): void {
+    $db = getDB();
+    $stmt = $db->query('SELECT primary_color FROM brand_settings WHERE id = 1');
+    $row = $stmt->fetch();
+
+    if (!$row) {
+        echo json_encode(['primaryColor' => null]);
+        return;
+    }
+
+    $color = $row['primary_color'];
+    // Ensure # prefix for frontend
+    if ($color && $color[0] !== '#') {
+        $color = '#' . $color;
+    }
+
+    echo json_encode(['primaryColor' => $color]);
+}
+
+/**
  * GET /api/admin/branding
  * Returns current brand settings.
  */
