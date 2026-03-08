@@ -67,13 +67,12 @@ export default function PatientsTab() {
             onSelect={(id) => setSelectedClientId(prev => prev === id ? null : id)}
           />
         </Col>
-        <Col xs={24} lg={12}>
+        <Col xs={24} lg={12} style={{ borderLeft: '0.5px solid #d1d5db' }}>
+          <Typography.Title level={5} style={{ marginBottom: 12 }}>Patientenakte</Typography.Title>
           {selectedClientId ? (
             <ClientHistoryPanel key={selectedClientId} clientId={selectedClientId} />
           ) : (
-            <div style={styles.emptyState}>
-              <Typography.Text type="secondary">Patient:in auswählen, um den Verlauf zu sehen</Typography.Text>
-            </div>
+            <Typography.Text type="secondary">Patient:in auswählen, um den Verlauf zu sehen.</Typography.Text>
           )}
         </Col>
       </Row>
