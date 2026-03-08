@@ -28,4 +28,15 @@ return [
     'smtp_pass'       => '',
     'smtp_from_email' => 'info@mut-taucher.de',
     'smtp_from_name'  => 'Mut-Taucher Praxis',
+
+    // Stripe
+    'stripe_secret_key'       => '',
+    'stripe_publishable_key'  => '',
+    'stripe_webhook_secret'   => '',
+
+    // Bank transfer details (shown to clients choosing Überweisung)
+    'bank_account_holder' => '',
+    'bank_iban'           => '',
+    'bank_bic'            => '',
+    'bank_name'           => '',
 ];
