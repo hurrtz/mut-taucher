@@ -21,41 +21,41 @@
 ?>
 <?php include __DIR__ . '/_header.php'; ?>
 <?php if ($isConfirmed): ?>
-      <h2 style="color: #2dd4bf; margin-top: 0;">Zahlung bestätigt</h2>
+      <h2 style="<?= STYLE_H2 ?>">Zahlung bestätigt</h2>
       <p>Die Zahlung für folgenden Termin wurde bestätigt:</p>
 <?php else: ?>
-      <h2 style="color: #2dd4bf; margin-top: 0;">Neue Buchung eingegangen</h2>
+      <h2 style="<?= STYLE_H2 ?>">Neue Buchung eingegangen</h2>
       <p>Es wurde ein neuer Termin gebucht:</p>
 <?php endif; ?>
 
-      <div style="background: #f0fdfa; border-left: 4px solid #2dd4bf; padding: 16px; margin: 16px 0;">
-        <p style="margin: 0;"><strong>Datum:</strong> <?= htmlspecialchars($dateFormatted) ?></p>
-        <p style="margin: 4px 0;"><strong>Uhrzeit:</strong> <?= htmlspecialchars($time) ?> Uhr</p>
-        <p style="margin: 4px 0;"><strong>Dauer:</strong> <?= $duration ?> Minuten</p>
+      <div style="<?= STYLE_ALERT_INFO ?>">
+        <p style="<?= STYLE_P_FIRST ?>"><strong>Datum:</strong> <?= htmlspecialchars($dateFormatted) ?></p>
+        <p style="<?= STYLE_P_NEXT ?>"><strong>Uhrzeit:</strong> <?= htmlspecialchars($time) ?> Uhr</p>
+        <p style="<?= STYLE_P_NEXT ?>"><strong>Dauer:</strong> <?= $duration ?> Minuten</p>
       </div>
 
-      <h3 style="color: #334155; margin-bottom: 8px;">Klient*in</h3>
-      <table style="border-collapse: collapse; width: 100%;">
-        <tr><td style="padding: 4px 8px; color: #64748b;">Name:</td><td style="padding: 4px 8px;"><?= htmlspecialchars($clientName) ?></td></tr>
-        <tr><td style="padding: 4px 8px; color: #64748b;">E-Mail:</td><td style="padding: 4px 8px;"><?= htmlspecialchars($clientEmail) ?></td></tr>
-        <tr><td style="padding: 4px 8px; color: #64748b;">Telefon:</td><td style="padding: 4px 8px;"><?= htmlspecialchars($clientPhone) ?></td></tr>
-        <tr><td style="padding: 4px 8px; color: #64748b;">Adresse:</td><td style="padding: 4px 8px;"><?= htmlspecialchars($clientStreet) ?>, <?= htmlspecialchars($clientZip) ?> <?= htmlspecialchars($clientCity) ?></td></tr>
+      <h3 style="<?= STYLE_H3 ?>">Klient*in</h3>
+      <table style="<?= STYLE_TABLE ?>">
+        <tr><td style="<?= STYLE_TD_LABEL ?>">Name:</td><td style="<?= STYLE_TD_VALUE ?>"><?= htmlspecialchars($clientName) ?></td></tr>
+        <tr><td style="<?= STYLE_TD_LABEL ?>">E-Mail:</td><td style="<?= STYLE_TD_VALUE ?>"><?= htmlspecialchars($clientEmail) ?></td></tr>
+        <tr><td style="<?= STYLE_TD_LABEL ?>">Telefon:</td><td style="<?= STYLE_TD_VALUE ?>"><?= htmlspecialchars($clientPhone) ?></td></tr>
+        <tr><td style="<?= STYLE_TD_LABEL ?>">Adresse:</td><td style="<?= STYLE_TD_VALUE ?>"><?= htmlspecialchars($clientStreet) ?>, <?= htmlspecialchars($clientZip) ?> <?= htmlspecialchars($clientCity) ?></td></tr>
       </table>
 
 <?php if (!empty($clientMessage)): ?>
-      <h3 style="color: #334155; margin-bottom: 8px;">Nachricht</h3>
-      <div style="background: #f8fafc; border-left: 4px solid #e2e8f0; padding: 12px 16px; margin: 8px 0;">
+      <h3 style="<?= STYLE_H3 ?>">Nachricht</h3>
+      <div style="<?= STYLE_ALERT_NEUTRAL ?>">
         <p style="margin: 0; white-space: pre-wrap;"><?= htmlspecialchars($clientMessage) ?></p>
       </div>
 <?php endif; ?>
 
-      <h3 style="color: #334155; margin-bottom: 8px;">Zahlung</h3>
-      <table style="border-collapse: collapse; width: 100%;">
-        <tr><td style="padding: 4px 8px; color: #64748b;">Zahlungsmethode:</td><td style="padding: 4px 8px;"><?= htmlspecialchars($paymentMethodLabel) ?></td></tr>
-        <tr><td style="padding: 4px 8px; color: #64748b;">Zahlungsstatus:</td><td style="padding: 4px 8px;"><strong><?= htmlspecialchars($paymentStatus) ?></strong></td></tr>
-        <tr><td style="padding: 4px 8px; color: #64748b;">Buchungsstatus:</td><td style="padding: 4px 8px;"><strong><?= htmlspecialchars($bookingStatus) ?></strong></td></tr>
+      <h3 style="<?= STYLE_H3 ?>">Zahlung</h3>
+      <table style="<?= STYLE_TABLE ?>">
+        <tr><td style="<?= STYLE_TD_LABEL ?>">Zahlungsmethode:</td><td style="<?= STYLE_TD_VALUE ?>"><?= htmlspecialchars($paymentMethodLabel) ?></td></tr>
+        <tr><td style="<?= STYLE_TD_LABEL ?>">Zahlungsstatus:</td><td style="<?= STYLE_TD_VALUE ?>"><strong><?= htmlspecialchars($paymentStatus) ?></strong></td></tr>
+        <tr><td style="<?= STYLE_TD_LABEL ?>">Buchungsstatus:</td><td style="<?= STYLE_TD_VALUE ?>"><strong><?= htmlspecialchars($bookingStatus) ?></strong></td></tr>
 <?php if (!empty($invoiceNumber)): ?>
-        <tr><td style="padding: 4px 8px; color: #64748b;">Rechnungsnummer:</td><td style="padding: 4px 8px;"><?= htmlspecialchars($invoiceNumber) ?></td></tr>
+        <tr><td style="<?= STYLE_TD_LABEL ?>">Rechnungsnummer:</td><td style="<?= STYLE_TD_VALUE ?>"><?= htmlspecialchars($invoiceNumber) ?></td></tr>
 <?php endif; ?>
       </table>
 

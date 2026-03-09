@@ -1,3 +1,4 @@
+<?php include_once __DIR__ . '/_styles.php'; ?>
 <!DOCTYPE html>
 <html lang="de">
 <head><meta charset="UTF-8"></head>

@@ -1,16 +1,16 @@
 <?php /** @var string $clientName @var string $dateFormatted @var string $time @var int $duration @var string $therapistName @var string $siteUrl */ ?>
 <?php include __DIR__ . '/_header.php'; ?>
-      <h2 style="color: #2dd4bf; margin-top: 0;">Terminbestätigung</h2>
+      <h2 style="<?= STYLE_H2 ?>">Terminbestätigung</h2>
       <p>Hallo <?= htmlspecialchars($clientName) ?>,</p>
       <p>vielen Dank für Ihre Buchung. Ihr Termin wurde bestätigt:</p>
-      <div style="background: #f0fdfa; border-left: 4px solid #2dd4bf; padding: 16px; margin: 16px 0;">
-        <p style="margin: 0;"><strong>Datum:</strong> <?= htmlspecialchars($dateFormatted) ?></p>
-        <p style="margin: 4px 0;"><strong>Uhrzeit:</strong> <?= htmlspecialchars($time) ?> Uhr</p>
-        <p style="margin: 4px 0;"><strong>Dauer:</strong> <?= $duration ?> Minuten</p>
+      <div style="<?= STYLE_ALERT_INFO ?>">
+        <p style="<?= STYLE_P_FIRST ?>"><strong>Datum:</strong> <?= htmlspecialchars($dateFormatted) ?></p>
+        <p style="<?= STYLE_P_NEXT ?>"><strong>Uhrzeit:</strong> <?= htmlspecialchars($time) ?> Uhr</p>
+        <p style="<?= STYLE_P_NEXT ?>"><strong>Dauer:</strong> <?= $duration ?> Minuten</p>
       </div>
       <p>Wir freuen uns auf Sie!</p>
-      <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0;">
-        <p style="margin: 0; font-size: 13px; color: #92400e;">
+      <div style="<?= STYLE_ALERT_WARNING ?>">
+        <p style="<?= STYLE_WARNING_TEXT ?>">
           <strong>Bitte beachten Sie:</strong> Termine können bis 48 Stunden (zwei Tage) vorher kostenfrei abgesagt werden. Bei kurzfristiger Absage oder Nichterscheinen wird das Honorar als Ausfallhonorar berechnet.
         </p>
       </div>

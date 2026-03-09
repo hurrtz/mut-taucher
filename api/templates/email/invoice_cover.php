@@ -1,6 +1,6 @@
 <?php /** @var string $clientName @var string $invoiceNumber @var string $amountFormatted @var string $therapistName @var string $siteUrl @var string $dateFormatted @var string $paymentNote */ ?>
 <?php include __DIR__ . '/_header.php'; ?>
-      <h2 style="color: #2dd4bf; margin-top: 0;">Rechnung <?= htmlspecialchars($invoiceNumber) ?></h2>
+      <h2 style="<?= STYLE_H2 ?>">Rechnung <?= htmlspecialchars($invoiceNumber) ?></h2>
       <p>Hallo <?= htmlspecialchars($clientName) ?>,</p>
       <p>anbei erhalten Sie Ihre Rechnung <strong><?= htmlspecialchars($invoiceNumber) ?></strong> über <strong><?= htmlspecialchars($amountFormatted) ?></strong> für Ihre Sitzung am <?= htmlspecialchars($dateFormatted) ?>.</p>
       <p><?= htmlspecialchars($paymentNote) ?></p>
