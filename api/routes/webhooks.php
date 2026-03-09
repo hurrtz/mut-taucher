@@ -83,6 +83,17 @@ function handleStripeWebhook(): void {
                 } catch (\Exception $e) {
                     // Don't fail the webhook if invoice fails
                 }
+
+                // Notify therapist about confirmed payment
+                try {
+                    require_once __DIR__ . '/../lib/BookingNotification.php';
+                    if ($booking) {
+                        $booking['payment_method'] = 'stripe';
+                        sendBookingNotification($booking, 'confirmed');
+                    }
+                } catch (\Exception $e) {
+                    // Don't fail the webhook if notification fails
+                }
             }
         }
     }

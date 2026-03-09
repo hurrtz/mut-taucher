@@ -209,6 +209,25 @@ function handleCreateBooking(): void {
             }
         }
 
+        // Notify therapist about new booking
+        try {
+            require_once __DIR__ . '/../lib/BookingNotification.php';
+            sendBookingNotification([
+                'client_first_name' => $firstName,
+                'client_last_name'  => $lastName,
+                'client_email'      => $email,
+                'client_phone'      => $phone,
+                'client_message'    => $message ?: null,
+                'booking_date'      => $date,
+                'booking_time'      => $time,
+                'duration_minutes'  => $durationMinutes,
+                'payment_method'    => $paymentMethod,
+                'invoice_number'    => $invoiceNumber,
+            ], 'new');
+        } catch (Exception $e) {
+            // Don't fail the booking if notification fails
+        }
+
         $config = require __DIR__ . '/../config.php';
         $response = [
             'id'            => (int)$bookingId,
@@ -322,6 +341,15 @@ function handlePayPalCapture(): void {
             sendBookingInvoice($db, (int)$booking['id']);
         } catch (\Exception $e) {
             // Don't fail if invoice fails
+        }
+
+        // Notify therapist about confirmed payment
+        try {
+            require_once __DIR__ . '/../lib/BookingNotification.php';
+            $booking['payment_method'] = 'paypal';
+            sendBookingNotification($booking, 'confirmed');
+        } catch (\Exception $e) {
+            // Don't fail if notification fails
         }
     }
 
