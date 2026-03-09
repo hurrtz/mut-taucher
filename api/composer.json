@@ -18,5 +18,13 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^13.0"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "lint": "find lib routes templates -name '*.php' -exec php -l {} \\;",
+        "check": [
+            "@lint",
+            "@test"
+        ]
     }
 }
