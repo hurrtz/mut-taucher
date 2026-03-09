@@ -212,23 +212,24 @@ function handleCreateBooking(): void {
         // Notify therapist about new booking
         try {
             require_once __DIR__ . '/../lib/BookingNotification.php';
-            sendBookingNotification([
-                'client_first_name' => $firstName,
-                'client_last_name'  => $lastName,
-                'client_email'      => $email,
-                'client_phone'      => $phone,
-                'client_street'     => $street,
-                'client_zip'        => $zip,
-                'client_city'       => $city,
-                'client_message'    => $message ?: null,
-                'booking_date'      => $date,
-                'booking_time'      => $time,
-                'duration_minutes'  => $durationMinutes,
-                'payment_method'    => $paymentMethod,
-                'invoice_number'    => $invoiceNumber,
-            ], 'new');
+            $notificationData = new BookingNotificationData(
+                clientFirstName: $firstName,
+                clientLastName:  $lastName,
+                clientEmail:     $email,
+                clientPhone:     $phone,
+                clientStreet:    $street,
+                clientZip:       $zip,
+                clientCity:      $city,
+                clientMessage:   $message ?: null,
+                bookingDate:     $date,
+                bookingTime:     $time,
+                durationMinutes: $durationMinutes,
+                paymentMethod:   $paymentMethod,
+                invoiceNumber:   $invoiceNumber,
+            );
+            sendBookingNotification($notificationData);
         } catch (Exception $e) {
-            // Don't fail the booking if notification fails
+            error_log('Booking notification failed for booking #' . $bookingId . ': ' . $e->getMessage());
         }
 
         $config = require __DIR__ . '/../config.php';
@@ -349,9 +350,9 @@ function handlePayPalCapture(): void {
         // Notify therapist about confirmed payment
         try {
             require_once __DIR__ . '/../lib/BookingNotification.php';
-            sendBookingNotification($booking, 'confirmed');
+            sendBookingNotification(BookingNotificationData::fromBookingRow($booking, NotificationStatus::Confirmed));
         } catch (\Exception $e) {
-            // Don't fail if notification fails
+            error_log('Booking notification failed for booking #' . $booking['id'] . ': ' . $e->getMessage());
         }
     }
 

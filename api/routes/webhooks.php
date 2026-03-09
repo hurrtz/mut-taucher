@@ -88,10 +88,10 @@ function handleStripeWebhook(): void {
                 try {
                     require_once __DIR__ . '/../lib/BookingNotification.php';
                     if ($booking) {
-                        sendBookingNotification($booking, 'confirmed');
+                        sendBookingNotification(BookingNotificationData::fromBookingRow($booking, NotificationStatus::Confirmed));
                     }
                 } catch (\Exception $e) {
-                    // Don't fail the webhook if notification fails
+                    error_log('Booking notification failed for booking #' . $bookingId . ': ' . $e->getMessage());
                 }
             }
         }
