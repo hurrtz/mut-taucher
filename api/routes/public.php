@@ -217,6 +217,9 @@ function handleCreateBooking(): void {
                 'client_last_name'  => $lastName,
                 'client_email'      => $email,
                 'client_phone'      => $phone,
+                'client_street'     => $street,
+                'client_zip'        => $zip,
+                'client_city'       => $city,
                 'client_message'    => $message ?: null,
                 'booking_date'      => $date,
                 'booking_time'      => $time,
@@ -346,7 +349,6 @@ function handlePayPalCapture(): void {
         // Notify therapist about confirmed payment
         try {
             require_once __DIR__ . '/../lib/BookingNotification.php';
-            $booking['payment_method'] = 'paypal';
             sendBookingNotification($booking, 'confirmed');
         } catch (\Exception $e) {
             // Don't fail if notification fails

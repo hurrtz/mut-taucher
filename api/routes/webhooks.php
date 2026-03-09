@@ -88,7 +88,6 @@ function handleStripeWebhook(): void {
                 try {
                     require_once __DIR__ . '/../lib/BookingNotification.php';
                     if ($booking) {
-                        $booking['payment_method'] = 'stripe';
                         sendBookingNotification($booking, 'confirmed');
                     }
                 } catch (\Exception $e) {

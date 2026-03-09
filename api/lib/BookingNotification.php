@@ -35,9 +35,13 @@ function sendBookingNotification(array $booking, string $status = 'new'): void {
         $bookingStatus = 'Warte auf Zahlung';
     }
 
+    $isConfirmed = $status === 'confirmed';
     $clientName = trim(($booking['client_first_name'] ?? '') . ' ' . ($booking['client_last_name'] ?? ''));
     $clientEmail = $booking['client_email'] ?? '';
     $clientPhone = $booking['client_phone'] ?? '';
+    $clientStreet = $booking['client_street'] ?? '';
+    $clientZip = $booking['client_zip'] ?? '';
+    $clientCity = $booking['client_city'] ?? '';
     $clientMessage = $booking['client_message'] ?? null;
     $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
     $time = $booking['booking_time'] ?? '';

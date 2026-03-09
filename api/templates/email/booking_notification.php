@@ -9,6 +9,10 @@
  * @var string $paymentMethodLabel
  * @var string $paymentStatus
  * @var string $bookingStatus
+ * @var string $clientStreet
+ * @var string $clientZip
+ * @var string $clientCity
+ * @var bool   $isConfirmed
  * @var string $therapistName
  * @var string $siteUrl
  * @var string|null $clientMessage
@@ -16,8 +20,13 @@
  */
 ?>
 <?php include __DIR__ . '/_header.php'; ?>
+<?php if ($isConfirmed): ?>
+      <h2 style="color: #2dd4bf; margin-top: 0;">Zahlung bestätigt</h2>
+      <p>Die Zahlung für folgenden Termin wurde bestätigt:</p>
+<?php else: ?>
       <h2 style="color: #2dd4bf; margin-top: 0;">Neue Buchung eingegangen</h2>
       <p>Es wurde ein neuer Termin gebucht:</p>
+<?php endif; ?>
 
       <div style="background: #f0fdfa; border-left: 4px solid #2dd4bf; padding: 16px; margin: 16px 0;">
         <p style="margin: 0;"><strong>Datum:</strong> <?= htmlspecialchars($dateFormatted) ?></p>
@@ -30,6 +39,7 @@
         <tr><td style="padding: 4px 8px; color: #64748b;">Name:</td><td style="padding: 4px 8px;"><?= htmlspecialchars($clientName) ?></td></tr>
         <tr><td style="padding: 4px 8px; color: #64748b;">E-Mail:</td><td style="padding: 4px 8px;"><?= htmlspecialchars($clientEmail) ?></td></tr>
         <tr><td style="padding: 4px 8px; color: #64748b;">Telefon:</td><td style="padding: 4px 8px;"><?= htmlspecialchars($clientPhone) ?></td></tr>
+        <tr><td style="padding: 4px 8px; color: #64748b;">Adresse:</td><td style="padding: 4px 8px;"><?= htmlspecialchars($clientStreet) ?>, <?= htmlspecialchars($clientZip) ?> <?= htmlspecialchars($clientCity) ?></td></tr>
       </table>
 
 <?php if (!empty($clientMessage)): ?>
