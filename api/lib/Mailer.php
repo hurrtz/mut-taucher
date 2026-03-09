@@ -10,8 +10,12 @@ class Mailer {
         $this->config = require __DIR__ . '/../config.php';
     }
 
+    private const MAX_RETRIES = 1;
+    private const RETRY_DELAY_MS = 500;
+
     /**
      * Send an email — uses Brevo HTTP API if configured, otherwise SMTP.
+     * Retries once on transient failures (network errors, 5xx responses).
      */
     public function send(
         string $to,
@@ -21,11 +25,49 @@ class Mailer {
         string $textBody = '',
         array $attachments = []
     ): void {
-        if (!empty($this->config['brevo_api_key'])) {
-            $this->sendViaBrevo($to, $toName, $subject, $htmlBody, $textBody, $attachments);
-        } else {
-            $this->sendViaSmtp($to, $toName, $subject, $htmlBody, $textBody, $attachments);
+        $lastException = null;
+
+        for ($attempt = 0; $attempt <= self::MAX_RETRIES; $attempt++) {
+            try {
+                if (!empty($this->config['brevo_api_key'])) {
+                    $this->sendViaBrevo($to, $toName, $subject, $htmlBody, $textBody, $attachments);
+                } else {
+                    $this->sendViaSmtp($to, $toName, $subject, $htmlBody, $textBody, $attachments);
+                }
+                return; // Success
+            } catch (\Exception $e) {
+                $lastException = $e;
+                error_log("Mailer: attempt " . ($attempt + 1) . " failed for '$to': " . $e->getMessage());
+
+                // Only retry on transient errors (network/5xx), not client errors (4xx)
+                if ($attempt < self::MAX_RETRIES && $this->isTransientError($e)) {
+                    usleep(self::RETRY_DELAY_MS * 1000);
+                    continue;
+                }
+                break;
+            }
         }
+
+        throw $lastException;
+    }
+
+    /**
+     * Determine if an exception represents a transient/retryable error.
+     */
+    private function isTransientError(\Exception $e): bool {
+        $msg = $e->getMessage();
+        // Brevo 5xx or curl/network errors are transient
+        if (preg_match('/Brevo API error \(5\d{2}\)/', $msg)) {
+            return true;
+        }
+        if (str_contains($msg, 'Brevo API error:') && !str_contains($msg, 'Brevo API error (')) {
+            return true; // curl error (no HTTP code)
+        }
+        // SMTP connection failures are transient
+        if (str_contains($msg, 'SMTP connect') || str_contains($msg, 'Connection timed out')) {
+            return true;
+        }
+        return false;
     }
 
     /**
