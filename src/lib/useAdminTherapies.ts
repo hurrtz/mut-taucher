@@ -37,6 +37,7 @@ export function useAdminTherapies() {
     videoLink?: string;
     notes?: string;
     schedule: TherapyScheduleRule[];
+    nextAppointment?: { date: string; time: string };
   }) => {
     setError(null);
     try {

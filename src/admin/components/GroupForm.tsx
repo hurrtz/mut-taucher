@@ -3,8 +3,10 @@ import type { TherapyGroup, TherapyScheduleRule } from '../../lib/data';
 import { DAY_LABELS_LONG } from '../constants';
 import { format } from 'date-fns';
 import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
-import { Button, Checkbox, Col, DatePicker, Form, Input, InputNumber, Row, Select, Space, TimePicker } from 'antd';
+import { Button, Checkbox, Col, DatePicker, Form, Input, InputNumber, Row, Segmented, Select, Space, TimePicker } from 'antd';
 import dayjs from 'dayjs';
+
+type ScheduleMode = 'specific' | 'recurring';
 
 export default function GroupForm({ initial, onSave, onCancel }: {
   initial?: TherapyGroup;
@@ -14,9 +16,14 @@ export default function GroupForm({ initial, onSave, onCancel }: {
     sessionCostCents?: number; sessionDurationMinutes?: number;
     videoLink?: string; notes?: string;
     schedule: TherapyScheduleRule[];
+    nextAppointment?: { date: string; time: string };
   }) => void;
   onCancel?: () => void;
 }) {
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>(
+    initial?.schedule?.length ? 'recurring' : 'specific'
+  );
+  const [nextAppointment, setNextAppointment] = useState({ date: '', time: '16:30' });
   const [form, setForm] = useState({
     label: initial?.label ?? '',
     maxParticipants: initial?.maxParticipants ?? 7,
@@ -32,7 +39,7 @@ export default function GroupForm({ initial, onSave, onCancel }: {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onSave({
+    const data: Parameters<typeof onSave>[0] = {
       label: form.label,
       maxParticipants: form.maxParticipants,
       showOnHomepage: form.showOnHomepage,
@@ -42,8 +49,12 @@ export default function GroupForm({ initial, onSave, onCancel }: {
       sessionDurationMinutes: form.sessionDurationMinutes,
       videoLink: form.videoLink || undefined,
       notes: form.notes || undefined,
-      schedule: form.schedule.filter(s => s.time),
-    });
+      schedule: scheduleMode === 'recurring' ? form.schedule.filter(s => s.time) : [],
+    };
+    if (scheduleMode === 'specific' && nextAppointment.date && nextAppointment.time) {
+      data.nextAppointment = nextAppointment;
+    }
+    onSave(data);
   };
 
   const addScheduleRule = () => {
@@ -142,44 +153,71 @@ export default function GroupForm({ initial, onSave, onCancel }: {
           </Col>
         </Row>
 
-        <Form.Item label="Zeitplan">
+        <Form.Item label="Terminplanung">
           <Space direction="vertical" size="small" style={{ width: '100%' }}>
-            {form.schedule.map((rule, idx) => (
-              <Space key={idx}>
-                <Select
-                  value={rule.dayOfWeek}
-                  onChange={val => updateScheduleRule(idx, { dayOfWeek: val })}
-                  style={{ width: 140 }}
-                  options={[1, 2, 3, 4, 5, 6, 7].map(d => ({ value: d, label: DAY_LABELS_LONG[d] }))}
-                />
-                <Select
-                  value={rule.frequency}
-                  onChange={val => updateScheduleRule(idx, { frequency: val })}
-                  style={{ width: 150 }}
-                  options={[
-                    { value: 'weekly', label: 'Wöchentlich' },
-                    { value: 'biweekly', label: '2-wöchentlich' },
-                  ]}
+            <Segmented
+              value={scheduleMode}
+              onChange={(value) => setScheduleMode(value as ScheduleMode)}
+              options={[
+                { value: 'specific', label: 'Nächster Termin' },
+                { value: 'recurring', label: 'Wiederkehrend' },
+              ]}
+            />
+            {scheduleMode === 'specific' ? (
+              <Space>
+                <DatePicker
+                  value={nextAppointment.date ? dayjs(nextAppointment.date) : null}
+                  onChange={(d) => setNextAppointment(a => ({ ...a, date: d ? d.format('YYYY-MM-DD') : '' }))}
+                  placeholder="Datum"
                 />
                 <TimePicker
-                  value={rule.time ? dayjs(rule.time, 'HH:mm') : null}
-                  onChange={(_time, timeString) => updateScheduleRule(idx, { time: timeString as string })}
                   format="HH:mm"
                   minuteStep={5}
+                  value={nextAppointment.time ? dayjs(nextAppointment.time, 'HH:mm') : null}
+                  onChange={(d) => setNextAppointment(a => ({ ...a, time: d ? d.format('HH:mm') : '' }))}
+                  placeholder="Uhrzeit"
                 />
-                {form.schedule.length > 1 && (
-                  <Button
-                    type="text"
-                    icon={<CloseOutlined />}
-                    size="small"
-                    onClick={() => removeScheduleRule(idx)}
-                  />
-                )}
               </Space>
-            ))}
-            <Button type="link" size="small" icon={<PlusOutlined />} onClick={addScheduleRule}>
-              Weiteren Termin hinzufügen
-            </Button>
+            ) : (
+              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                {form.schedule.map((rule, idx) => (
+                  <Space key={idx}>
+                    <Select
+                      value={rule.dayOfWeek}
+                      onChange={val => updateScheduleRule(idx, { dayOfWeek: val })}
+                      style={{ width: 140 }}
+                      options={[1, 2, 3, 4, 5, 6, 7].map(d => ({ value: d, label: DAY_LABELS_LONG[d] }))}
+                    />
+                    <Select
+                      value={rule.frequency}
+                      onChange={val => updateScheduleRule(idx, { frequency: val })}
+                      style={{ width: 150 }}
+                      options={[
+                        { value: 'weekly', label: 'Wöchentlich' },
+                        { value: 'biweekly', label: '2-wöchentlich' },
+                      ]}
+                    />
+                    <TimePicker
+                      value={rule.time ? dayjs(rule.time, 'HH:mm') : null}
+                      onChange={(_time, timeString) => updateScheduleRule(idx, { time: timeString as string })}
+                      format="HH:mm"
+                      minuteStep={5}
+                    />
+                    {form.schedule.length > 1 && (
+                      <Button
+                        type="text"
+                        icon={<CloseOutlined />}
+                        size="small"
+                        onClick={() => removeScheduleRule(idx)}
+                      />
+                    )}
+                  </Space>
+                ))}
+                <Button type="link" size="small" icon={<PlusOutlined />} onClick={addScheduleRule}>
+                  Weiteren Termin hinzufügen
+                </Button>
+              </Space>
+            )}
           </Space>
         </Form.Item>
 

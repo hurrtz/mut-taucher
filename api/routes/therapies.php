@@ -162,6 +162,20 @@ function handleCreateTherapy(): void {
             }
         }
 
+        // Create initial session if nextAppointment is provided
+        if (!empty($input['nextAppointment']['date']) && !empty($input['nextAppointment']['time'])) {
+            $sessStmt = $db->prepare(
+                'INSERT INTO therapy_sessions (therapy_id, session_date, session_time, duration_minutes)
+                 VALUES (?, ?, ?, ?)'
+            );
+            $sessStmt->execute([
+                $therapyId,
+                $input['nextAppointment']['date'],
+                $input['nextAppointment']['time'],
+                $input['sessionDurationMinutes'] ?? 60,
+            ]);
+        }
+
         $db->commit();
         echo json_encode(['id' => (int)$therapyId, 'message' => 'Therapie angelegt']);
     } catch (\Exception $e) {

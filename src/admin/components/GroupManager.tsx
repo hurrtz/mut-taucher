@@ -39,7 +39,7 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
 
   const activeParticipants = group.participants?.filter(p => p.status === 'active') ?? [];
   const participantIds = new Set(activeParticipants.map(p => p.clientId));
-  const availableClients = clients.filter(c => !participantIds.has(c.id));
+  const availableClients = clients.filter(c => c.status === 'active' && !participantIds.has(c.id));
   const isFull = activeParticipants.length >= group.maxParticipants;
   const pct = group.maxParticipants > 0
     ? Math.round((activeParticipants.length / group.maxParticipants) * 100)

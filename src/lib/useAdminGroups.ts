@@ -38,6 +38,7 @@ export function useAdminGroups() {
     videoLink?: string;
     notes?: string;
     schedule: TherapyScheduleRule[];
+    nextAppointment?: { date: string; time: string };
   }) => {
     setError(null);
     try {

@@ -167,6 +167,20 @@ function handleCreateGroup(): void {
             }
         }
 
+        // Create initial session if nextAppointment is provided
+        if (!empty($input['nextAppointment']['date']) && !empty($input['nextAppointment']['time'])) {
+            $sessStmt = $db->prepare(
+                'INSERT INTO group_sessions (group_id, session_date, session_time, duration_minutes)
+                 VALUES (?, ?, ?, ?)'
+            );
+            $sessStmt->execute([
+                $groupId,
+                $input['nextAppointment']['date'],
+                $input['nextAppointment']['time'],
+                $input['sessionDurationMinutes'] ?? 90,
+            ]);
+        }
+
         $db->commit();
         echo json_encode(['id' => (int)$groupId, 'message' => 'Gruppe angelegt']);
     } catch (\Exception $e) {
