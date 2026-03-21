@@ -140,7 +140,7 @@ function handleCreateBooking(): void {
                 'INSERT INTO clients (first_name, last_name, email, phone, street, zip, city, booking_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $clientStmt->execute([$firstName, $lastName, $email, $phone, $street, $zip, $city, (int)$bookingId]);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             // Don't fail the booking if client creation fails
         }
 
@@ -197,7 +197,7 @@ function handleCreateBooking(): void {
                     'Terminreservierung — ' . ($config['therapist_name'] ?? 'Mut-Taucher'),
                     $htmlBody
                 );
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 // Don't fail the booking if email fails
             }
 
@@ -205,7 +205,7 @@ function handleCreateBooking(): void {
             try {
                 require_once __DIR__ . '/../lib/BookingInvoice.php';
                 sendBookingInvoice($db, (int)$bookingId);
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 // Don't fail the booking if invoice fails
             }
         }
@@ -229,7 +229,7 @@ function handleCreateBooking(): void {
                 invoiceNumber:   $invoiceNumber,
             );
             sendBookingNotification($notificationData);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             error_log('Booking notification failed for booking #' . $bookingId . ': ' . $e->getMessage());
         }
 

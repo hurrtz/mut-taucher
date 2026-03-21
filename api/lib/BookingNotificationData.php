@@ -7,8 +7,10 @@ enum NotificationStatus: string {
 
 /**
  * Typed data transfer object for booking notification emails.
+ *
+ * Keep this compatible with the production PHP runtime.
  */
-readonly class BookingNotificationData {
+final class BookingNotificationData {
     public string $clientName;
     public string $dateFormatted;
 
