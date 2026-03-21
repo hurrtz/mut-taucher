@@ -69,6 +69,43 @@ api/
 - Admin routes are lazy-loaded under `/admin` with tabs for calendar, bookings, therapies, groups, clients, documents, and workbook management.
 - The frontend fetches brand colors from `/api/branding/colors` on startup.
 
+## Spec Files
+
+This repo should use living documentation: durable specs stay small and current, while change-specific planning stays in `docs/plans/`.
+
+### Permanent vs. Active Docs
+
+- Permanent spec files may live at the repo root or any stable subtree boundary as `SPEC.md` and `DESIGN.md`.
+- Use `SPEC.md` for durable purpose, capabilities, integrations, and constraints.
+- Use `DESIGN.md` for durable architecture, flows, boundaries, and focused Mermaid diagrams.
+- This repo does not currently have permanent `SPEC.md` / `DESIGN.md` files. Add them only when a boundary is stable enough to justify long-lived documentation.
+- Active work specs belong in `docs/plans/`, usually as `YYYY-MM-DD-change-name.md` and, when needed, `YYYY-MM-DD-change-name-design.md`.
+
+### Documentation Hierarchy
+
+- Higher-level files cover broader scope; deeper files cover narrower scope.
+- A child `SPEC.md` or `DESIGN.md` should refine its parent, not restate it.
+- Prefer the nearest stable subtree that owns the behavior instead of pushing everything into a root-level doc.
+
+### Minimal Documentation Rule
+
+- Keep durable capabilities, stable integration points, architectural boundaries, and only the diagrams that clarify them.
+- Do not keep completed task lists, version history, future wish lists, large directory dumps, or step-by-step implementation narration in permanent spec files.
+
+### Lifecycle
+
+1. Create or update the narrowest useful change doc in `docs/plans/`.
+2. Keep the active plan/design current while implementation is in progress.
+3. Promote durable rules and architecture into the nearest permanent `SPEC.md` / `DESIGN.md` if that information should outlive the change.
+4. Do not treat old plan files as the source of truth for current behavior; if a plan remains for history, the durable outcome should already exist in the permanent docs or code.
+
+### Working Rules
+
+- Before implementation, read the nearest relevant spec/design doc if one exists.
+- During implementation, update only the docs whose scope actually changed.
+- Prefer links to README/reference docs over copying operational setup into spec files.
+- After implementation, re-read touched docs for overlap, drift, and broken links, and check whether a deeper local spec/design file is the better home for the information.
+
 ## Conventions
 
 - UI copy is German unless there is a strong product reason otherwise.
