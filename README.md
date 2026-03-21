@@ -1,73 +1,131 @@
-# React + TypeScript + Vite
+# Mut-Taucher
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+German-language psychotherapy website with:
 
-Currently, two official plugins are available:
+- a Vite + React frontend in `src/`
+- a PHP + MySQL backend in `api/`
+- an authenticated admin area under `/admin`
+- email, PDF, branding, booking, and patient-management workflows
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Prerequisites
 
-## React Compiler
+- Node.js and npm
+- PHP
+- Composer
+- MySQL
+- Mailpit for local email testing (optional, but recommended)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## First-Time Setup
 
-## Expanding the ESLint configuration
+Install frontend and backend dependencies:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+composer --working-dir=api install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Create the backend config:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cp api/config.example.php api/config.php
 ```
+
+Then edit `api/config.php` and set at least:
+
+- `db_host`, `db_name`, `db_user`, `db_pass`
+- `jwt_secret`
+- `admin_hash`
+- `site_url`
+
+Generate the admin password hash with:
+
+```bash
+php api/setup.php <your-password>
+```
+
+For local development, use:
+
+- `site_url => 'http://localhost:5173'`
+
+If you want local email delivery via Mailpit, use:
+
+- `smtp_host => '127.0.0.1'`
+- `smtp_port => 1025`
+- leave `smtp_user` / `smtp_pass` empty
+
+## Database Setup
+
+Create a MySQL database that matches `api/config.php`, then run:
+
+```bash
+php api/migrate.php
+```
+
+Optional status check:
+
+```bash
+php api/migrate.php --status
+```
+
+## Start Frontend and Backend
+
+Run the backend and frontend in separate terminals.
+
+Terminal 1, backend:
+
+```bash
+php -S localhost:8000 -t api/
+```
+
+Terminal 2, frontend:
+
+```bash
+npm run dev
+```
+
+URLs:
+
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+
+Vite proxies `/api` requests to `http://localhost:8000`, so the frontend talks to the backend automatically in local dev.
+
+## Mailpit
+
+`npm run dev` tries to start `mailpit` in the background before launching Vite.
+
+Mailpit defaults used here:
+
+- Web UI: `http://localhost:8025`
+- SMTP: `localhost:1025`
+
+If `mailpit` is not installed, the frontend can still run, but local email testing will not work.
+
+## Useful Commands
+
+Frontend:
+
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run preview
+```
+
+Backend:
+
+```bash
+cd api && composer test
+cd api && composer lint
+php api/migrate.php
+```
+
+## Documentation
+
+- [AGENTS.md](AGENTS.md): repo-specific working conventions
+- [SPEC.md](SPEC.md): repo-wide durable scope and capabilities
+- [DESIGN.md](DESIGN.md): repo-wide architecture
+- [src/SPEC.md](src/SPEC.md) and [src/DESIGN.md](src/DESIGN.md): frontend docs
+- [src/admin/SPEC.md](src/admin/SPEC.md) and [src/admin/DESIGN.md](src/admin/DESIGN.md): admin docs
+- [api/SPEC.md](api/SPEC.md) and [api/DESIGN.md](api/DESIGN.md): backend docs
+- `docs/plans/`: change-specific planning/design docs
