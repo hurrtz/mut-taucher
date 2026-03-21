@@ -34,6 +34,7 @@ function handleGetSlots(): void {
  * Either ruleId or eventId must be provided.
  */
 function handleCreateBooking(): void {
+    ob_start();
     $input = json_decode(file_get_contents('php://input'), true);
 
     $ruleId    = $input['ruleId']  ?? null;
@@ -258,14 +259,38 @@ function handleCreateBooking(): void {
             ];
         }
 
-        echo json_encode($response);
+        $json = json_encode($response, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($json === false) {
+            throw new RuntimeException('Booking response encoding failed: ' . json_last_error_msg());
+        }
+
+        $unexpectedOutput = ob_get_clean();
+        if ($unexpectedOutput !== '') {
+            error_log('Unexpected output during booking #' . $bookingId . ': ' . trim($unexpectedOutput));
+        }
+
+        echo $json;
     } catch (PDOException $e) {
+        $unexpectedOutput = ob_get_clean();
+        if ($unexpectedOutput !== '') {
+            error_log('Unexpected output before booking PDO error: ' . trim($unexpectedOutput));
+        }
+
         if ($e->getCode() == 23000) {
             http_response_code(409);
             echo json_encode(['error' => 'Dieser Termin wurde gerade von jemand anderem gebucht']);
         } else {
             throw $e;
         }
+    } catch (Throwable $e) {
+        $unexpectedOutput = ob_get_clean();
+        if ($unexpectedOutput !== '') {
+            error_log('Unexpected output before booking failure: ' . trim($unexpectedOutput));
+        }
+
+        error_log('Booking creation failed: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Interner Fehler bei der Buchung']);
     }
 }
 

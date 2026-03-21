@@ -79,7 +79,7 @@ export default function Booking() {
       setSelectedSlot(null);
       setIsSuccess(true);
       setConsent({ agb: false, datenschutz: false, widerruf: false });
-      fetchSlots(calendarStart, calendarEnd);
+      void fetchSlots(calendarStart, calendarEnd, { silent: true });
     }
   };
 

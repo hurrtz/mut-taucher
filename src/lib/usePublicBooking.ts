@@ -35,18 +35,29 @@ export function usePublicBooking() {
   const [error, setError] = useState<string | null>(null);
   const [booking, setBooking] = useState(false);
 
-  const fetchSlots = useCallback(async (from: Date, to: Date) => {
-    setLoading(true);
-    setError(null);
+  const fetchSlots = useCallback(async (
+    from: Date,
+    to: Date,
+    options?: { silent?: boolean },
+  ) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const fromStr = format(from, 'yyyy-MM-dd');
       const toStr = format(to, 'yyyy-MM-dd');
       const data = await apiFetch<PublicSlot[]>(`/slots?from=${fromStr}&to=${toStr}`);
       setSlots(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Laden der Termine');
+      if (!silent) {
+        setError(e instanceof Error ? e.message : 'Fehler beim Laden der Termine');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, []);
 
