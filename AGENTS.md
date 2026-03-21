@@ -78,7 +78,7 @@ This repo should use living documentation: durable specs stay small and current,
 - Permanent spec files may live at the repo root or any stable subtree boundary as `SPEC.md` and `DESIGN.md`.
 - Use `SPEC.md` for durable purpose, capabilities, integrations, and constraints.
 - Use `DESIGN.md` for durable architecture, flows, boundaries, and focused Mermaid diagrams.
-- This repo does not currently have permanent `SPEC.md` / `DESIGN.md` files. Add them only when a boundary is stable enough to justify long-lived documentation.
+- Permanent docs currently exist at the repo root, `src/`, `src/admin/`, and `api/`. Add deeper ones only when a subtree has a stable boundary that justifies long-lived documentation.
 - Active work specs belong in `docs/plans/`, usually as `YYYY-MM-DD-change-name.md` and, when needed, `YYYY-MM-DD-change-name-design.md`.
 
 ### Documentation Hierarchy
