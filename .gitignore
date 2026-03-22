@@ -28,6 +28,7 @@ dist-ssr
 
 # API config with secrets
 api/config.php
+api/local_dev_reset_wizard.php
 
 # Composer vendor
 api/vendor/

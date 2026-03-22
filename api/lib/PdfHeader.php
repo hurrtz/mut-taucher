@@ -60,11 +60,13 @@ function renderPdfHeader(TCPDF $pdf, string $therapistName): void {
     $headingSize = (int)$brand['font_size_heading'];
     $bodySize = (int)$brand['font_size_body'];
 
-    $logoPath = __DIR__ . '/../' . $brand['logo_path'];
+    $logoPath = !empty($brand['logo_path'])
+        ? __DIR__ . '/../' . $brand['logo_path']
+        : null;
     $startY = $pdf->GetY();
 
     // Logo (left-aligned, 12mm height)
-    if (file_exists($logoPath)) {
+    if ($logoPath && is_file($logoPath)) {
         $ext = strtoupper(pathinfo($logoPath, PATHINFO_EXTENSION));
         if ($ext === 'SVG') $ext = 'SVG';
         $pdf->Image($logoPath, 25, $startY, 12, 12, $ext !== 'SVG' ? $ext : '');

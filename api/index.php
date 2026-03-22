@@ -42,6 +42,17 @@ $uri = preg_replace('#^/api#', '', $uri);
 // Ensure leading slash
 if ($uri === '' || $uri === false) $uri = '/';
 
+// Local-only maintenance wizard. The file is intentionally gitignored and may
+// exist only on a developer machine. Serve it directly when present.
+if (($method === 'GET' || $method === 'POST') && $uri === '/local_dev_reset_wizard.php') {
+    $localWizard = __DIR__ . '/local_dev_reset_wizard.php';
+    if (file_exists($localWizard)) {
+        header('Content-Type: text/html; charset=utf-8', true);
+        require $localWizard;
+        exit;
+    }
+}
+
 // ─── Route matching ──────────────────────────────────────────────
 
 // Webhooks (no auth — verified via signature)
