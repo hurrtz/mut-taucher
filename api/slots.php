@@ -37,10 +37,11 @@ function loadRules(PDO $db): array {
 function generateSlots(PDO $db, string $from, string $to): array {
     $rules = loadRules($db);
 
-    // Load active bookings in range (pending_payment slots are also reserved)
+    // Load reserved bookings in range. Completed intro calls must continue to
+    // block the slot; only cancelled bookings should release it.
     $stmt = $db->prepare(
         'SELECT rule_id, booking_date, booking_time FROM bookings
-         WHERE status IN ("pending_payment", "confirmed") AND booking_date BETWEEN ? AND ?'
+         WHERE status IN ("pending_payment", "confirmed", "completed") AND booking_date BETWEEN ? AND ?'
     );
     $stmt->execute([$from, $to]);
     $bookings = $stmt->fetchAll();
@@ -116,7 +117,7 @@ function generateSlots(PDO $db, string $from, string $to): array {
     // Check which events are already booked
     $eventBookedStmt = $db->prepare(
         'SELECT event_id FROM bookings
-         WHERE status IN ("pending_payment", "confirmed") AND event_id IS NOT NULL AND booking_date BETWEEN ? AND ?'
+         WHERE status IN ("pending_payment", "confirmed", "completed") AND event_id IS NOT NULL AND booking_date BETWEEN ? AND ?'
     );
     $eventBookedStmt->execute([$from, $to]);
     $bookedEventIds = [];

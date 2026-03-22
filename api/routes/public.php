@@ -7,6 +7,10 @@ require_once __DIR__ . '/../slots.php';
  * GET /api/slots?from=YYYY-MM-DD&to=YYYY-MM-DD
  */
 function handleGetSlots(): void {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
     $from = $_GET['from'] ?? '';
     $to   = $_GET['to']   ?? '';
 

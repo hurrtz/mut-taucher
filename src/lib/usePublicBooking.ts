@@ -50,7 +50,9 @@ export function usePublicBooking() {
     try {
       const fromStr = format(from, 'yyyy-MM-dd');
       const toStr = format(to, 'yyyy-MM-dd');
-      const data = await apiFetch<PublicSlot[]>(`/slots?from=${fromStr}&to=${toStr}`);
+      const data = await apiFetch<PublicSlot[]>(`/slots?from=${fromStr}&to=${toStr}`, {
+        cache: 'no-store',
+      });
       setSlots(data);
     } catch (e) {
       if (!silent) {
@@ -91,6 +93,16 @@ export function usePublicBooking() {
         method: 'POST',
         body: JSON.stringify(body),
       });
+      setSlots(prev => prev.filter(existing => {
+        if (slot.eventId) {
+          return existing.eventId !== slot.eventId;
+        }
+        return !(
+          existing.ruleId === slot.ruleId
+          && existing.date === date
+          && existing.time === time
+        );
+      }));
       return result;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler bei der Buchung');
