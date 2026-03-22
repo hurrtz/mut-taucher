@@ -284,6 +284,7 @@ function handleDeleteClient(int $id): void {
  */
 function handleMigrateBookingToClient(int $bookingId): void {
     requireAuth();
+    require_once __DIR__ . '/../lib/BookingEvents.php';
     $db = getDB();
 
     $stmt = $db->prepare('SELECT * FROM bookings WHERE id = ?');
@@ -319,8 +320,16 @@ function handleMigrateBookingToClient(int $bookingId): void {
         $bookingId,
     ]);
 
+    $clientId = (int)$db->lastInsertId();
+
+    try {
+        syncBookingEventsClientId($db, $bookingId, $clientId);
+    } catch (Throwable $e) {
+        error_log('Booking event sync failed for booking #' . $bookingId . ': ' . $e->getMessage());
+    }
+
     echo json_encode([
-        'id' => (int)$db->lastInsertId(),
+        'id' => $clientId,
         'message' => 'Patient:in aus Buchung angelegt',
     ]);
 }

@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../lib/BookingEvents.php';
 
 /**
  * POST /api/webhooks/stripe
@@ -39,12 +40,18 @@ function handleStripeWebhook(): void {
 
             // Update booking status to confirmed
             $stmt = $db->prepare(
-                'UPDATE bookings SET status = "confirmed", payment_id = ? WHERE id = ? AND status = "pending_payment"'
+                'UPDATE bookings SET status = "confirmed", payment_id = ?, payment_confirmed_at = NOW() WHERE id = ? AND status = "pending_payment"'
             );
             $stmt->execute([$session->id, $bookingId]);
 
             // Send confirmation email if booking was updated
             if ($stmt->rowCount() > 0) {
+                try {
+                    recordBookingEvent($db, $bookingId, 'payment_confirmed');
+                } catch (Throwable $e) {
+                    error_log('Booking event logging failed for booking #' . $bookingId . ': ' . $e->getMessage());
+                }
+
                 // Confirmation email
                 try {
                     require_once __DIR__ . '/../lib/Mailer.php';

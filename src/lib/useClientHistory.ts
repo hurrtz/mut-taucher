@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { apiFetch } from './api';
 
 export interface TimelineEvent {
-  type: 'session' | 'group_session' | 'payment' | 'document_sent' | 'document_received' | 'note';
+  type: 'session' | 'group_session' | 'payment' | 'document_sent' | 'document_received' | 'note' | 'booking_event';
   date: string;
   time: string;
   data: Record<string, unknown>;

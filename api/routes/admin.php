@@ -5,6 +5,7 @@ require_once __DIR__ . '/../jwt.php';
 require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/../slots.php';
 require_once __DIR__ . '/../lib/DocumentRegistry.php';
+require_once __DIR__ . '/../lib/BookingEvents.php';
 
 /**
  * POST /api/login
@@ -318,6 +319,7 @@ function serializeAdminBookingRow(array $b): array {
         'status'              => $b['status'],
         'paymentMethod'       => $b['payment_method'],
         'paymentId'           => $b['payment_id'],
+        'paymentConfirmedAt'  => $b['payment_confirmed_at'] ?? null,
         'bookingNumber'       => $b['booking_number'] ?? null,
         'paymentRequestSent'  => (bool)($b['payment_request_sent'] ?? false),
         'paymentRequestSentAt'=> $b['payment_request_sent_at'] ?? null,
@@ -329,6 +331,67 @@ function serializeAdminBookingRow(array $b): array {
         'createdAt'           => $b['created_at'],
         'hasClient'           => (int)$b['has_client'] > 0,
     ];
+}
+
+function fetchRawBooking(PDO $db, int $bookingId): ?array {
+    $stmt = $db->prepare('SELECT * FROM bookings WHERE id = ?');
+    $stmt->execute([$bookingId]);
+    $row = $stmt->fetch();
+    return $row ?: null;
+}
+
+function sendBookingReminderEmail(PDO $db, array $booking): void {
+    require_once __DIR__ . '/../lib/Mailer.php';
+    require_once __DIR__ . '/../lib/BookingPaymentRequest.php';
+
+    $attachment = getBookingPaymentRequestAttachment($db, (int)$booking['id']);
+    $context = $attachment['context'];
+    $clientName = $context['clientName'];
+    $bookingNumber = $context['bookingNumber'];
+    $dateFormatted = $context['sessionDateFormatted'];
+    $time = $booking['booking_time'];
+    $therapistName = $context['therapistName'];
+    $siteUrl = $context['siteUrl'];
+
+    ob_start();
+    include __DIR__ . '/../templates/email/booking_payment_reminder.php';
+    $htmlBody = ob_get_clean();
+
+    $mailer = new Mailer();
+    $mailer->send(
+        $booking['client_email'],
+        $clientName,
+        'Zahlungserinnerung ' . $bookingNumber . ' — ' . $therapistName,
+        $htmlBody,
+        '',
+        [[
+            'string' => $attachment['content'],
+            'name' => $attachment['filename'],
+        ]]
+    );
+}
+
+function sendBookingCancellationEmail(array $booking): void {
+    require_once __DIR__ . '/../lib/Mailer.php';
+    $config = require __DIR__ . '/../config.php';
+
+    $clientName = trim($booking['client_first_name'] . ' ' . $booking['client_last_name']);
+    $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
+    $timeFormatted = $booking['booking_time'];
+    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $siteUrl = $config['site_url'] ?? '';
+
+    ob_start();
+    include __DIR__ . '/../templates/email/cancellation_erstgespraech.php';
+    $htmlBody = ob_get_clean();
+
+    $mailer = new Mailer();
+    $mailer->send(
+        $booking['client_email'],
+        $clientName,
+        'Terminabsage — ' . $therapistName,
+        $htmlBody
+    );
 }
 
 /**
@@ -367,7 +430,7 @@ function handleGetBookings(): void {
 
 /**
  * PATCH /api/admin/bookings/:id
- * Body: { status?, introEmailSent?, reminderSent? }
+ * Body: { status?, paymentConfirmed?, introEmailSent?, reminderSent? }
  */
 function handleUpdateBooking(int $id): void {
     requireAuth();
@@ -385,29 +448,56 @@ function handleUpdateBooking(int $id): void {
     $fields = [];
     $params = [];
     $shouldAttemptInvoice = false;
-    $warning = null;
+    $warningMessages = [];
+    $eventsToRecord = [];
+    $shouldSendCancellationEmail = false;
+    $statusChanged = false;
+    $newStatus = $existing['status'];
+    $paymentConfirmedNow = false;
+    $requestedStatus = $input['status'] ?? null;
+    $requestedPaymentConfirmed = !empty($input['paymentConfirmed']);
 
-    if (isset($input['status'])) {
-        if ($input['status'] === 'cancelled') {
-            $db->prepare('DELETE FROM bookings WHERE id = ?')->execute([$id]);
-            echo json_encode(['message' => 'Buchung gelöscht', 'deletedId' => $id]);
+    if ($requestedStatus !== null) {
+        if (!in_array($requestedStatus, ['confirmed', 'completed', 'cancelled'], true)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Ungültiger Buchungsstatus']);
             return;
         }
-        if (in_array($input['status'], ['confirmed', 'completed'], true)) {
-            $fields[] = 'status = ?';
-            $params[] = $input['status'];
 
-            if (
-                !$existing['invoice_sent']
-                && (
-                    ($existing['status'] === 'pending_payment' && $input['status'] === 'confirmed')
-                    || ($existing['status'] !== 'completed' && $input['status'] === 'completed')
-                )
-            ) {
-                $shouldAttemptInvoice = true;
+        if ($requestedStatus !== $existing['status']) {
+            $newStatus = $requestedStatus;
+            $statusChanged = true;
+
+            if ($requestedStatus === 'confirmed' && $existing['status'] === 'pending_payment' && !$requestedPaymentConfirmed) {
+                $eventsToRecord[] = 'started';
+            }
+            if ($requestedStatus === 'completed') {
+                $eventsToRecord[] = 'completed';
+            }
+            if ($requestedStatus === 'cancelled') {
+                $eventsToRecord[] = 'cancelled';
+                $shouldSendCancellationEmail = true;
             }
         }
     }
+
+    if ($requestedPaymentConfirmed && empty($existing['payment_confirmed_at'])) {
+        $paymentConfirmedNow = true;
+        $fields[] = 'payment_confirmed_at = NOW()';
+        $eventsToRecord[] = 'payment_confirmed';
+        $shouldAttemptInvoice = !$existing['invoice_sent'];
+
+        if ($newStatus === 'pending_payment') {
+            $newStatus = 'confirmed';
+            $statusChanged = true;
+        }
+    }
+
+    if ($statusChanged) {
+        $fields[] = 'status = ?';
+        $params[] = $newStatus;
+    }
+
     if (isset($input['introEmailSent'])) {
         $fields[] = 'intro_email_sent = ?';
         $params[] = $input['introEmailSent'] ? 1 : 0;
@@ -417,22 +507,45 @@ function handleUpdateBooking(int $id): void {
         $params[] = $input['reminderSent'] ? 1 : 0;
     }
 
-    if (empty($fields)) {
+    if (empty($fields) && !$shouldAttemptInvoice) {
         http_response_code(400);
         echo json_encode(['error' => 'Keine Änderungen angegeben']);
         return;
     }
 
-    $params[] = $id;
-    $sql = 'UPDATE bookings SET ' . implode(', ', $fields) . ' WHERE id = ?';
-    $stmt = $db->prepare($sql);
-    $stmt->execute($params);
+    if (!empty($fields)) {
+        $params[] = $id;
+        $sql = 'UPDATE bookings SET ' . implode(', ', $fields) . ' WHERE id = ?';
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+    }
+
+    foreach (array_values(array_unique($eventsToRecord)) as $eventType) {
+        try {
+            recordBookingEvent($db, $id, $eventType);
+        } catch (Throwable $e) {
+            error_log('Booking event logging failed for booking #' . $id . ': ' . $e->getMessage());
+        }
+    }
+
+    if ($shouldSendCancellationEmail) {
+        try {
+            $rawBooking = fetchRawBooking($db, $id);
+            if ($rawBooking) {
+                sendBookingCancellationEmail($rawBooking);
+                recordBookingEvent($db, $id, 'cancellation_email_sent');
+            }
+        } catch (Throwable $e) {
+            $warningMessages[] = 'Buchung storniert, aber die Absage-E-Mail konnte nicht gesendet werden.';
+            error_log('Booking cancellation email failed for booking #' . $id . ': ' . $e->getMessage());
+        }
+    }
 
     if ($shouldAttemptInvoice) {
         try {
             sendBookingInvoice($db, $id);
         } catch (Throwable $e) {
-            $warning = 'Status gespeichert, aber die Rechnung konnte nicht automatisch gesendet werden.';
+            $warningMessages[] = 'Status gespeichert, aber die Rechnung konnte nicht automatisch gesendet werden.';
             error_log('Automatic booking invoice failed for booking #' . $id . ': ' . $e->getMessage());
         }
     }
@@ -446,7 +559,7 @@ function handleUpdateBooking(int $id): void {
 
     echo json_encode([
         'message' => 'Buchung aktualisiert',
-        'warning' => $warning,
+        'warning' => !empty($warningMessages) ? implode(' ', $warningMessages) : null,
         'booking' => serializeAdminBookingRow($updated),
     ]);
 }
@@ -479,35 +592,58 @@ function handleSendEmail(int $bookingId): void {
         return;
     }
 
-    $clientName = trim($booking['client_first_name'] . ' ' . $booking['client_last_name']);
-    $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
-    $time = $booking['booking_time'];
-    $duration = (int)$booking['duration_minutes'];
-    $bookingNumber = $booking['booking_number'] ?? null;
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $clientName = trim($booking['client_first_name'] . ' ' . $booking['client_last_name']);
     $siteUrl = $config['site_url'] ?? '';
 
-    ob_start();
-    include __DIR__ . '/../templates/email/booking_confirmation.php';
-    $htmlBody = ob_get_clean();
-
     if ($type === 'intro') {
-        $subject = 'Ihr Termin bei ' . $therapistName;
-    } else {
-        $subject = 'Erinnerung: Ihr Termin am ' . $dateFormatted;
-    }
+        $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
+        $time = $booking['booking_time'];
+        $duration = (int)$booking['duration_minutes'];
+        $bookingNumber = $booking['booking_number'] ?? null;
 
-    try {
-        $mailer = new Mailer();
-        $mailer->send($booking['client_email'], $clientName, $subject, $htmlBody);
-    } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'E-Mail konnte nicht gesendet werden']);
-        return;
+        ob_start();
+        include __DIR__ . '/../templates/email/booking_confirmation.php';
+        $htmlBody = ob_get_clean();
+        $subject = 'Ihr Termin bei ' . $therapistName;
+        try {
+            $mailer = new Mailer();
+            $mailer->send($booking['client_email'], $clientName, $subject, $htmlBody);
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'E-Mail konnte nicht gesendet werden']);
+            return;
+        }
+    } else {
+        if (($booking['payment_method'] ?? 'wire_transfer') !== 'wire_transfer') {
+            http_response_code(409);
+            echo json_encode(['error' => 'Zahlungserinnerungen sind nur für Überweisungen vorgesehen']);
+            return;
+        }
+        if (!empty($booking['payment_confirmed_at'])) {
+            http_response_code(409);
+            echo json_encode(['error' => 'Die Zahlung wurde bereits bestätigt']);
+            return;
+        }
+        try {
+            sendBookingReminderEmail($db, $booking);
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'E-Mail konnte nicht gesendet werden']);
+            return;
+        }
     }
 
     $flagField = $type === 'intro' ? 'intro_email_sent' : 'reminder_sent';
     $db->prepare("UPDATE bookings SET $flagField = 1 WHERE id = ?")->execute([$bookingId]);
+
+    if ($type === 'reminder') {
+        try {
+            recordBookingEvent($db, $bookingId, 'payment_reminder_sent');
+        } catch (Throwable $e) {
+            error_log('Booking event logging failed for booking #' . $bookingId . ': ' . $e->getMessage());
+        }
+    }
 
     echo json_encode(['message' => 'E-Mail gesendet']);
 }
@@ -1104,7 +1240,7 @@ function handleSendBookingInvoice(int $bookingId): void {
     try {
         $invoiceNumber = sendBookingInvoice($db, $bookingId);
     } catch (RuntimeException $e) {
-        http_response_code(404);
+        http_response_code(str_contains($e->getMessage(), 'erst nach bestätigter Zahlung') ? 409 : 404);
         echo json_encode(['error' => $e->getMessage()]);
         return;
     } catch (Throwable $e) {
@@ -1130,7 +1266,7 @@ function handleGetCounts(): void {
     $db = getDB();
 
     $counts = [];
-    $counts['erstgespraeche'] = (int)$db->query("SELECT COUNT(*) FROM bookings WHERE status = 'confirmed'")->fetchColumn();
+    $counts['erstgespraeche'] = (int)$db->query("SELECT COUNT(*) FROM bookings WHERE status IN ('pending_payment', 'confirmed')")->fetchColumn();
     $counts['kunden'] = (int)$db->query("SELECT COUNT(*) FROM clients WHERE status = 'active'")->fetchColumn();
     $counts['einzel'] = (int)$db->query("SELECT COUNT(*) FROM therapies WHERE status = 'active'")->fetchColumn();
     $counts['gruppen'] = (int)$db->query("SELECT COUNT(*) FROM therapy_groups")->fetchColumn();

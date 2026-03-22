@@ -7,7 +7,7 @@
 ## Main Capabilities
 
 - `/admin/kalender`: recurring availability rules, rule exceptions, one-off events, blocked days, calendar preview, and cancellation handling
-- `/admin/erstgespraeche`: booking review, payment/status updates, appointment-info sending, deferred invoice sending, and migration from booking to patient
+- `/admin/erstgespraeche`: booking review, payment confirmation, appointment start/completion, payment-reminder and cancellation emails, deferred invoice sending, and migration from booking to patient
 - `/admin/einzel`: individual therapy CRUD, schedule rules, generated sessions, payment state, and invoice sending
 - `/admin/gruppen`: group therapy CRUD, participant management, session generation, attendance, per-participant payment state, and invoices
 - `/admin/kunden` and `/admin/client/:id`: patient list, archive/restore lifecycle, timeline, notes, and document archive
@@ -29,5 +29,6 @@
 - Tabs should own the data they need instead of rebuilding a single global admin god component.
 - Styling should continue to flow through Ant Design theming and shared admin style utilities.
 - The intro-call booking list is responsible for showing booking numbers and the sent state of payment requests, because those are part of the document/archive lifecycle.
-- Admin actions that mark intro calls paid or completed are the durable trigger for invoice generation; the public booking flow is no longer allowed to consume invoice numbers.
+- Admin actions for intro calls must keep payment confirmation distinct from appointment progress: the therapist may start or complete the appointment before payment arrives, but only confirmed payment may trigger invoice generation.
+- The intro-call admin surface owns the operational reminder/cancellation emails around wire-transfer bookings, and those sends must stay consistent with what appears in the patient timeline.
 - The patient list must distinguish disposable booking-only client records from durable patient records: disposable records can be deleted, while records with substantive activity must be archived instead.

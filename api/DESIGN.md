@@ -36,6 +36,7 @@ sequenceDiagram
   Public->>DB: insert booking with pending_payment
   Public->>BookingDocs: generate booking number
   Public->>DB: auto-create linked patient when possible
+  Public->>DB: record intro-call request event for patient timeline
 
   alt stripe or paypal branch
     Public->>Payments: create checkout session or order
@@ -47,7 +48,7 @@ sequenceDiagram
   Public->>Notify: send therapist notification
   Public-->>Visitor: payment-aware response
 
-  Note over Invoice,DB: Invoice generation is deferred until admin confirms wire-transfer payment or completes the booking.
+  Note over Invoice,DB: Invoice generation is deferred until payment confirmation exists; starting or completing the appointment alone is not enough.
 ```
 
 ## Document and Branding Flow
@@ -79,7 +80,8 @@ sequenceDiagram
 - The backend stays framework-free and function-oriented: route files contain request handling, while reusable operational logic lives in `lib/`.
 - `slots.php` is the canonical availability engine for public booking; it derives availability from recurring rules, exceptions, events, and bookings with reserved states.
 - Bookings are inserted as `pending_payment` first, which lets the system reserve the slot before payment confirmation or manual completion.
-- Intro-call documents now have two phases: a payment request with its own booking number at booking time, and the actual invoice only after an admin-side payment/completion transition.
+- Intro-call documents now have two phases: a payment request with its own booking number at booking time, and the actual invoice only after a payment-confirmed transition.
+- Intro-call lifecycle history is intentionally event-backed for patient timelines, while sent PDFs remain archived in `client_documents`; together they capture both operational state changes and outward-facing documents.
 - `Mailer` selects Brevo when configured, otherwise SMTP, and retries once on transient delivery failures.
 - `PdfGenerator` prefers DB-backed HTML templates and falls back to file templates, while still applying brand styling and placeholder replacement consistently.
-- Patient history is assembled from multiple operational tables rather than stored as a separate event log, which keeps the timeline derived from source records.
+- Patient history is still assembled from operational tables, but intro-call lifecycle changes use a dedicated event table so request/reminder/cancellation/payment transitions do not have to be inferred from mutable booking rows.

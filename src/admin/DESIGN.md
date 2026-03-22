@@ -22,7 +22,7 @@ flowchart TD
 |---|---|---|
 | `AdminLayout` | `useAdminBooking` | Auth gate, login/logout, nav counts, shared shell |
 | `CalendarTab` | `useAdminBooking` | Rules, events, blocked days, calendar session preview, cancellations |
-| `BookingsTab` | `useAdminBooking`, `useAdminClients` | Intro-call bookings, booking/payment-request visibility, status/payment actions, deferred invoice generation, migration to patient |
+| `BookingsTab` | `useAdminBooking`, `useAdminClients` | Intro-call bookings, booking/payment-request visibility, payment reminders, separate payment-vs-appointment actions, deferred invoice generation, and migration to patient |
 | `TherapiesTab` | `useAdminTherapies`, `useAdminClients` | Individual therapies and session lifecycle |
 | `GroupsTab` | `useAdminGroups`, `useAdminClients` | Group setup, participants, sessions, attendance, invoices |
 | `PatientsTab` | `useAdminClients` | Patient list and navigation into detail history |
@@ -54,6 +54,7 @@ sequenceDiagram
 
 - The admin shell is route-based rather than tab-state-based; navigation is URL-addressable and each tab mounts independently.
 - Auth ownership stays in `AdminLayout`, while feature ownership stays inside the tab or detail page that needs the data.
-- `BookingsTab` is the control point for the transition from booking confirmation/payment request to invoice creation, so it must mirror server truth after every status change rather than rely on optimistic flags alone.
+- `BookingsTab` is the control point for the transition from booking request/payment request to payment confirmation and finally invoice creation, so it must mirror server truth after every action rather than infer invoice readiness from a single status field.
+- The booking cards intentionally expose separate therapist actions for payment confirmation, appointment start/completion, reminder mail, and cancellation, because those actions have different downstream archive and billing consequences.
 - Binary workflows such as template preview, workbook preview, and document downloads use raw `fetch()` or query-token URLs when `apiFetch()` is not sufficient for `FormData` or binary responses.
 - Ant Design is the design system for the admin area, with `src/admin/theme.ts`, `src/admin/styles.ts`, and shared constants carrying the common visual language.

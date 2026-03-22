@@ -155,6 +155,32 @@ function handleGetClientTimeline(int $clientId): void {
         ];
     }
 
+    // 5. Intro-call booking lifecycle
+    $stmt = $db->prepare(
+        'SELECT be.id, be.event_type, be.occurred_at,
+                b.booking_date, b.booking_time, b.booking_number, b.status
+         FROM booking_events be
+         JOIN bookings b ON b.id = be.booking_id
+         WHERE be.client_id = ?
+         ORDER BY be.occurred_at DESC'
+    );
+    $stmt->execute([$clientId]);
+    foreach ($stmt->fetchAll() as $row) {
+        $events[] = [
+            'type' => 'booking_event',
+            'date' => substr($row['occurred_at'], 0, 10),
+            'time' => substr($row['occurred_at'], 11, 5),
+            'data' => [
+                'id' => (int)$row['id'],
+                'eventType' => $row['event_type'],
+                'bookingDate' => $row['booking_date'],
+                'bookingTime' => $row['booking_time'],
+                'bookingNumber' => $row['booking_number'],
+                'bookingStatus' => $row['status'],
+            ],
+        ];
+    }
+
     // Sort all events reverse-chronologically
     usort($events, function ($a, $b) {
         $cmp = strcmp($b['date'], $a['date']);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { AdminBooking } from '../../lib/useAdminBooking';
+import type { AdminBooking, AdminBookingUpdate } from '../../lib/useAdminBooking';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
@@ -8,10 +8,26 @@ import {
 import {
   CheckCircleOutlined, EuroCircleOutlined,
   CloseOutlined, CalendarOutlined, CreditCardOutlined, BankOutlined,
-  DownOutlined, RightOutlined, MailOutlined, FileTextOutlined, UndoOutlined, UserAddOutlined,
+  DownOutlined, RightOutlined, MailOutlined, FileTextOutlined, UndoOutlined, UserAddOutlined, PlayCircleOutlined, NotificationOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
+
+function isPaymentConfirmed(b: AdminBooking) {
+  return Boolean(b.paymentConfirmedAt);
+}
+
+function canConfirmPayment(b: AdminBooking) {
+  return !isPaymentConfirmed(b) && b.status !== 'cancelled';
+}
+
+function canSendReminder(b: AdminBooking) {
+  return b.paymentMethod === 'wire_transfer' && !isPaymentConfirmed(b) && (b.status === 'pending_payment' || b.status === 'confirmed');
+}
+
+function canSendInvoice(b: AdminBooking) {
+  return b.invoiceSent || isPaymentConfirmed(b);
+}
 
 function BookingCardBody({ b }: { b: AdminBooking }) {
   return (
@@ -21,6 +37,7 @@ function BookingCardBody({ b }: { b: AdminBooking }) {
           <Text type="secondary" style={{ fontSize: 12 }}>
             Buchungsnummer: {b.bookingNumber}
             {b.paymentRequestSent && b.paymentRequestSentAt ? ` · Zahlungsaufforderung ${format(parseISO(b.paymentRequestSentAt), 'dd.MM.yyyy HH:mm')}` : ''}
+            {b.paymentConfirmedAt ? ` · Zahlung bestätigt ${format(parseISO(b.paymentConfirmedAt), 'dd.MM.yyyy HH:mm')}` : ''}
           </Text>
         )}
         <Space size={4}>
@@ -49,7 +66,13 @@ function BookingCardBody({ b }: { b: AdminBooking }) {
   );
 }
 
-function ArchivedBookingCard({ b, onUpdate }: { b: AdminBooking; onUpdate: (id: number, updates: Partial<AdminBooking>) => void }) {
+function ArchivedBookingCard({
+  b, onUpdate, onSendInvoice,
+}: {
+  b: AdminBooking;
+  onUpdate: (id: number, updates: AdminBookingUpdate) => void;
+  onSendInvoice?: (id: number) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -74,6 +97,35 @@ function ArchivedBookingCard({ b, onUpdate }: { b: AdminBooking; onUpdate: (id: 
             ? <Tag color="green">Erledigt</Tag>
             : <Tag color="red">Storniert</Tag>
           }
+          {isPaymentConfirmed(b) && <Tag color="green">Bezahlt</Tag>}
+          {b.status === 'completed' && canConfirmPayment(b) && (
+            <Tooltip title="Zahlung bestätigen">
+              <Button
+                type="text"
+                size="small"
+                icon={<EuroCircleOutlined />}
+                onClick={() => {
+                  Modal.confirm({
+                    title: 'Zahlung bestätigen',
+                    content: `Zahlung von ${b.clientName} als eingegangen bestätigen?`,
+                    okText: 'Bestätigen',
+                    cancelText: 'Abbrechen',
+                    onOk: () => onUpdate(b.id, { paymentConfirmed: true }),
+                  });
+                }}
+              />
+            </Tooltip>
+          )}
+          {b.status === 'completed' && onSendInvoice && canSendInvoice(b) && (
+            <Tooltip title={b.invoiceSent ? 'Rechnung erneut senden' : 'Rechnung senden'}>
+              <Button
+                type="text"
+                size="small"
+                icon={<FileTextOutlined style={b.invoiceSent ? { color: '#52c41a' } : undefined} />}
+                onClick={() => onSendInvoice(b.id)}
+              />
+            </Tooltip>
+          )}
           <Tooltip title="Wiederherstellen">
             <Button
               type="text"
@@ -93,16 +145,12 @@ function ArchivedBookingCard({ b, onUpdate }: { b: AdminBooking; onUpdate: (id: 
 
 export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInvoice, onMigrateToClient }: {
   bookings: AdminBooking[];
-  onUpdate: (id: number, updates: Partial<AdminBooking>) => void;
+  onUpdate: (id: number, updates: AdminBookingUpdate) => void;
   onSendEmail?: (id: number, type: 'intro' | 'reminder') => void;
   onSendInvoice?: (id: number) => void;
   onMigrateToClient?: (id: number) => void;
 }) {
   const [archivedExpanded, setArchivedExpanded] = useState(false);
-  const canSendInvoice = (b: AdminBooking) =>
-    b.invoiceSent
-    || b.status === 'completed'
-    || (b.status === 'confirmed' && b.paymentMethod === 'wire_transfer');
 
   const active = bookings.filter(b => b.status === 'pending_payment' || b.status === 'confirmed');
   const archived = bookings.filter(b => b.status === 'completed' || b.status === 'cancelled');
@@ -132,6 +180,8 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
                     {b.clientName}
                     {b.bookingNumber && <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>{b.bookingNumber}</Text>}
                     {b.status === 'pending_payment' && <Tag color="orange" style={{ marginLeft: 8 }}>Zahlung ausstehend</Tag>}
+                    {b.status === 'confirmed' && !isPaymentConfirmed(b) && <Tag color="gold" style={{ marginLeft: 8 }}>Unbezahlt</Tag>}
+                    {isPaymentConfirmed(b) && <Tag color="green" style={{ marginLeft: 8 }}>Bezahlt</Tag>}
                   </span>
                 )}
                 style={{
@@ -143,6 +193,15 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
                       <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : b.paymentMethod === 'paypal' ? 'PayPal' : 'Überweisung'}>
                         {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 8 }} /> : b.paymentMethod === 'paypal' ? <EuroCircleOutlined style={{ color: '#0070ba', marginRight: 8 }} /> : <BankOutlined style={{ color: '#6366f1', marginRight: 8 }} />}
                       </Tooltip>
+                      {onSendEmail && canSendReminder(b) && (
+                        <Tooltip title={b.reminderSent ? 'Zahlungserinnerung erneut senden' : 'Zahlungserinnerung senden'}>
+                          <Button
+                            type="text"
+                            icon={<NotificationOutlined style={b.reminderSent ? { color: '#52c41a' } : undefined} />}
+                            onClick={() => onSendEmail(b.id, 'reminder')}
+                          />
+                        </Tooltip>
+                      )}
                       <Tooltip title="Zahlung bestätigen">
                         <Button
                           type="text"
@@ -153,9 +212,16 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
                               content: `Zahlung von ${b.clientName} als eingegangen bestätigen?`,
                               okText: 'Bestätigen',
                               cancelText: 'Abbrechen',
-                              onOk: () => onUpdate(b.id, { status: 'confirmed' }),
+                              onOk: () => onUpdate(b.id, { status: 'confirmed', paymentConfirmed: true }),
                             });
                           }}
+                        />
+                      </Tooltip>
+                      <Tooltip title="Termin starten">
+                        <Button
+                          type="text"
+                          icon={<PlayCircleOutlined />}
+                          onClick={() => onUpdate(b.id, { status: 'confirmed' })}
                         />
                       </Tooltip>
                       <Tooltip title="Stornieren">
@@ -181,6 +247,32 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
                       <Tooltip title={b.paymentMethod === 'stripe' ? 'Kreditkarte' : b.paymentMethod === 'paypal' ? 'PayPal' : b.paymentMethod === 'wire_transfer' ? 'Überweisung' : ''}>
                         {b.paymentMethod === 'stripe' ? <CreditCardOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : b.paymentMethod === 'paypal' ? <EuroCircleOutlined style={{ color: '#0070ba', marginRight: 4 }} /> : b.paymentMethod === 'wire_transfer' ? <BankOutlined style={{ color: '#6366f1', marginRight: 4 }} /> : null}
                       </Tooltip>
+                      {canConfirmPayment(b) && (
+                        <Tooltip title="Zahlung bestätigen">
+                          <Button
+                            type="text"
+                            icon={<EuroCircleOutlined style={isPaymentConfirmed(b) ? { color: '#52c41a' } : undefined} />}
+                            onClick={() => {
+                              Modal.confirm({
+                                title: 'Zahlung bestätigen',
+                                content: `Zahlung von ${b.clientName} als eingegangen bestätigen?`,
+                                okText: 'Bestätigen',
+                                cancelText: 'Abbrechen',
+                                onOk: () => onUpdate(b.id, { paymentConfirmed: true }),
+                              });
+                            }}
+                          />
+                        </Tooltip>
+                      )}
+                      {onSendEmail && canSendReminder(b) && (
+                        <Tooltip title={b.reminderSent ? 'Zahlungserinnerung erneut senden' : 'Zahlungserinnerung senden'}>
+                          <Button
+                            type="text"
+                            icon={<NotificationOutlined style={b.reminderSent ? { color: '#52c41a' } : undefined} />}
+                            onClick={() => onSendEmail(b.id, 'reminder')}
+                          />
+                        </Tooltip>
+                      )}
                       {onSendEmail && (
                         <Tooltip title={b.introEmailSent ? 'Termininfo erneut senden' : 'Termininfo senden'}>
                           <Button
@@ -256,7 +348,7 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
           {archivedExpanded && (
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
               {archived.map(b => (
-                <ArchivedBookingCard key={b.id} b={b} onUpdate={onUpdate} />
+                <ArchivedBookingCard key={b.id} b={b} onUpdate={onUpdate} onSendInvoice={onSendInvoice} />
               ))}
             </Space>
           )}

@@ -50,6 +50,7 @@ export interface AdminBooking {
   clientMessage: string | null;
   status: 'pending_payment' | 'confirmed' | 'completed' | 'cancelled';
   paymentMethod: 'stripe' | 'paypal' | 'wire_transfer' | null;
+  paymentConfirmedAt: string | null;
   bookingNumber: string | null;
   paymentRequestSent: boolean;
   paymentRequestSentAt: string | null;
@@ -61,6 +62,10 @@ export interface AdminBooking {
   createdAt: string;
   hasClient: boolean;
 }
+
+export type AdminBookingUpdate = Partial<AdminBooking> & {
+  paymentConfirmed?: boolean;
+};
 
 interface ApiRule {
   id: number;
@@ -248,7 +253,7 @@ export function useAdminBooking() {
     }
   }, []);
 
-  const updateBooking = useCallback(async (id: number, updates: Partial<AdminBooking>) => {
+  const updateBooking = useCallback(async (id: number, updates: AdminBookingUpdate) => {
     setError(null);
     try {
       const result = await apiFetch<{ booking?: AdminBooking; deletedId?: number; warning?: string | null }>(`/admin/bookings/${id}`, {

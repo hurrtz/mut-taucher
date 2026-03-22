@@ -29,6 +29,10 @@ function sendBookingInvoice(PDO $db, int $bookingId): string {
         throw new RuntimeException("Buchung #{$bookingId} nicht gefunden");
     }
 
+    if (empty($booking['payment_confirmed_at'])) {
+        throw new RuntimeException("Rechnung für Buchung #{$bookingId} darf erst nach bestätigter Zahlung erstellt werden");
+    }
+
     $clientName = trim($booking['client_first_name'] . ' ' . $booking['client_last_name']);
     $invoiceDateFormatted = date('d.m.Y');
     $sessionDateFormatted = date('d.m.Y', strtotime($booking['booking_date']));

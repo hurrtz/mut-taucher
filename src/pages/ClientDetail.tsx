@@ -23,6 +23,7 @@ const EVENT_ICONS: Record<string, ReactNode> = {
   document_sent: <FileTextOutlined />,
   document_received: <UploadOutlined />,
   note: <FormOutlined />,
+  booking_event: <CalendarOutlined />,
 };
 
 const EVENT_COLORS: Record<string, { color: string; background: string }> = {
@@ -32,6 +33,7 @@ const EVENT_COLORS: Record<string, { color: string; background: string }> = {
   document_sent: { color: '#ea580c', background: '#fff7ed' },
   document_received: { color: '#0d9488', background: '#f0fdfa' },
   note: { color: '#a16207', background: '#fefce8' },
+  booking_event: { color: '#0f766e', background: '#ecfeff' },
 };
 
 function formatDate(dateStr: string): string {
@@ -40,6 +42,27 @@ function formatDate(dateStr: string): string {
 
 function formatCents(cents: number): string {
   return (cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' €';
+}
+
+function getBookingEventCopy(eventType: string): { label: string; color?: string } {
+  switch (eventType) {
+    case 'requested':
+      return { label: 'Erstgespräch angefragt' };
+    case 'payment_reminder_sent':
+      return { label: 'Zahlungserinnerung gesendet', color: '#b45309' };
+    case 'payment_confirmed':
+      return { label: 'Zahlung bestätigt', color: '#15803d' };
+    case 'started':
+      return { label: 'Erstgespräch gestartet' };
+    case 'completed':
+      return { label: 'Erstgespräch abgeschlossen', color: '#166534' };
+    case 'cancelled':
+      return { label: 'Erstgespräch storniert', color: '#b91c1c' };
+    case 'cancellation_email_sent':
+      return { label: 'Absage per E-Mail gesendet', color: '#b91c1c' };
+    default:
+      return { label: 'Erstgespräch aktualisiert' };
+  }
 }
 
 export function ClientHistoryPanel({ clientId }: { clientId: number }) {
@@ -56,7 +79,6 @@ export function ClientHistoryPanel({ clientId }: { clientId: number }) {
   // Load client data
   useEffect(() => {
     if (!clientId) return;
-    setClientLoading(true);
     apiFetch<Client>(`/admin/clients/${clientId}`)
       .then(setClient)
       .catch(() => setClient(null))
@@ -171,7 +193,6 @@ export default function ClientDetail() {
 
   useEffect(() => {
     if (!clientId) return;
-    setClientLoading(true);
     apiFetch<Client>(`/admin/clients/${clientId}`)
       .then(setClient)
       .catch(() => setClient(null))
@@ -431,6 +452,27 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
         <Text strong style={{ color: '#15803d' }}>Zahlung:</Text>{' '}
         <Text>{amount}</Text>
         <Text type="secondary"> — {label}</Text>
+      </div>
+    );
+  }
+
+  if (type === 'booking_event') {
+    const copy = getBookingEventCopy(String(data.eventType ?? ''));
+    const appointmentDate = data.bookingDate ? formatDate(String(data.bookingDate)) : null;
+    const appointmentTime = data.bookingTime ? `${String(data.bookingTime)} Uhr` : null;
+    const bookingMeta = [appointmentDate, appointmentTime].filter(Boolean).join(' · ');
+
+    return (
+      <div style={{ fontSize: 14 }}>
+        <Text strong style={copy.color ? { color: copy.color } : undefined}>{copy.label}</Text>
+        {bookingMeta && <Text type="secondary"> — {bookingMeta}</Text>}
+        {data.bookingNumber && (
+          <div style={{ marginTop: 2 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Buchungsnummer: {String(data.bookingNumber)}
+            </Text>
+          </div>
+        )}
       </div>
     );
   }

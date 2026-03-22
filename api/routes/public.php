@@ -35,6 +35,7 @@ function handleGetSlots(): void {
  */
 function handleCreateBooking(): void {
     ob_start();
+    require_once __DIR__ . '/../lib/BookingEvents.php';
     $input = json_decode(file_get_contents('php://input'), true);
 
     $ruleId    = $input['ruleId']  ?? null;
@@ -141,13 +142,21 @@ function handleCreateBooking(): void {
             ->execute([$bookingNumber, $bookingId]);
 
         // Auto-create client/patient from booking
+        $clientId = null;
         try {
             $clientStmt = $db->prepare(
                 'INSERT INTO clients (first_name, last_name, email, phone, street, zip, city, booking_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $clientStmt->execute([$firstName, $lastName, $email, $phone, $street, $zip, $city, (int)$bookingId]);
+            $clientId = (int)$db->lastInsertId();
         } catch (Throwable $e) {
             // Don't fail the booking if client creation fails
+        }
+
+        try {
+            recordBookingEvent($db, (int)$bookingId, 'requested', $clientId);
+        } catch (Throwable $e) {
+            error_log('Booking event logging failed for booking #' . $bookingId . ': ' . $e->getMessage());
         }
 
         // For Stripe: create Checkout Session and return URL
@@ -277,6 +286,7 @@ function handleCreateBooking(): void {
  * Captures a PayPal order after buyer approval, confirms the booking.
  */
 function handlePayPalCapture(): void {
+    require_once __DIR__ . '/../lib/BookingEvents.php';
     $input = json_decode(file_get_contents('php://input'), true);
     $orderId = $input['orderId'] ?? '';
 
@@ -310,10 +320,16 @@ function handlePayPalCapture(): void {
     }
 
     // Confirm the booking
-    $stmt = $db->prepare('UPDATE bookings SET status = "confirmed" WHERE id = ? AND status = "pending_payment"');
+    $stmt = $db->prepare('UPDATE bookings SET status = "confirmed", payment_confirmed_at = NOW() WHERE id = ? AND status = "pending_payment"');
     $stmt->execute([$booking['id']]);
 
     if ($stmt->rowCount() > 0) {
+        try {
+            recordBookingEvent($db, (int)$booking['id'], 'payment_confirmed');
+        } catch (Throwable $e) {
+            error_log('Booking event logging failed for booking #' . $booking['id'] . ': ' . $e->getMessage());
+        }
+
         $config = require __DIR__ . '/../config.php';
 
         // Send confirmation email
