@@ -73,6 +73,18 @@ export function useAdminClients() {
     }
   }, [fetchClients]);
 
+  const deleteClient = useCallback(async (id: number) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/clients/${id}`, {
+        method: 'DELETE',
+      });
+      await fetchClients();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Löschen');
+    }
+  }, [fetchClients]);
+
   const migrateBookingToClient = useCallback(async (bookingId: number) => {
     setError(null);
     try {
@@ -95,6 +107,7 @@ export function useAdminClients() {
     updateClient,
     archiveClient,
     restoreClient,
+    deleteClient,
     migrateBookingToClient,
   };
 }

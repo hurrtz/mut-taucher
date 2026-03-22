@@ -30,3 +30,4 @@
 - Styling should continue to flow through Ant Design theming and shared admin style utilities.
 - The intro-call booking list is responsible for showing booking numbers and the sent state of payment requests, because those are part of the document/archive lifecycle.
 - Admin actions that mark intro calls paid or completed are the durable trigger for invoice generation; the public booking flow is no longer allowed to consume invoice numbers.
+- The patient list must distinguish disposable booking-only client records from durable patient records: disposable records can be deleted, while records with substantive activity must be archived instead.

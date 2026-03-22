@@ -10,6 +10,73 @@ function composeClientName(?string $title, string $firstName, string $lastName, 
     return trim(implode(' ', array_filter([$title, $firstName, $lastName, $suffix])));
 }
 
+function clientCanBeDeletedFromRow(array $row): bool {
+    $hasRelevantActivity =
+        (int)($row['therapy_count'] ?? 0) > 0
+        || (int)($row['group_participation_count'] ?? 0) > 0
+        || (int)($row['note_count'] ?? 0) > 0
+        || (int)($row['relevant_document_count'] ?? 0) > 0
+        || (int)($row['workbook_send_count'] ?? 0) > 0
+        || (int)($row['document_send_count'] ?? 0) > 0
+        || trim((string)($row['notes'] ?? '')) !== ''
+        || (bool)($row['booking_invoice_sent'] ?? false)
+        || (($row['booking_status'] ?? null) === 'completed');
+
+    return !$hasRelevantActivity;
+}
+
+function fetchClientRow(PDO $db, int $id): ?array {
+    $stmt = $db->prepare(
+        'SELECT c.*,
+                b.status as booking_status,
+                b.invoice_sent as booking_invoice_sent,
+                (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count,
+                (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id) as group_participation_count,
+                (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count,
+                (SELECT COUNT(*) FROM client_notes cn WHERE cn.client_id = c.id) as note_count,
+                (SELECT COUNT(*) FROM client_documents cd
+                 WHERE cd.client_id = c.id
+                   AND NOT (
+                     cd.direction = \'sent\'
+                     AND cd.label LIKE \'Zahlungsaufforderung B%\'
+                     AND cd.filename LIKE \'Zahlungsaufforderung_B%.pdf\'
+                   )
+                ) as relevant_document_count,
+                (SELECT COUNT(*) FROM workbook_sends ws WHERE ws.client_id = c.id) as workbook_send_count,
+                (SELECT COUNT(*) FROM document_sends ds WHERE ds.client_id = c.id) as document_send_count
+         FROM clients c
+         LEFT JOIN bookings b ON b.id = c.booking_id
+         WHERE c.id = ?'
+    );
+    $stmt->execute([$id]);
+    $row = $stmt->fetch();
+    return $row ?: null;
+}
+
+function serializeClientRow(array $c): array {
+    return [
+        'id'           => (int)$c['id'],
+        'title'        => $c['title'],
+        'firstName'    => $c['first_name'],
+        'lastName'     => $c['last_name'],
+        'suffix'       => $c['suffix'],
+        'name'         => composeClientName($c['title'], $c['first_name'], $c['last_name'], $c['suffix']),
+        'email'        => $c['email'],
+        'phone'        => $c['phone'],
+        'street'       => $c['street'],
+        'zip'          => $c['zip'],
+        'city'         => $c['city'],
+        'country'      => $c['country'],
+        'notes'        => $c['notes'],
+        'status'       => $c['status'],
+        'bookingId'    => $c['booking_id'] ? (int)$c['booking_id'] : null,
+        'therapyCount' => (int)$c['therapy_count'],
+        'groupCount'   => (int)$c['group_count'],
+        'deletable'    => clientCanBeDeletedFromRow($c),
+        'createdAt'    => $c['created_at'],
+    ];
+}
+
 // ─── Clients CRUD ───────────────────────────────────────────────
 
 /**
@@ -23,41 +90,55 @@ function handleGetClients(): void {
     if ($status === 'all') {
         $stmt = $db->query(
             'SELECT c.*,
+                    b.status as booking_status,
+                    b.invoice_sent as booking_invoice_sent,
                     (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count,
-                    (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count
-             FROM clients c ORDER BY c.status ASC, c.created_at DESC'
+                    (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id) as group_participation_count,
+                    (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count,
+                    (SELECT COUNT(*) FROM client_notes cn WHERE cn.client_id = c.id) as note_count,
+                    (SELECT COUNT(*) FROM client_documents cd
+                     WHERE cd.client_id = c.id
+                       AND NOT (
+                         cd.direction = \'sent\'
+                         AND cd.label LIKE \'Zahlungsaufforderung B%\'
+                         AND cd.filename LIKE \'Zahlungsaufforderung_B%.pdf\'
+                       )
+                    ) as relevant_document_count,
+                    (SELECT COUNT(*) FROM workbook_sends ws WHERE ws.client_id = c.id) as workbook_send_count,
+                    (SELECT COUNT(*) FROM document_sends ds WHERE ds.client_id = c.id) as document_send_count
+             FROM clients c
+             LEFT JOIN bookings b ON b.id = c.booking_id
+             ORDER BY c.status ASC, c.created_at DESC'
         );
     } else {
         $stmt = $db->prepare(
             'SELECT c.*,
+                    b.status as booking_status,
+                    b.invoice_sent as booking_invoice_sent,
                     (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count,
-                    (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count
-             FROM clients c WHERE c.status = ? ORDER BY c.created_at DESC'
+                    (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id) as group_participation_count,
+                    (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count,
+                    (SELECT COUNT(*) FROM client_notes cn WHERE cn.client_id = c.id) as note_count,
+                    (SELECT COUNT(*) FROM client_documents cd
+                     WHERE cd.client_id = c.id
+                       AND NOT (
+                         cd.direction = \'sent\'
+                         AND cd.label LIKE \'Zahlungsaufforderung B%\'
+                         AND cd.filename LIKE \'Zahlungsaufforderung_B%.pdf\'
+                       )
+                    ) as relevant_document_count,
+                    (SELECT COUNT(*) FROM workbook_sends ws WHERE ws.client_id = c.id) as workbook_send_count,
+                    (SELECT COUNT(*) FROM document_sends ds WHERE ds.client_id = c.id) as document_send_count
+             FROM clients c
+             LEFT JOIN bookings b ON b.id = c.booking_id
+             WHERE c.status = ?
+             ORDER BY c.created_at DESC'
         );
         $stmt->execute([$status]);
     }
     $clients = $stmt->fetchAll();
 
-    $result = array_map(fn($c) => [
-        'id'           => (int)$c['id'],
-        'title'        => $c['title'],
-        'firstName'    => $c['first_name'],
-        'lastName'     => $c['last_name'],
-        'suffix'       => $c['suffix'],
-        'name'         => composeClientName($c['title'], $c['first_name'], $c['last_name'], $c['suffix']),
-        'email'        => $c['email'],
-        'phone'        => $c['phone'],
-        'street'       => $c['street'],
-        'zip'          => $c['zip'],
-        'city'         => $c['city'],
-        'country'      => $c['country'],
-        'notes'        => $c['notes'],
-        'status'       => $c['status'],
-        'bookingId'    => $c['booking_id'] ? (int)$c['booking_id'] : null,
-        'therapyCount' => (int)$c['therapy_count'],
-        'groupCount'   => (int)$c['group_count'],
-        'createdAt'    => $c['created_at'],
-    ], $clients);
+    $result = array_map('serializeClientRow', $clients);
 
     echo json_encode(array_values($result));
 }
@@ -69,14 +150,7 @@ function handleGetClient(int $id): void {
     requireAuth();
     $db = getDB();
 
-    $stmt = $db->prepare(
-        'SELECT c.*,
-                (SELECT COUNT(*) FROM therapies t WHERE t.client_id = c.id) as therapy_count,
-                (SELECT COUNT(*) FROM group_participants gp WHERE gp.client_id = c.id AND gp.status = \'active\') as group_count
-         FROM clients c WHERE c.id = ?'
-    );
-    $stmt->execute([$id]);
-    $c = $stmt->fetch();
+    $c = fetchClientRow($db, $id);
 
     if (!$c) {
         http_response_code(404);
@@ -84,26 +158,7 @@ function handleGetClient(int $id): void {
         return;
     }
 
-    echo json_encode([
-        'id'           => (int)$c['id'],
-        'title'        => $c['title'],
-        'firstName'    => $c['first_name'],
-        'lastName'     => $c['last_name'],
-        'suffix'       => $c['suffix'],
-        'name'         => composeClientName($c['title'], $c['first_name'], $c['last_name'], $c['suffix']),
-        'email'        => $c['email'],
-        'phone'        => $c['phone'],
-        'street'       => $c['street'],
-        'zip'          => $c['zip'],
-        'city'         => $c['city'],
-        'country'      => $c['country'],
-        'notes'        => $c['notes'],
-        'status'       => $c['status'],
-        'bookingId'    => $c['booking_id'] ? (int)$c['booking_id'] : null,
-        'therapyCount' => (int)$c['therapy_count'],
-        'groupCount'   => (int)$c['group_count'],
-        'createdAt'    => $c['created_at'],
-    ]);
+    echo json_encode(serializeClientRow($c));
 }
 
 /**
@@ -203,14 +258,22 @@ function handleDeleteClient(int $id): void {
     requireAuth();
     $db = getDB();
 
-    $stmt = $db->prepare('DELETE FROM clients WHERE id = ?');
-    $stmt->execute([$id]);
-
-    if ($stmt->rowCount() === 0) {
+    $client = fetchClientRow($db, $id);
+    if (!$client) {
         http_response_code(404);
         echo json_encode(['error' => 'Patient:in nicht gefunden']);
         return;
     }
+
+    if (!clientCanBeDeletedFromRow($client)) {
+        http_response_code(409);
+        echo json_encode(['error' => 'Patient:in hat relevante Aktivitäten und kann nicht gelöscht werden. Bitte archivieren.']);
+        return;
+    }
+
+    $db->prepare('DELETE FROM document_sends WHERE client_id = ?')->execute([$id]);
+    $stmt = $db->prepare('DELETE FROM clients WHERE id = ?');
+    $stmt->execute([$id]);
 
     echo json_encode(['message' => 'Patient:in gelöscht']);
 }

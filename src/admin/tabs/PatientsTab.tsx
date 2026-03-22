@@ -11,7 +11,7 @@ export default function PatientsTab() {
   const styles = useAdminStyles();
   const {
     clients, error,
-    fetchClients, addClient, updateClient, archiveClient, restoreClient,
+    fetchClients, addClient, updateClient, archiveClient, restoreClient, deleteClient,
   } = useAdminClients();
 
   const [editingClientId, setEditingClientId] = useState<number | null>(null);
@@ -63,6 +63,7 @@ export default function PatientsTab() {
             onEdit={(id) => { setEditingClientId(id); setShowNewClient(false); }}
             onArchive={archiveClient}
             onRestore={restoreClient}
+            onDelete={deleteClient}
             selectedId={selectedClientId}
             onSelect={(id) => setSelectedClientId(prev => prev === id ? null : id)}
           />

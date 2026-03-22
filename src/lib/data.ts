@@ -132,6 +132,7 @@ export interface Client {
   bookingId: number | null;
   therapyCount: number;
   groupCount: number;
+  deletable: boolean;
   createdAt: string;
 }
 

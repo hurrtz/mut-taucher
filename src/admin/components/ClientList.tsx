@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import type { Client } from '../../lib/data';
-import { EditOutlined, InboxOutlined, UndoOutlined, DownOutlined, RightOutlined } from '@ant-design/icons';
+import { EditOutlined, InboxOutlined, UndoOutlined, DownOutlined, RightOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Card, Button, Tag, Space, Typography, Modal, Tooltip } from 'antd';
 
-function ArchivedClientCard({ client, onEdit, onRestore, selectedId, onSelect }: {
+function ArchivedClientCard({ client, onEdit, onRestore, onDelete, selectedId, onSelect }: {
   client: Client;
   onEdit: (id: number) => void;
   onRestore: (id: number) => void;
+  onDelete: (id: number) => void;
   selectedId: number | null;
   onSelect: (id: number) => void;
 }) {
@@ -52,6 +53,25 @@ function ArchivedClientCard({ client, onEdit, onRestore, selectedId, onSelect }:
               }}
             />
           </Tooltip>
+          {c.deletable && (
+            <Tooltip title="Löschen">
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => {
+                  Modal.confirm({
+                    title: `Patient:in "${c.firstName} ${c.lastName}" löschen?`,
+                    content: 'Diese Patient:in hat keine relevanten Aktivitäten. Der Eintrag wird endgültig entfernt.',
+                    okText: 'Löschen',
+                    okType: 'danger',
+                    cancelText: 'Abbrechen',
+                    onOk: () => onDelete(c.id),
+                  });
+                }}
+              />
+            </Tooltip>
+          )}
         </Space>
       }
       styles={{ body: expanded ? undefined : { display: 'none' } }}
@@ -76,11 +96,12 @@ function ArchivedClientCard({ client, onEdit, onRestore, selectedId, onSelect }:
   );
 }
 
-export default function ClientList({ clients, onEdit, onArchive, onRestore, selectedId, onSelect }: {
+export default function ClientList({ clients, onEdit, onArchive, onRestore, onDelete, selectedId, onSelect }: {
   clients: Client[];
   onEdit: (id: number) => void;
   onArchive: (id: number) => void;
   onRestore: (id: number) => void;
+  onDelete: (id: number) => void;
   selectedId: number | null;
   onSelect: (id: number) => void;
 }) {
@@ -110,21 +131,41 @@ export default function ClientList({ clients, onEdit, onArchive, onRestore, sele
           <Tooltip title="Bearbeiten">
             <Button type="text" icon={<EditOutlined />} onClick={() => onEdit(c.id)} />
           </Tooltip>
-          <Tooltip title="Archivieren">
-            <Button
-              type="text"
-              icon={<InboxOutlined />}
-              onClick={() => {
-                Modal.confirm({
-                  title: `Patient:in "${c.firstName} ${c.lastName}" archivieren?`,
-                  content: 'Archivierte Patient:innen können jederzeit wiederhergestellt werden.',
-                  okText: 'Archivieren',
-                  cancelText: 'Abbrechen',
-                  onOk: () => onArchive(c.id),
-                });
-              }}
-            />
-          </Tooltip>
+          {c.deletable ? (
+            <Tooltip title="Löschen">
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => {
+                  Modal.confirm({
+                    title: `Patient:in "${c.firstName} ${c.lastName}" löschen?`,
+                    content: 'Diese Patient:in hat keine relevanten Aktivitäten. Der Eintrag wird endgültig entfernt.',
+                    okText: 'Löschen',
+                    okType: 'danger',
+                    cancelText: 'Abbrechen',
+                    onOk: () => onDelete(c.id),
+                  });
+                }}
+              />
+            </Tooltip>
+          ) : (
+            <Tooltip title="Archivieren">
+              <Button
+                type="text"
+                icon={<InboxOutlined />}
+                onClick={() => {
+                  Modal.confirm({
+                    title: `Patient:in "${c.firstName} ${c.lastName}" archivieren?`,
+                    content: 'Archivierte Patient:innen können jederzeit wiederhergestellt werden.',
+                    okText: 'Archivieren',
+                    cancelText: 'Abbrechen',
+                    onOk: () => onArchive(c.id),
+                  });
+                }}
+              />
+            </Tooltip>
+          )}
         </Space>
       }
     >
@@ -178,6 +219,7 @@ export default function ClientList({ clients, onEdit, onArchive, onRestore, sele
                   client={c}
                   onEdit={onEdit}
                   onRestore={onRestore}
+                  onDelete={onDelete}
                   selectedId={selectedId}
                   onSelect={onSelect}
                 />
