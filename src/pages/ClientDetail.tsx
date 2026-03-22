@@ -11,7 +11,7 @@ import {
   UploadOutlined, FormOutlined, DownloadOutlined, EditOutlined,
   DeleteOutlined, LoadingOutlined, TeamOutlined,
 } from '@ant-design/icons';
-import { Card, Button, Tag, Space, Typography, Spin, Input, Modal, Alert, theme } from 'antd';
+import { Card, Button, Tag, Space, Typography, Spin, Input, Modal, Alert, Radio, theme } from 'antd';
 import { SESSION_STATUS_LABELS } from '../admin/constants';
 
 const { Text, Title } = Typography;
@@ -35,6 +35,12 @@ const EVENT_COLORS: Record<string, { color: string; background: string }> = {
   note: { color: '#a16207', background: '#fefce8' },
   booking_event: { color: '#0f766e', background: '#ecfeff' },
 };
+
+type HistoryFilter = 'all' | 'status' | 'documents';
+
+function isDocumentEvent(event: TimelineEvent): boolean {
+  return event.type === 'document_sent' || event.type === 'document_received';
+}
 
 function formatDate(dateStr: string): string {
   return format(parseISO(dateStr), 'dd.MM.yyyy', { locale: de });
@@ -69,6 +75,7 @@ export function ClientHistoryPanel({ clientId }: { clientId: number }) {
   const { token } = theme.useToken();
   const [client, setClient] = useState<Client | null>(null);
   const [clientLoading, setClientLoading] = useState(true);
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
 
   const {
     events, total, loading, error,
@@ -105,6 +112,12 @@ export function ClientHistoryPanel({ clientId }: { clientId: number }) {
       </div>
     );
   }
+
+  const filteredEvents = events.filter(event => {
+    if (historyFilter === 'documents') return isDocumentEvent(event);
+    if (historyFilter === 'status') return !isDocumentEvent(event);
+    return true;
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -145,18 +158,32 @@ export function ClientHistoryPanel({ clientId }: { clientId: number }) {
 
       {/* Timeline */}
       <Card size="small" title="Verlauf">
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-start' }}>
+          <Radio.Group
+            size="small"
+            optionType="button"
+            buttonStyle="solid"
+            value={historyFilter}
+            onChange={e => setHistoryFilter(e.target.value as HistoryFilter)}
+          >
+            <Radio.Button value="all">Alle</Radio.Button>
+            <Radio.Button value="status">Status</Radio.Button>
+            <Radio.Button value="documents">Dokumente</Radio.Button>
+          </Radio.Group>
+        </div>
+
         {error && (
           <Alert message={error} type="error" style={{ marginBottom: 16 }} />
         )}
 
-        {events.length === 0 && !loading && (
+        {filteredEvents.length === 0 && !loading && (
           <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: 16 }}>
-            Noch keine Einträge vorhanden.
+            {events.length === 0 ? 'Noch keine Einträge vorhanden.' : 'Keine Einträge in diesem Filter.'}
           </Text>
         )}
 
         <Timeline
-          events={events}
+          events={filteredEvents}
           onUpdateNote={updateNote}
           onDeleteNote={deleteNote}
           onDeleteDocument={deleteDocument}
