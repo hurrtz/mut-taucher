@@ -282,6 +282,55 @@ function handleDeleteEvent(int $id): void {
 
 // ─── Bookings ────────────────────────────────────────────────────
 
+function fetchAdminBookingRow(PDO $db, int $bookingId): ?array {
+    $stmt = $db->prepare(
+        'SELECT b.*, r.label as rule_label, e.label as event_label,
+                r.price_cents as rule_price_cents, e.price_cents as event_price_cents,
+                (SELECT COUNT(*) FROM clients c WHERE c.booking_id = b.id) as has_client
+         FROM bookings b
+         LEFT JOIN recurring_rules r ON b.rule_id = r.id
+         LEFT JOIN events e ON b.event_id = e.id
+         WHERE b.id = ?'
+    );
+    $stmt->execute([$bookingId]);
+    $row = $stmt->fetch();
+    return $row ?: null;
+}
+
+function serializeAdminBookingRow(array $b): array {
+    return [
+        'id'                  => (int)$b['id'],
+        'ruleId'              => $b['rule_id'] ? (int)$b['rule_id'] : null,
+        'eventId'             => $b['event_id'] ? (int)$b['event_id'] : null,
+        'ruleLabel'           => $b['rule_label'] ?? $b['event_label'] ?? '',
+        'date'                => $b['booking_date'],
+        'time'                => $b['booking_time'],
+        'durationMinutes'     => (int)$b['duration_minutes'],
+        'clientFirstName'     => $b['client_first_name'],
+        'clientLastName'      => $b['client_last_name'],
+        'clientName'          => trim($b['client_first_name'] . ' ' . $b['client_last_name']),
+        'clientEmail'         => $b['client_email'],
+        'clientPhone'         => $b['client_phone'] ?? null,
+        'clientStreet'        => $b['client_street'] ?? null,
+        'clientZip'           => $b['client_zip'] ?? null,
+        'clientCity'          => $b['client_city'] ?? null,
+        'clientMessage'       => $b['client_message'] ?? null,
+        'status'              => $b['status'],
+        'paymentMethod'       => $b['payment_method'],
+        'paymentId'           => $b['payment_id'],
+        'bookingNumber'       => $b['booking_number'] ?? null,
+        'paymentRequestSent'  => (bool)($b['payment_request_sent'] ?? false),
+        'paymentRequestSentAt'=> $b['payment_request_sent_at'] ?? null,
+        'introEmailSent'      => (bool)$b['intro_email_sent'],
+        'reminderSent'        => (bool)$b['reminder_sent'],
+        'invoiceSent'         => (bool)$b['invoice_sent'],
+        'invoiceSentAt'       => $b['invoice_sent_at'],
+        'priceCents'          => $b['rule_price_cents'] !== null ? (int)$b['rule_price_cents'] : ($b['event_price_cents'] !== null ? (int)$b['event_price_cents'] : null),
+        'createdAt'           => $b['created_at'],
+        'hasClient'           => (int)$b['has_client'] > 0,
+    ];
+}
+
 /**
  * GET /api/admin/bookings?from=...&to=...
  */
@@ -311,34 +360,7 @@ function handleGetBookings(): void {
     $stmt->execute($params);
     $bookings = $stmt->fetchAll();
 
-    $result = array_map(fn($b) => [
-        'id'              => (int)$b['id'],
-        'ruleId'          => $b['rule_id'] ? (int)$b['rule_id'] : null,
-        'eventId'         => $b['event_id'] ? (int)$b['event_id'] : null,
-        'ruleLabel'       => $b['rule_label'] ?? $b['event_label'] ?? '',
-        'date'            => $b['booking_date'],
-        'time'            => $b['booking_time'],
-        'durationMinutes' => (int)$b['duration_minutes'],
-        'clientFirstName' => $b['client_first_name'],
-        'clientLastName'  => $b['client_last_name'],
-        'clientName'      => trim($b['client_first_name'] . ' ' . $b['client_last_name']),
-        'clientEmail'     => $b['client_email'],
-        'clientPhone'     => $b['client_phone'] ?? null,
-        'clientStreet'    => $b['client_street'] ?? null,
-        'clientZip'       => $b['client_zip'] ?? null,
-        'clientCity'      => $b['client_city'] ?? null,
-        'clientMessage'   => $b['client_message'] ?? null,
-        'status'          => $b['status'],
-        'paymentMethod'   => $b['payment_method'],
-        'paymentId'       => $b['payment_id'],
-        'introEmailSent'  => (bool)$b['intro_email_sent'],
-        'reminderSent'    => (bool)$b['reminder_sent'],
-        'invoiceSent'     => (bool)$b['invoice_sent'],
-        'invoiceSentAt'   => $b['invoice_sent_at'],
-        'priceCents'      => $b['rule_price_cents'] !== null ? (int)$b['rule_price_cents'] : ($b['event_price_cents'] !== null ? (int)$b['event_price_cents'] : null),
-        'createdAt'       => $b['created_at'],
-        'hasClient'       => (int)$b['has_client'] > 0,
-    ], $bookings);
+    $result = array_map('serializeAdminBookingRow', $bookings);
 
     echo json_encode(array_values($result));
 }
@@ -349,21 +371,41 @@ function handleGetBookings(): void {
  */
 function handleUpdateBooking(int $id): void {
     requireAuth();
+    require_once __DIR__ . '/../lib/BookingInvoice.php';
     $input = json_decode(file_get_contents('php://input'), true);
     $db = getDB();
+    $existing = fetchAdminBookingRow($db, $id);
+
+    if (!$existing) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Buchung nicht gefunden']);
+        return;
+    }
 
     $fields = [];
     $params = [];
+    $shouldAttemptInvoice = false;
+    $warning = null;
 
     if (isset($input['status'])) {
         if ($input['status'] === 'cancelled') {
             $db->prepare('DELETE FROM bookings WHERE id = ?')->execute([$id]);
-            echo json_encode(['message' => 'Buchung gelöscht']);
+            echo json_encode(['message' => 'Buchung gelöscht', 'deletedId' => $id]);
             return;
         }
         if (in_array($input['status'], ['confirmed', 'completed'], true)) {
             $fields[] = 'status = ?';
             $params[] = $input['status'];
+
+            if (
+                !$existing['invoice_sent']
+                && (
+                    ($existing['status'] === 'pending_payment' && $input['status'] === 'confirmed')
+                    || ($existing['status'] !== 'completed' && $input['status'] === 'completed')
+                )
+            ) {
+                $shouldAttemptInvoice = true;
+            }
         }
     }
     if (isset($input['introEmailSent'])) {
@@ -386,7 +428,27 @@ function handleUpdateBooking(int $id): void {
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
 
-    echo json_encode(['message' => 'Buchung aktualisiert']);
+    if ($shouldAttemptInvoice) {
+        try {
+            sendBookingInvoice($db, $id);
+        } catch (Throwable $e) {
+            $warning = 'Status gespeichert, aber die Rechnung konnte nicht automatisch gesendet werden.';
+            error_log('Automatic booking invoice failed for booking #' . $id . ': ' . $e->getMessage());
+        }
+    }
+
+    $updated = fetchAdminBookingRow($db, $id);
+    if (!$updated) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Buchung nicht gefunden']);
+        return;
+    }
+
+    echo json_encode([
+        'message' => 'Buchung aktualisiert',
+        'warning' => $warning,
+        'booking' => serializeAdminBookingRow($updated),
+    ]);
 }
 
 /**
@@ -421,6 +483,7 @@ function handleSendEmail(int $bookingId): void {
     $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
     $time = $booking['booking_time'];
     $duration = (int)$booking['duration_minutes'];
+    $bookingNumber = $booking['booking_number'] ?? null;
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
     $siteUrl = $config['site_url'] ?? '';
 
@@ -1044,13 +1107,18 @@ function handleSendBookingInvoice(int $bookingId): void {
         http_response_code(404);
         echo json_encode(['error' => $e->getMessage()]);
         return;
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         http_response_code(500);
         echo json_encode(['error' => 'Rechnung konnte nicht gesendet werden: ' . $e->getMessage()]);
         return;
     }
 
-    echo json_encode(['message' => 'Rechnung gesendet', 'invoiceNumber' => $invoiceNumber]);
+    $updated = fetchAdminBookingRow($db, $bookingId);
+    echo json_encode([
+        'message' => 'Rechnung gesendet',
+        'invoiceNumber' => $invoiceNumber,
+        'booking' => $updated ? serializeAdminBookingRow($updated) : null,
+    ]);
 }
 
 /**

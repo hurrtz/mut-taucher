@@ -17,6 +17,12 @@ function BookingCardBody({ b }: { b: AdminBooking }) {
   return (
     <div style={{ display: 'flex', gap: 0 }}>
       <Space direction="vertical" size={2} style={{ flex: 1 }}>
+        {b.bookingNumber && (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Buchungsnummer: {b.bookingNumber}
+            {b.paymentRequestSent && b.paymentRequestSentAt ? ` · Zahlungsaufforderung ${format(parseISO(b.paymentRequestSentAt), 'dd.MM.yyyy HH:mm')}` : ''}
+          </Text>
+        )}
         <Space size={4}>
           <a href={`mailto:${b.clientEmail}`} style={{ fontSize: 13 }}>{b.clientEmail}</a>
           {b.clientPhone && (
@@ -93,6 +99,10 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
   onMigrateToClient?: (id: number) => void;
 }) {
   const [archivedExpanded, setArchivedExpanded] = useState(false);
+  const canSendInvoice = (b: AdminBooking) =>
+    b.invoiceSent
+    || b.status === 'completed'
+    || (b.status === 'confirmed' && b.paymentMethod === 'wire_transfer');
 
   const active = bookings.filter(b => b.status === 'pending_payment' || b.status === 'confirmed');
   const archived = bookings.filter(b => b.status === 'completed' || b.status === 'cancelled');
@@ -117,7 +127,13 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
               <Card
                 key={b.id}
                 size="default"
-                title={<span>{b.clientName}{b.status === 'pending_payment' && <Tag color="orange" style={{ marginLeft: 8 }}>Zahlung ausstehend</Tag>}</span>}
+                title={(
+                  <span>
+                    {b.clientName}
+                    {b.bookingNumber && <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>{b.bookingNumber}</Text>}
+                    {b.status === 'pending_payment' && <Tag color="orange" style={{ marginLeft: 8 }}>Zahlung ausstehend</Tag>}
+                  </span>
+                )}
                 style={{
                   borderColor: b.status === 'pending_payment' ? '#fbbf24' : undefined,
                 }}
@@ -174,7 +190,7 @@ export default function BookingList({ bookings, onUpdate, onSendEmail, onSendInv
                           />
                         </Tooltip>
                       )}
-                      {onSendInvoice && (
+                      {onSendInvoice && canSendInvoice(b) && (
                         <Tooltip title={b.invoiceSent ? 'Rechnung erneut senden' : 'Rechnung senden'}>
                           <Button
                             type="text"

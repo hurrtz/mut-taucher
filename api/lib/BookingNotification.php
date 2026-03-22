@@ -30,6 +30,7 @@ function sendBookingNotification(BookingNotificationData $data): void {
     $paymentMethodLabel = $data->paymentMethodLabel();
     $paymentStatus = $data->paymentStatusLabel();
     $bookingStatus = $data->bookingStatusLabel();
+    $bookingNumber = $data->bookingNumber;
     $invoiceNumber = $data->invoiceNumber;
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
     $siteUrl = $config['site_url'] ?? '';

@@ -16,6 +16,7 @@
  * @var string $therapistName
  * @var string $siteUrl
  * @var string|null $clientMessage
+ * @var string|null $bookingNumber
  * @var string|null $invoiceNumber
  */
 ?>
@@ -54,6 +55,9 @@
         <tr><td style="<?= STYLE_TD_LABEL ?>">Zahlungsmethode:</td><td style="<?= STYLE_TD_VALUE ?>"><?= htmlspecialchars($paymentMethodLabel) ?></td></tr>
         <tr><td style="<?= STYLE_TD_LABEL ?>">Zahlungsstatus:</td><td style="<?= STYLE_TD_VALUE ?>"><strong><?= htmlspecialchars($paymentStatus) ?></strong></td></tr>
         <tr><td style="<?= STYLE_TD_LABEL ?>">Buchungsstatus:</td><td style="<?= STYLE_TD_VALUE ?>"><strong><?= htmlspecialchars($bookingStatus) ?></strong></td></tr>
+<?php if (!empty($bookingNumber)): ?>
+        <tr><td style="<?= STYLE_TD_LABEL ?>">Buchungsnummer:</td><td style="<?= STYLE_TD_VALUE ?>"><?= htmlspecialchars($bookingNumber) ?></td></tr>
+<?php endif; ?>
 <?php if (!empty($invoiceNumber)): ?>
         <tr><td style="<?= STYLE_TD_LABEL ?>">Rechnungsnummer:</td><td style="<?= STYLE_TD_VALUE ?>"><?= htmlspecialchars($invoiceNumber) ?></td></tr>
 <?php endif; ?>

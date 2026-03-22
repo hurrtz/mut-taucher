@@ -27,6 +27,7 @@ final class BookingNotificationData {
         public string $bookingTime,
         public int $durationMinutes,
         public string $paymentMethod,
+        public ?string $bookingNumber,
         public ?string $invoiceNumber,
         public NotificationStatus $status = NotificationStatus::New,
     ) {
@@ -51,6 +52,7 @@ final class BookingNotificationData {
             bookingTime:     $row['booking_time'] ?? '',
             durationMinutes: (int)($row['duration_minutes'] ?? 50),
             paymentMethod:   $row['payment_method'] ?? 'wire_transfer',
+            bookingNumber:   $row['booking_number'] ?? null,
             invoiceNumber:   $row['invoice_number'] ?? null,
             status:          $status,
         );

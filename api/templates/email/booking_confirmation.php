@@ -1,10 +1,15 @@
-<?php /** @var string $clientName @var string $dateFormatted @var string $time @var int $duration @var string $therapistName @var string $siteUrl */ ?>
+<?php /** @var string $clientName @var string $dateFormatted @var string $time @var int $duration @var string $therapistName @var string $siteUrl @var string|null $bookingNumber */ ?>
 <?php include __DIR__ . '/_header.php'; ?>
       <h2 style="<?= STYLE_H2 ?>">Terminbestätigung</h2>
       <p>Hallo <?= htmlspecialchars($clientName) ?>,</p>
       <p>vielen Dank für Ihre Buchung. Ihr Termin wurde bestätigt:</p>
       <div style="<?= STYLE_ALERT_INFO ?>">
+<?php if (!empty($bookingNumber)): ?>
+        <p style="<?= STYLE_P_FIRST ?>"><strong>Buchungsnummer:</strong> <?= htmlspecialchars($bookingNumber) ?></p>
+        <p style="<?= STYLE_P_NEXT ?>"><strong>Datum:</strong> <?= htmlspecialchars($dateFormatted) ?></p>
+<?php else: ?>
         <p style="<?= STYLE_P_FIRST ?>"><strong>Datum:</strong> <?= htmlspecialchars($dateFormatted) ?></p>
+<?php endif; ?>
         <p style="<?= STYLE_P_NEXT ?>"><strong>Uhrzeit:</strong> <?= htmlspecialchars($time) ?> Uhr</p>
         <p style="<?= STYLE_P_NEXT ?>"><strong>Dauer:</strong> <?= $duration ?> Minuten</p>
       </div>

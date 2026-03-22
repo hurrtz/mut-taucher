@@ -43,7 +43,7 @@ function handleStripeWebhook(): void {
             );
             $stmt->execute([$session->id, $bookingId]);
 
-            // Send confirmation email and invoice if booking was updated
+            // Send confirmation email if booking was updated
             if ($stmt->rowCount() > 0) {
                 // Confirmation email
                 try {
@@ -58,6 +58,7 @@ function handleStripeWebhook(): void {
                         $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
                         $time = $booking['booking_time'];
                         $duration = (int)$booking['duration_minutes'];
+                        $bookingNumber = $booking['booking_number'] ?? null;
                         $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
                         $siteUrl = $config['site_url'] ?? '';
 
@@ -72,16 +73,8 @@ function handleStripeWebhook(): void {
                             $htmlBody
                         );
                     }
-                } catch (\Exception $e) {
+                } catch (Throwable $e) {
                     // Don't fail the webhook if confirmation email fails
-                }
-
-                // Invoice
-                try {
-                    require_once __DIR__ . '/../lib/BookingInvoice.php';
-                    sendBookingInvoice($db, $bookingId);
-                } catch (\Exception $e) {
-                    // Don't fail the webhook if invoice fails
                 }
 
                 // Notify therapist about confirmed payment
@@ -90,7 +83,7 @@ function handleStripeWebhook(): void {
                     if ($booking) {
                         sendBookingNotification(BookingNotificationData::fromBookingRow($booking, NotificationStatus::Confirmed));
                     }
-                } catch (\Exception $e) {
+                } catch (Throwable $e) {
                     error_log('Booking notification failed for booking #' . $bookingId . ': ' . $e->getMessage());
                 }
             }

@@ -25,6 +25,7 @@ final class BookingNotificationDataTest extends TestCase
             'bookingTime'     => '10:00',
             'durationMinutes' => 50,
             'paymentMethod'   => 'wire_transfer',
+            'bookingNumber'   => 'B26-0001',
             'invoiceNumber'   => '26-0001',
         ];
         $args = array_merge($defaults, $overrides);
@@ -133,6 +134,7 @@ final class BookingNotificationDataTest extends TestCase
             'booking_time'      => '14:30',
             'duration_minutes'  => 50,
             'payment_method'    => 'paypal',
+            'booking_number'    => 'B26-0042',
             'invoice_number'    => '26-0042',
         ];
 
@@ -142,6 +144,7 @@ final class BookingNotificationDataTest extends TestCase
         $this->assertSame('erika@example.com', $data->clientEmail);
         $this->assertSame('PayPal', $data->paymentMethodLabel());
         $this->assertSame('Bezahlt', $data->paymentStatusLabel());
+        $this->assertSame('B26-0042', $data->bookingNumber);
         $this->assertSame('26-0042', $data->invoiceNumber);
         $this->assertTrue($data->isConfirmed());
     }
@@ -155,6 +158,7 @@ final class BookingNotificationDataTest extends TestCase
         $this->assertSame('', $data->clientEmail);
         $this->assertSame(50, $data->durationMinutes);
         $this->assertSame('wire_transfer', $data->paymentMethod);
+        $this->assertNull($data->bookingNumber);
         $this->assertNull($data->invoiceNumber);
         $this->assertFalse($data->isConfirmed());
     }

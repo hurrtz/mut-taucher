@@ -24,6 +24,7 @@ sequenceDiagram
   participant Public as routes/public.php
   participant Slots as slots.php
   participant DB as MySQL
+  participant BookingDocs as BookingNumber and BookingPaymentRequest
   participant Invoice as InvoiceNumber and BookingInvoice
   participant Notify as BookingNotification and Mailer
   participant Payments as StripeCheckout or PayPalCheckout
@@ -33,18 +34,20 @@ sequenceDiagram
   Slots->>DB: load rules, events, and reserved bookings
   Slots-->>Public: availability decision
   Public->>DB: insert booking with pending_payment
-  Public->>Invoice: generate invoice number
+  Public->>BookingDocs: generate booking number
   Public->>DB: auto-create linked patient when possible
 
   alt stripe or paypal branch
     Public->>Payments: create checkout session or order
     Payments-->>Public: redirect URL
   else wire transfer branch
-    Public->>Notify: send booking email and invoice
+    Public->>BookingDocs: generate payment request PDF and archive it
   end
 
   Public->>Notify: send therapist notification
   Public-->>Visitor: payment-aware response
+
+  Note over Invoice,DB: Invoice generation is deferred until admin confirms wire-transfer payment or completes the booking.
 ```
 
 ## Document and Branding Flow
@@ -76,6 +79,7 @@ sequenceDiagram
 - The backend stays framework-free and function-oriented: route files contain request handling, while reusable operational logic lives in `lib/`.
 - `slots.php` is the canonical availability engine for public booking; it derives availability from recurring rules, exceptions, events, and bookings with reserved states.
 - Bookings are inserted as `pending_payment` first, which lets the system reserve the slot before payment confirmation or manual completion.
+- Intro-call documents now have two phases: a payment request with its own booking number at booking time, and the actual invoice only after an admin-side payment/completion transition.
 - `Mailer` selects Brevo when configured, otherwise SMTP, and retries once on transient delivery failures.
 - `PdfGenerator` prefers DB-backed HTML templates and falls back to file templates, while still applying brand styling and placeholder replacement consistently.
 - Patient history is assembled from multiple operational tables rather than stored as a separate event log, which keeps the timeline derived from source records.

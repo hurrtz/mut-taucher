@@ -65,11 +65,17 @@ const PLACEHOLDER_LABELS: Record<string, string> = {
   therapist_city: 'Therapeut:in Ort',
   therapist_tax_id: 'Steuernummer',
   invoice_number: 'Rechnungsnummer',
+  booking_number: 'Buchungsnummer',
   amount: 'Betrag',
   duration_minutes: 'Dauer (Min.)',
   therapy_label: 'Therapieart',
   session_date: 'Sitzungsdatum',
   session_time: 'Sitzungszeit',
+  payment_note: 'Zahlungshinweis',
+  bank_account_holder: 'Kontoinhaber:in',
+  bank_iban: 'IBAN',
+  bank_bic: 'BIC',
+  bank_name: 'Bankname',
 };
 
 interface TemplateEditorProps {

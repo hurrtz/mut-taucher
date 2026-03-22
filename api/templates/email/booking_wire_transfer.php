@@ -1,14 +1,15 @@
-<?php /** @var string $clientName @var string $dateFormatted @var string $time @var int $duration @var string $therapistName @var string $siteUrl @var string $accountHolder @var string $iban @var string $bic @var string $bankName @var string $amount @var string $reference */ ?>
+<?php /** @var string $clientName @var string $dateFormatted @var string $time @var int $duration @var string $therapistName @var string $siteUrl @var string $accountHolder @var string $iban @var string $bic @var string $bankName @var string $amount @var string $reference @var string $bookingNumber */ ?>
 <?php include __DIR__ . '/_header.php'; ?>
-      <h2 style="<?= STYLE_H2 ?>">Terminreservierung</h2>
+      <h2 style="<?= STYLE_H2 ?>">Buchungsbestätigung</h2>
       <p>Hallo <?= htmlspecialchars($clientName) ?>,</p>
       <p>vielen Dank für Ihre Buchung. Ihr Termin wurde reserviert:</p>
       <div style="<?= STYLE_ALERT_INFO ?>">
-        <p style="<?= STYLE_P_FIRST ?>"><strong>Datum:</strong> <?= htmlspecialchars($dateFormatted) ?></p>
+        <p style="<?= STYLE_P_FIRST ?>"><strong>Buchungsnummer:</strong> <?= htmlspecialchars($bookingNumber) ?></p>
+        <p style="<?= STYLE_P_NEXT ?>"><strong>Datum:</strong> <?= htmlspecialchars($dateFormatted) ?></p>
         <p style="<?= STYLE_P_NEXT ?>"><strong>Uhrzeit:</strong> <?= htmlspecialchars($time) ?> Uhr</p>
         <p style="<?= STYLE_P_NEXT ?>"><strong>Dauer:</strong> <?= $duration ?> Minuten</p>
       </div>
-      <p>Bitte überweisen Sie den folgenden Betrag, um Ihren Termin zu bestätigen:</p>
+      <p>Im Anhang erhalten Sie Ihre Zahlungsaufforderung. Bitte überweisen Sie den folgenden Betrag, um Ihren Termin verbindlich zu bestätigen:</p>
       <div style="<?= STYLE_BANK_BOX ?>">
         <table style="<?= STYLE_BANK_TABLE ?>">
           <tr><td style="<?= STYLE_BANK_LABEL ?>">Empfänger</td><td style="<?= STYLE_BANK_VALUE ?>"><?= htmlspecialchars($accountHolder) ?></td></tr>

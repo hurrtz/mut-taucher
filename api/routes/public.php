@@ -68,10 +68,11 @@ function handleCreateBooking(): void {
 
     $db = getDB();
     $durationMinutes = 50;
+    $amountCents = 9500;
 
     if ($eventId) {
         // Verify event exists
-        $stmt = $db->prepare('SELECT id, duration_minutes FROM events WHERE id = ?');
+        $stmt = $db->prepare('SELECT id, duration_minutes, price_cents FROM events WHERE id = ?');
         $stmt->execute([$eventId]);
         $event = $stmt->fetch();
 
@@ -81,9 +82,12 @@ function handleCreateBooking(): void {
             return;
         }
         $durationMinutes = (int)$event['duration_minutes'];
+        if ($event['price_cents'] !== null) {
+            $amountCents = (int)$event['price_cents'];
+        }
     } else {
         // Verify rule exists
-        $stmt = $db->prepare('SELECT id, duration_minutes FROM recurring_rules WHERE id = ?');
+        $stmt = $db->prepare('SELECT id, duration_minutes, price_cents FROM recurring_rules WHERE id = ?');
         $stmt->execute([$ruleId]);
         $rule = $stmt->fetch();
 
@@ -93,6 +97,9 @@ function handleCreateBooking(): void {
             return;
         }
         $durationMinutes = (int)$rule['duration_minutes'];
+        if ($rule['price_cents'] !== null) {
+            $amountCents = (int)$rule['price_cents'];
+        }
     }
 
     // Check slot is actually available by generating slots for that date
@@ -128,11 +135,10 @@ function handleCreateBooking(): void {
 
         $bookingId = $db->lastInsertId();
 
-        // Generate invoice number early so it can be used as payment reference
-        require_once __DIR__ . '/../lib/InvoiceNumber.php';
-        $invoiceNumber = generateInvoiceNumber($db);
-        $db->prepare('UPDATE bookings SET invoice_number = ? WHERE id = ?')
-            ->execute([$invoiceNumber, $bookingId]);
+        require_once __DIR__ . '/../lib/BookingNumber.php';
+        $bookingNumber = generateBookingNumber($db);
+        $db->prepare('UPDATE bookings SET booking_number = ? WHERE id = ?')
+            ->execute([$bookingNumber, $bookingId]);
 
         // Auto-create client/patient from booking
         try {
@@ -150,7 +156,7 @@ function handleCreateBooking(): void {
             require_once __DIR__ . '/../lib/StripeCheckout.php';
             $stripeCheckoutUrl = createStripeCheckoutSession(
                 (int)$bookingId,
-                9500, // 95.00 EUR in cents
+                $amountCents,
                 'Erstgespräch (50 Minuten)',
                 $email
             );
@@ -162,51 +168,19 @@ function handleCreateBooking(): void {
             require_once __DIR__ . '/../lib/PayPalCheckout.php';
             $paypalApprovalUrl = createPayPalOrder(
                 (int)$bookingId,
-                9500, // 95.00 EUR in cents
+                $amountCents,
                 'Erstgespräch (50 Minuten)',
                 $email
             );
         }
 
-        // For wire transfer: send email with bank details + invoice
+        // For wire transfer: send payment request and archive it to the client history
         if ($paymentMethod === 'wire_transfer') {
             try {
-                require_once __DIR__ . '/../lib/Mailer.php';
-                $config = require __DIR__ . '/../config.php';
-                $mailer = new Mailer();
-
-                $clientName = "$firstName $lastName";
-                $dateFormatted = date('d.m.Y', strtotime($date));
-                $duration = $durationMinutes;
-                $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
-                $siteUrl = $config['site_url'] ?? '';
-                $accountHolder = $config['bank_account_holder'] ?? '';
-                $iban = $config['bank_iban'] ?? '';
-                $bic = $config['bank_bic'] ?? '';
-                $bankName = $config['bank_name'] ?? '';
-                $amount = '95,00 €';
-                $reference = $invoiceNumber;
-
-                ob_start();
-                include __DIR__ . '/../templates/email/booking_wire_transfer.php';
-                $htmlBody = ob_get_clean();
-
-                $mailer->send(
-                    $email,
-                    $clientName,
-                    'Terminreservierung — ' . ($config['therapist_name'] ?? 'Mut-Taucher'),
-                    $htmlBody
-                );
+                require_once __DIR__ . '/../lib/BookingPaymentRequest.php';
+                sendBookingPaymentRequest($db, (int)$bookingId);
             } catch (Throwable $e) {
-                // Don't fail the booking if email fails
-            }
-
-            // Send invoice immediately for wire transfer
-            try {
-                require_once __DIR__ . '/../lib/BookingInvoice.php';
-                sendBookingInvoice($db, (int)$bookingId);
-            } catch (Throwable $e) {
-                // Don't fail the booking if invoice fails
+                error_log('Payment request failed for booking #' . $bookingId . ': ' . $e->getMessage());
             }
         }
 
@@ -226,7 +200,8 @@ function handleCreateBooking(): void {
                 bookingTime:     $time,
                 durationMinutes: $durationMinutes,
                 paymentMethod:   $paymentMethod,
-                invoiceNumber:   $invoiceNumber,
+                bookingNumber:   $bookingNumber,
+                invoiceNumber:   null,
             );
             sendBookingNotification($notificationData);
         } catch (Throwable $e) {
@@ -237,6 +212,7 @@ function handleCreateBooking(): void {
         $response = [
             'id'            => (int)$bookingId,
             'message'       => 'Termin erfolgreich gebucht',
+            'bookingNumber' => $bookingNumber,
             'paymentMethod' => $paymentMethod,
         ];
 
@@ -254,8 +230,9 @@ function handleCreateBooking(): void {
                 'iban'          => $config['bank_iban'] ?? '',
                 'bic'           => $config['bank_bic'] ?? '',
                 'bankName'      => $config['bank_name'] ?? '',
-                'amount'        => '95,00 €',
-                'reference'     => $invoiceNumber,
+                'amount'        => number_format($amountCents / 100, 2, ',', '.') . ' €',
+                'bookingNumber' => $bookingNumber,
+                'reference'     => $bookingNumber,
             ];
         }
 
@@ -347,6 +324,7 @@ function handlePayPalCapture(): void {
             $dateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
             $time = $booking['booking_time'];
             $duration = (int)$booking['duration_minutes'];
+            $bookingNumber = $booking['booking_number'] ?? null;
             $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
             $siteUrl = $config['site_url'] ?? '';
 
@@ -360,23 +338,15 @@ function handlePayPalCapture(): void {
                 'Terminbestätigung — ' . $therapistName,
                 $htmlBody
             );
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
             // Don't fail if email fails
-        }
-
-        // Send invoice
-        try {
-            require_once __DIR__ . '/../lib/BookingInvoice.php';
-            sendBookingInvoice($db, (int)$booking['id']);
-        } catch (\Exception $e) {
-            // Don't fail if invoice fails
         }
 
         // Notify therapist about confirmed payment
         try {
             require_once __DIR__ . '/../lib/BookingNotification.php';
             sendBookingNotification(BookingNotificationData::fromBookingRow($booking, NotificationStatus::Confirmed));
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
             error_log('Booking notification failed for booking #' . $booking['id'] . ': ' . $e->getMessage());
         }
     }

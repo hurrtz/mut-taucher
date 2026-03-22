@@ -16,6 +16,7 @@ export default function Booking() {
   const [fieldErrors, setFieldErrors] = useState<{ email?: string | null; phone?: string | null }>({});
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'wire_transfer'>('wire_transfer');
   const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
+  const [bookingNumber, setBookingNumber] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const monthStart = startOfMonth(currentMonth);
@@ -75,6 +76,7 @@ export default function Booking() {
       }
 
       // Wire transfer: show bank details
+      setBookingNumber(result.bookingNumber ?? result.bankDetails?.bookingNumber ?? null);
       setBankDetails(result.bankDetails ?? null);
       setSelectedSlot(null);
       setIsSuccess(true);
@@ -210,6 +212,7 @@ export default function Booking() {
                   <div className="space-y-3">
                     <p className="text-gray-600">Bitte überweisen Sie den Betrag, um Ihren Termin zu bestätigen:</p>
                     <div className="bg-gray-50 rounded-lg p-4 text-sm text-left space-y-1.5">
+                      {bookingNumber && <p><strong>Buchungsnummer:</strong> {bookingNumber}</p>}
                       <p><strong>Empfänger:</strong> {bankDetails.accountHolder}</p>
                       <p><strong>IBAN:</strong> {bankDetails.iban}</p>
                       <p><strong>BIC:</strong> {bankDetails.bic}</p>

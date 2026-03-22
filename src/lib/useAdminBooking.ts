@@ -50,6 +50,9 @@ export interface AdminBooking {
   clientMessage: string | null;
   status: 'pending_payment' | 'confirmed' | 'completed' | 'cancelled';
   paymentMethod: 'stripe' | 'paypal' | 'wire_transfer' | null;
+  bookingNumber: string | null;
+  paymentRequestSent: boolean;
+  paymentRequestSentAt: string | null;
   introEmailSent: boolean;
   reminderSent: boolean;
   invoiceSent: boolean;
@@ -248,12 +251,22 @@ export function useAdminBooking() {
   const updateBooking = useCallback(async (id: number, updates: Partial<AdminBooking>) => {
     setError(null);
     try {
-      await apiFetch(`/admin/bookings/${id}`, {
+      const result = await apiFetch<{ booking?: AdminBooking; deletedId?: number; warning?: string | null }>(`/admin/bookings/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(updates),
       });
-      // Refresh bookings list
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+      setBookings(prev => {
+        if (result.booking) {
+          return prev.map(b => b.id === id ? result.booking as AdminBooking : b);
+        }
+        if (result.deletedId === id) {
+          return prev.filter(b => b.id !== id);
+        }
+        return prev;
+      });
+      if (result.warning) {
+        setError(result.warning);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren');
     }
@@ -282,9 +295,9 @@ export function useAdminBooking() {
   const sendBookingInvoice = useCallback(async (bookingId: number) => {
     setError(null);
     try {
-      await apiFetch(`/admin/bookings/${bookingId}/invoice`, { method: 'POST' });
+      const result = await apiFetch<{ booking?: AdminBooking }>(`/admin/bookings/${bookingId}/invoice`, { method: 'POST' });
       setBookings(prev => prev.map(b =>
-        b.id === bookingId ? { ...b, invoiceSent: true, invoiceSentAt: new Date().toISOString() } : b
+        b.id === bookingId ? (result.booking ?? { ...b, invoiceSent: true, invoiceSentAt: new Date().toISOString() }) : b
       ));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Rechnungsversand');

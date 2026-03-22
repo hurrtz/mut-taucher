@@ -34,3 +34,6 @@
 - Slot availability is generated server-side from recurring rules, one-off events, and booking reservation state.
 - Generated files and uploads under `api/assets/` are persistent application data, not disposable build output.
 - The booking lifecycle, invoice numbering, and document/template behavior should remain deterministic and database-backed.
+- Intro-call bookings use a separate `booking_number` and payment-request document before an invoice exists.
+- Actual intro-call invoices are generated only after the therapist confirms payment manually or marks the booking completed, and the invoice must reference the earlier booking number.
+- Payment requests and invoices for intro calls are archival records and must be written into the client document history when a linked client exists.

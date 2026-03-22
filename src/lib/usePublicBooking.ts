@@ -17,12 +17,14 @@ export interface BankDetails {
   bic: string;
   bankName: string;
   amount: string;
+  bookingNumber?: string;
   reference: string;
 }
 
 export interface BookingResult {
   id: number;
   message: string;
+  bookingNumber?: string;
   paymentMethod: string;
   stripeCheckoutUrl?: string;
   paypalApprovalUrl?: string;

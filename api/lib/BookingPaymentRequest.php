@@ -1,18 +1,16 @@
 <?php
 
-require_once __DIR__ . '/InvoiceNumber.php';
 require_once __DIR__ . '/BookingNumber.php';
 require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/PdfGenerator.php';
 
 /**
- * Generate and send an invoice for a booking (Erstgespräch).
- * Marks the booking as invoice_sent in the database.
+ * Generate, send, and archive a payment request for an intro-call booking.
  *
- * @return string The generated invoice number
- * @throws Exception if sending fails
+ * @return string The booking number used as payment reference
+ * @throws Exception if the booking or delivery fails
  */
-function sendBookingInvoice(PDO $db, int $bookingId): string {
+function sendBookingPaymentRequest(PDO $db, int $bookingId): string {
     $config = require __DIR__ . '/../config.php';
 
     $stmt = $db->prepare(
@@ -30,7 +28,7 @@ function sendBookingInvoice(PDO $db, int $bookingId): string {
     }
 
     $clientName = trim($booking['client_first_name'] . ' ' . $booking['client_last_name']);
-    $invoiceDateFormatted = date('d.m.Y');
+    $documentDateFormatted = date('d.m.Y');
     $sessionDateFormatted = date('d.m.Y', strtotime($booking['booking_date']));
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
     $siteUrl = $config['site_url'] ?? '';
@@ -42,15 +40,6 @@ function sendBookingInvoice(PDO $db, int $bookingId): string {
     $durationMinutes = (int)$booking['duration_minutes'];
     $therapyLabel = 'Erstgespräch';
 
-    // Use pre-generated invoice number from booking, or generate one if missing (legacy bookings)
-    if (!empty($booking['invoice_number'])) {
-        $invoiceNumber = $booking['invoice_number'];
-    } else {
-        $invoiceNumber = generateInvoiceNumber($db);
-        $db->prepare('UPDATE bookings SET invoice_number = ? WHERE id = ?')
-            ->execute([$invoiceNumber, $bookingId]);
-    }
-
     if (!empty($booking['booking_number'])) {
         $bookingNumber = $booking['booking_number'];
     } else {
@@ -58,23 +47,16 @@ function sendBookingInvoice(PDO $db, int $bookingId): string {
         $db->prepare('UPDATE bookings SET booking_number = ? WHERE id = ?')
             ->execute([$bookingNumber, $bookingId]);
     }
-    $bookingReference = $bookingNumber
-        ? 'Diese Rechnung bezieht sich auf die Buchung ' . $bookingNumber . '. '
-        : '';
 
-    $paymentMethod = $booking['payment_method'] ?? 'wire_transfer';
-    if ($paymentMethod === 'stripe') {
-        $paymentNote = $bookingReference . 'Der Betrag wurde bereits per Kreditkarte beglichen. Bitte nicht erneut überweisen.';
-    } elseif ($paymentMethod === 'paypal') {
-        $paymentNote = $bookingReference . 'Der Betrag wurde bereits per PayPal beglichen. Bitte nicht erneut überweisen.';
-    } else {
-        $paymentNote = $bookingReference . 'Der Betrag wurde bereits per Überweisung beglichen. Bitte nicht erneut überweisen.';
-    }
+    $paymentNote = 'Bitte überweisen Sie den Betrag vor dem Termin am '
+        . $sessionDateFormatted
+        . ' und geben Sie als Verwendungszweck die Buchungsnummer '
+        . $bookingNumber
+        . ' an.';
 
     $pdfGen = new PdfGenerator();
-    $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_erstgespraech', 'rechnung');
-    $pdfContent = $pdfGen->generate($templateKey, $clientName, $invoiceDateFormatted, [
-        'invoiceNumber'    => $invoiceNumber,
+    $templateKey = $pdfGen->resolveTemplateKey('pdf:zahlungsaufforderung_erstgespraech', 'zahlungsaufforderung_erstgespraech');
+    $pdfContent = $pdfGen->generate($templateKey, $clientName, $documentDateFormatted, [
         'bookingNumber'    => $bookingNumber,
         'amountFormatted'  => $amountFormatted,
         'durationMinutes'  => $durationMinutes,
@@ -87,36 +69,42 @@ function sendBookingInvoice(PDO $db, int $bookingId): string {
         'paymentNote'      => $paymentNote,
     ]);
 
-    $documentName = 'Rechnung';
-    $dateFormatted = $invoiceDateFormatted;
-    $sessionDate = $sessionDateFormatted;
+    $dateFormatted = $sessionDateFormatted;
+    $time = $booking['booking_time'];
+    $duration = $durationMinutes;
+    $accountHolder = $config['bank_account_holder'] ?? '';
+    $iban = $config['bank_iban'] ?? '';
+    $bic = $config['bank_bic'] ?? '';
+    $bankName = $config['bank_name'] ?? '';
+    $amount = $amountFormatted;
+    $reference = $bookingNumber;
+
     ob_start();
-    include __DIR__ . '/../templates/email/invoice_cover.php';
+    include __DIR__ . '/../templates/email/booking_wire_transfer.php';
     $htmlBody = ob_get_clean();
 
     $mailer = new Mailer();
-    $pdfFilename = "Rechnung_{$invoiceNumber}.pdf";
+    $pdfFilename = "Zahlungsaufforderung_{$bookingNumber}.pdf";
     $mailer->sendWithPdf(
         $booking['client_email'],
         $clientName,
-        "Rechnung {$invoiceNumber} — {$therapistName}",
+        "Buchungsbestätigung {$bookingNumber} — {$therapistName}",
         $htmlBody,
         $pdfContent,
         $pdfFilename
     );
 
     $db->prepare(
-        'UPDATE bookings SET invoice_sent = 1, invoice_sent_at = NOW() WHERE id = ?'
+        'UPDATE bookings SET payment_request_sent = 1, payment_request_sent_at = NOW() WHERE id = ?'
     )->execute([$bookingId]);
 
-    // Archive invoice to client's document history
     $clientStmt = $db->prepare('SELECT id FROM clients WHERE booking_id = ?');
     $clientStmt->execute([$bookingId]);
     $client = $clientStmt->fetch();
     if ($client) {
         require_once __DIR__ . '/../routes/client_history.php';
-        archiveSentDocument((int)$client['id'], "Rechnung {$invoiceNumber}", $pdfContent, $pdfFilename);
+        archiveSentDocument((int)$client['id'], "Zahlungsaufforderung {$bookingNumber}", $pdfContent, $pdfFilename);
     }
 
-    return $invoiceNumber;
+    return $bookingNumber;
 }

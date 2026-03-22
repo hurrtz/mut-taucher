@@ -7,7 +7,7 @@
 ## Main Capabilities
 
 - `/admin/kalender`: recurring availability rules, rule exceptions, one-off events, blocked days, calendar preview, and cancellation handling
-- `/admin/erstgespraeche`: booking review, payment/status updates, appointment-info sending, invoice sending, and migration from booking to patient
+- `/admin/erstgespraeche`: booking review, payment/status updates, appointment-info sending, deferred invoice sending, and migration from booking to patient
 - `/admin/einzel`: individual therapy CRUD, schedule rules, generated sessions, payment state, and invoice sending
 - `/admin/gruppen`: group therapy CRUD, participant management, session generation, attendance, per-participant payment state, and invoices
 - `/admin/kunden` and `/admin/client/:id`: patient list, archive/restore lifecycle, timeline, notes, and document archive
@@ -28,3 +28,5 @@
 - The admin UI must stay non-indexed and outside the public analytics surface.
 - Tabs should own the data they need instead of rebuilding a single global admin god component.
 - Styling should continue to flow through Ant Design theming and shared admin style utilities.
+- The intro-call booking list is responsible for showing booking numbers and the sent state of payment requests, because those are part of the document/archive lifecycle.
+- Admin actions that mark intro calls paid or completed are the durable trigger for invoice generation; the public booking flow is no longer allowed to consume invoice numbers.
