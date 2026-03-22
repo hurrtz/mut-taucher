@@ -79,6 +79,7 @@ sequenceDiagram
 
 - The backend stays framework-free and function-oriented: route files contain request handling, while reusable operational logic lives in `lib/`.
 - `slots.php` is the canonical availability engine for public booking; it derives availability from recurring rules, exceptions, events, and bookings with reserved states.
+- For intro calls, `slots.php` must continue treating `completed` bookings as reserved so finished appointments do not reopen their slot accidentally; only explicit cancellation releases the slot.
 - Bookings are inserted as `pending_payment` first, which lets the system reserve the slot before payment confirmation or manual completion.
 - Intro-call documents now have two phases: a payment request with its own booking number at booking time, and the actual invoice only after a payment-confirmed transition.
 - Intro-call lifecycle history is intentionally event-backed for patient timelines, while sent PDFs remain archived in `client_documents`; together they capture both operational state changes and outward-facing documents.

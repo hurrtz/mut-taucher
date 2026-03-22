@@ -24,6 +24,7 @@
 ## Important Constraints
 
 - Public operational state, especially slot availability and booking results, must come from the API.
+- After a successful booking, the public booking UI must stop presenting that slot as bookable immediately and should rely on fresh, uncached `/api/slots` responses for subsequent availability.
 - Public services and article content are maintained in source code, not a remote CMS.
 - The admin surface is a child boundary of `src/` and should stay documented in `src/admin/*`.
 - The public frontend should remain usable without analytics consent; tracking helpers must degrade to no-ops.

@@ -32,6 +32,7 @@
 - `index.php` is the front controller and explicit route dispatcher.
 - Admin endpoints require JWT auth; some binary endpoints also accept the token as a query parameter for iframe or image use cases.
 - Slot availability is generated server-side from recurring rules, one-off events, and booking reservation state.
+- Intro-call slots stay reserved for public booking while their booking is `pending_payment`, `confirmed`, or `completed`; only `cancelled` releases the slot back into the public pool.
 - Generated files and uploads under `api/assets/` are persistent application data, not disposable build output.
 - The booking lifecycle, invoice numbering, and document/template behavior should remain deterministic and database-backed.
 - Intro-call bookings use a separate `booking_number` and payment-request document before an invoice exists.
