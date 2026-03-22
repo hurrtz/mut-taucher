@@ -34,7 +34,8 @@ $pdf->writeHTML('<table cellpadding="0" border="0" width="100%"><tr>
 $pdf->Ln(4);
 
 $pdf->writeHTML('<h2>Zahlungsaufforderung</h2>');
-$pdf->writeHTML('<p>Vielen Dank für Ihre Terminbuchung. Bitte überweisen Sie den folgenden Betrag, um Ihren Termin verbindlich zu bestätigen.</p>');
+$pdf->writeHTML('<p>Vielen Dank für Ihre Terminbuchung. Bitte überweisen Sie den folgenden Betrag. Der Termin gilt erst nach Zahlungseingang als verbindlich gebucht.</p>');
+$pdf->writeHTML('<p>Diese Zahlungsaufforderung stellt noch keine Rechnung dar. Die Rechnung wird nach Zahlungseingang erstellt.</p>');
 $pdf->Ln(2);
 
 $pdf->writeHTML('<table cellpadding="8" border="0" width="100%">
@@ -58,17 +59,16 @@ $pdf->writeHTML('<table cellpadding="8" border="0" width="100%">
 $pdf->Ln(6);
 
 $pdf->writeHTML('<p><strong>Zahlungsdaten</strong></p>');
-$pdf->writeHTML('<table cellpadding="6" border="0" width="100%">
+$pdf->writeHTML('<table cellpadding="3" border="0" width="100%">
 <tr><td width="35%"><strong>Empfänger</strong></td><td width="65%">' . $accountHolder . '</td></tr>
 <tr><td width="35%"><strong>IBAN</strong></td><td width="65%">' . $iban . '</td></tr>
 <tr><td width="35%"><strong>BIC</strong></td><td width="65%">' . $bic . '</td></tr>
 <tr><td width="35%"><strong>Bank</strong></td><td width="65%">' . $bankName . '</td></tr>
 <tr><td width="35%"><strong>Verwendungszweck</strong></td><td width="65%">' . htmlspecialchars($bookingNumber) . '</td></tr>
 </table>');
-$pdf->Ln(4);
+$pdf->Ln(2);
 
 $pdf->writeHTML('<p>' . $paymentNote . '</p>');
-$pdf->Ln(8);
+$pdf->Ln(4);
 
-$pdf->writeHTML('<p>Mit freundlichen Grüßen</p>');
-$pdf->writeHTML('<p><strong>' . $tName . '</strong></p>');
+$pdf->writeHTML('<p>Mit freundlichen Grüßen<br><strong>' . $tName . '</strong></p>');

@@ -34,7 +34,8 @@ SELECT
 </table>
 <br>
 <h2>Zahlungsaufforderung</h2>
-<p>Vielen Dank für Ihre Terminbuchung. Bitte überweisen Sie den folgenden Betrag, um Ihren Termin verbindlich zu bestätigen.</p>
+<p>Vielen Dank für Ihre Terminbuchung. Bitte überweisen Sie den folgenden Betrag. Der Termin gilt erst nach Zahlungseingang als verbindlich gebucht.</p>
+<p>Diese Zahlungsaufforderung stellt noch keine Rechnung dar. Die Rechnung wird nach Zahlungseingang erstellt.</p>
 <table cellpadding="8" border="0" width="100%">
 <tr>
 <th width="35%" bgcolor="#2dd4bf" style="color: #ffffff" align="left">Leistung</th>
@@ -55,18 +56,15 @@ SELECT
 </table>
 <br>
 <p><strong>Zahlungsdaten</strong></p>
-<table cellpadding="6" border="0" width="100%">
+<table cellpadding="3" border="0" width="100%">
 <tr><td width="35%"><strong>Empfänger</strong></td><td width="65%">{{bank_account_holder}}</td></tr>
 <tr><td width="35%"><strong>IBAN</strong></td><td width="65%">{{bank_iban}}</td></tr>
 <tr><td width="35%"><strong>BIC</strong></td><td width="65%">{{bank_bic}}</td></tr>
 <tr><td width="35%"><strong>Bank</strong></td><td width="65%">{{bank_name}}</td></tr>
 <tr><td width="35%"><strong>Verwendungszweck</strong></td><td width="65%">{{booking_number}}</td></tr>
 </table>
-<br>
 <p>{{payment_note}}</p>
-<br><br>
-<p>Mit freundlichen Grüßen</p>
-<p><strong>{{therapist_name}}</strong></p>',
+<p>Mit freundlichen Grüßen<br><strong>{{therapist_name}}</strong></p>',
   '["client_name", "client_street", "client_zip", "client_city", "therapist_name", "therapist_street", "therapist_zip", "therapist_city", "date", "booking_number", "amount", "duration_minutes", "therapy_label", "session_date", "session_time", "payment_note", "bank_account_holder", "bank_iban", "bank_bic", "bank_name"]'
 WHERE NOT EXISTS (
   SELECT 1 FROM document_templates WHERE template_key = 'zahlungsaufforderung_erstgespraech'
