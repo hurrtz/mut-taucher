@@ -29,6 +29,7 @@ Mut-Taucher is a single-product repository for a German psychotherapy practice. 
 - Browser frontend to `/api` for all operational data
 - MySQL for schedules, bookings, patients, therapies, groups, templates, branding, and workbook metadata
 - `api/assets/` for generated and uploaded files
+- Google Cloud Storage for long-term backups split into financial (`10` years) and general (`2` years) retention classes
 - Brevo or SMTP for email delivery, TCPDF for PDF generation
 - Stripe and PayPal backend integrations for booking payments
 - Amplitude for public-site analytics after explicit consent
@@ -40,4 +41,6 @@ Mut-Taucher is a single-product repository for a German psychotherapy practice. 
 - Public content is currently code-authored in the frontend rather than managed by a CMS.
 - The current public booking UI presents wire transfer; backend payment branches for Stripe and PayPal still exist.
 - Admin behavior must remain authenticated, non-indexed, and excluded from public analytics tracking.
+- Money-relevant archival data such as invoices and payment requests must remain restorable for `10` years, while other archived operational data only needs `2` years of retention.
+- Long-term asset backups must be content-addressed and incremental so unchanged files do not create new stored blobs on every run.
 - Permanent specs should describe durable scope and architecture; change-by-change work belongs in `docs/plans/`.

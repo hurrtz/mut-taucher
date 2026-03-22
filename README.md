@@ -120,6 +120,126 @@ cd api && composer lint
 php api/migrate.php
 ```
 
+## Production Backups
+
+This app has two persistent data stores in production:
+
+- MySQL
+- `api/assets/`
+
+Use the backup script in [scripts/backup-production.sh](/Users/tobias.winkler/Projects/mut-taucher/scripts/backup-production.sh). It reads database credentials from `api/config.php`, writes the backup outside the web root by default, and creates:
+
+- `db.sql.gz`
+- `api-assets.tar.gz`
+- incremental asset manifests split into `financial` and `general`
+- a `db-financial.json.gz` export for long-term money-relevant retention
+
+Example:
+
+```bash
+chmod +x scripts/backup-production.sh
+./scripts/backup-production.sh
+```
+
+Default output path:
+
+```bash
+$HOME/backups/mut-taucher/YYYY-MM-DD-HHMMSS/
+```
+
+The local backup directory also contains `backup-artifacts/` with the GCS manifests and the financial database archive metadata.
+
+### GCS Retention Layout
+
+Use two private single-region buckets in Europe:
+
+- one `financial` bucket for anything money-related with `10` years retention
+- one `general` bucket for all other archived files and operational snapshots with `2` years retention
+
+Why two buckets:
+
+- GCS retention is bucket-scoped in the simple setup.
+- payment requests, invoices, and financial archive data must outlive general patient-operational backups.
+- the backup script intentionally keeps financial and general artifacts separate so retention is enforceable by storage layout, not by convention.
+
+Recommended policy:
+
+- do not enable Object Versioning
+- keep the financial bucket immutable for `10` years
+- keep the general bucket at `2` years with lifecycle deletion or retention
+
+### GCS Upload Behavior
+
+When GCS buckets are configured, the script uploads:
+
+- `api/assets/` as content-addressed blobs, so unchanged files are not uploaded again
+- one timestamped asset manifest per run for `financial` files and one for `general` files
+- a financial database archive export on its own schedule, default `daily`
+- a full operational database snapshot on its own schedule, default `monthly`
+
+Financial asset classification is derived from the document archive in MySQL:
+
+- `Rechnung ...`
+- `Zahlungsaufforderung ...`
+
+That means archived invoices and payment requests land in the `financial` bucket, while other files such as workbook material, logos, uploads, and non-financial client documents land in the `general` bucket.
+
+Required environment for upload:
+
+```bash
+export GCS_GENERAL_BUCKET_URL="gs://YOUR_GENERAL_BUCKET/mut-taucher/general"
+export GCS_FINANCIAL_BUCKET_URL="gs://YOUR_FINANCIAL_BUCKET/mut-taucher/financial"
+export GCS_KEY_FILE="/home/USERNAME/keys/gcs-backup.json"
+export GCS_SERVICE_ACCOUNT="backup-writer@PROJECT_ID.iam.gserviceaccount.com"
+export GCS_PROJECT="PROJECT_ID"
+export GCS_GENERAL_STORAGE_CLASS="ARCHIVE"
+export GCS_FINANCIAL_STORAGE_CLASS="ARCHIVE"
+```
+
+Then run:
+
+```bash
+./scripts/backup-production.sh
+```
+
+Keep the service-account key outside `public_html` and restrict it to the smallest useful bucket-write scope.
+
+Optional schedule overrides:
+
+```bash
+export GCS_GENERAL_DB_UPLOAD_SCHEDULE="monthly"
+export GCS_FINANCIAL_DB_UPLOAD_SCHEDULE="daily"
+```
+
+Allowed values:
+
+- `never`
+- `daily`
+- `weekly`
+- `monthly`
+
+Default behavior:
+
+- full local backup on every run
+- financial DB export upload every day
+- general full DB upload on the first day of the month
+
+Example cron job for a nightly backup at `02:15`:
+
+```cron
+15 2 * * * /home/USERNAME/public_html/mut-taucher.de/scripts/backup-production.sh >> /home/USERNAME/backups/mut-taucher/backup.log 2>&1
+```
+
+Replace `USERNAME` with the actual hosting account name. Keep backups outside `public_html`.
+
+With GCS upload enabled via environment variables:
+
+```cron
+15 2 * * * GCS_GENERAL_BUCKET_URL=gs://YOUR_GENERAL_BUCKET/mut-taucher/general GCS_FINANCIAL_BUCKET_URL=gs://YOUR_FINANCIAL_BUCKET/mut-taucher/financial GCS_KEY_FILE=/home/USERNAME/keys/gcs-backup.json GCS_SERVICE_ACCOUNT=backup-writer@PROJECT_ID.iam.gserviceaccount.com GCS_PROJECT=PROJECT_ID GCS_GENERAL_STORAGE_CLASS=ARCHIVE GCS_FINANCIAL_STORAGE_CLASS=ARCHIVE /home/USERNAME/public_html/mut-taucher.de/scripts/backup-production.sh >> /home/USERNAME/backups/mut-taucher/backup.log 2>&1
+```
+
+This layout avoids the old failure mode where one changed file forced a fresh upload of the entire `api-assets.tar.gz` archive to long-term storage.
+
 ## Documentation
 
 - [AGENTS.md](AGENTS.md): repo-specific working conventions

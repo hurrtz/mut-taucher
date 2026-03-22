@@ -26,6 +26,8 @@ flowchart LR
 - The admin UI was intentionally refactored from one large page into route-based tabs with local hook ownership.
 - Booking became the entry point into the operational model: a public booking can reserve a slot, create a patient record, trigger notifications, and start invoice/document flows.
 - The document system evolved from fixed templates into DB-backed template editing, sending-point mappings, branding controls, and generated archives.
+- Long-term backups are intentionally split by retention class: financial records go to a `10`-year bucket, while general operational archives go to a `2`-year bucket.
+- Backup storage for `api/assets/` is content-addressed with timestamped manifests so restores can be reconstructed without re-uploading unchanged files on every backup run.
 - `docs/plans/` became the place to incubate larger changes before promoting durable outcomes into permanent specs like this file.
 
 ## Durable Boundaries

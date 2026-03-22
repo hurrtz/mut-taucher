@@ -83,6 +83,7 @@ sequenceDiagram
 - Bookings are inserted as `pending_payment` first, which lets the system reserve the slot before payment confirmation or manual completion.
 - Intro-call documents now have two phases: a payment request with its own booking number at booking time, and the actual invoice only after a payment-confirmed transition.
 - Intro-call lifecycle history is intentionally event-backed for patient timelines, while sent PDFs remain archived in `client_documents`; together they capture both operational state changes and outward-facing documents.
+- Backup tooling relies on `client_documents` metadata plus file paths under `api/assets/` to separate financial archive files from general archived files, so invoice/payment-request retention can be enforced outside the app server without duplicating classification rules by hand.
 - `Mailer` selects Brevo when configured, otherwise SMTP, and retries once on transient delivery failures.
 - `PdfGenerator` prefers DB-backed HTML templates and falls back to file templates, while still applying brand styling and placeholder replacement consistently.
 - Patient history is still assembled from operational tables, but intro-call lifecycle changes use a dedicated event table so request/reminder/cancellation/payment transitions do not have to be inferred from mutable booking rows.
