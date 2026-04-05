@@ -48,7 +48,7 @@ sequenceDiagram
   Public->>Notify: send therapist notification
   Public-->>Visitor: payment-aware response
 
-  Note over Invoice,DB: Invoice generation is deferred until payment confirmation exists; starting or completing the appointment alone is not enough.
+  Note over Invoice,DB: Invoice generation is deferred until payment confirmation exists.<br/>Starting or completing the appointment alone is not enough.
 ```
 
 ## Document and Branding Flow
