@@ -382,7 +382,8 @@ function handleGetActiveGroup(): void {
     $db = getDB();
     $stmt = $db->query(
         'SELECT g.*,
-                (SELECT COUNT(*) FROM group_participants gp WHERE gp.group_id = g.id AND gp.status = \'active\') as participant_count
+                (SELECT COUNT(*) FROM group_participants gp WHERE gp.group_id = g.id AND gp.status = \'active\') as participant_count,
+                (SELECT COUNT(*) FROM group_reservations gr WHERE gr.group_id = g.id) as reservation_count
          FROM therapy_groups g
          WHERE g.show_on_homepage = TRUE
          LIMIT 1'
@@ -399,6 +400,8 @@ function handleGetActiveGroup(): void {
         'label'            => $group['label'],
         'maxParticipants'  => (int)$group['max_participants'],
         'participantCount' => (int)$group['participant_count'],
+        'reservationCount' => (int)$group['reservation_count'],
+        'occupiedCount'    => (int)$group['participant_count'] + (int)$group['reservation_count'],
         'showOnHomepage'   => true,
     ]);
 }

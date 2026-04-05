@@ -93,31 +93,6 @@ export function useAdminGroups() {
     }
   }, [fetchGroups]);
 
-  // ─── Participants ─────────────────────────────────────────────
-
-  const addParticipant = useCallback(async (groupId: number, clientId: number) => {
-    setError(null);
-    try {
-      await apiFetch(`/admin/groups/${groupId}/participants`, {
-        method: 'POST',
-        body: JSON.stringify({ clientId }),
-      });
-      await fetchGroups();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Hinzufügen');
-    }
-  }, [fetchGroups]);
-
-  const removeParticipant = useCallback(async (groupId: number, clientId: number) => {
-    setError(null);
-    try {
-      await apiFetch(`/admin/groups/${groupId}/participants/${clientId}`, { method: 'DELETE' });
-      await fetchGroups();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Entfernen');
-    }
-  }, [fetchGroups]);
-
   // ─── Sessions ─────────────────────────────────────────────────
 
   const fetchGroupSessions = useCallback(async (groupId: number, from?: string, to?: string) => {
@@ -130,6 +105,66 @@ export function useAdminGroups() {
       setError(e instanceof Error ? e.message : 'Fehler beim Laden der Sitzungen');
     }
   }, []);
+
+  // ─── Participants ─────────────────────────────────────────────
+
+  const addParticipant = useCallback(async (groupId: number, clientId: number) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/groups/${groupId}/participants`, {
+        method: 'POST',
+        body: JSON.stringify({ clientId }),
+      });
+      await Promise.all([fetchGroups(), fetchGroupSessions(groupId)]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Hinzufügen');
+    }
+  }, [fetchGroupSessions, fetchGroups]);
+
+  const removeParticipant = useCallback(async (groupId: number, clientId: number) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/groups/${groupId}/participants/${clientId}`, { method: 'DELETE' });
+      await fetchGroups();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Entfernen');
+    }
+  }, [fetchGroups]);
+
+  const addReservation = useCallback(async (groupId: number) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/groups/${groupId}/reservations`, {
+        method: 'POST',
+      });
+      await fetchGroups();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Reservieren');
+    }
+  }, [fetchGroups]);
+
+  const removeReservation = useCallback(async (groupId: number, reservationId: number) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/groups/${groupId}/reservations/${reservationId}`, { method: 'DELETE' });
+      await fetchGroups();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Entfernen der Reservierung');
+    }
+  }, [fetchGroups]);
+
+  const fillReservation = useCallback(async (groupId: number, reservationId: number, clientId: number) => {
+    setError(null);
+    try {
+      await apiFetch(`/admin/groups/${groupId}/reservations/${reservationId}/fill`, {
+        method: 'POST',
+        body: JSON.stringify({ clientId }),
+      });
+      await Promise.all([fetchGroups(), fetchGroupSessions(groupId)]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Besetzen der Reservierung');
+    }
+  }, [fetchGroupSessions, fetchGroups]);
 
 
   const addGroupSession = useCallback(async (groupId: number, session: { date: string; time: string; durationMinutes?: number }) => {
@@ -253,6 +288,9 @@ export function useAdminGroups() {
     toggleException,
     addParticipant,
     removeParticipant,
+    addReservation,
+    removeReservation,
+    fillReservation,
     fetchGroupSessions,
     addGroupSession,
     generateGroupSessions,

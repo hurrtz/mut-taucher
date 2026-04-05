@@ -9,7 +9,7 @@
 - `/admin/kalender`: recurring availability rules, rule exceptions, one-off events, blocked days, calendar preview, and cancellation handling
 - `/admin/erstgespraeche`: booking review, payment confirmation, appointment start/completion, payment-reminder and cancellation emails, deferred invoice sending, and migration from booking to patient
 - `/admin/einzel`: individual therapy CRUD, schedule rules, generated sessions, payment state, and invoice sending
-- `/admin/gruppen`: group therapy CRUD, participant management, session generation, attendance, per-participant payment state, and invoices
+- `/admin/gruppen`: group therapy CRUD, participant and seat-reservation management, session generation, attendance, per-participant payment state, and invoices
 - `/admin/kunden` and `/admin/client/:id`: patient list, archive/restore lifecycle, filterable timeline, notes, and document archive
 - `/admin/dokumente`: HTML template editing, sending-point mappings, preview, branding settings, and logo management
 - `/admin/arbeitsmappe`: workbook-material upload, grouping, preview, and sharing to selected patients
@@ -32,3 +32,4 @@
 - Admin actions for intro calls must keep payment confirmation distinct from appointment progress: the therapist may start or complete the appointment before payment arrives, but only confirmed payment may trigger invoice generation.
 - The intro-call admin surface owns the operational reminder/cancellation emails around wire-transfer bookings, and those sends must stay consistent with what appears in the patient timeline.
 - The patient list must distinguish disposable booking-only client records from durable patient records: disposable records can be deleted, while records with substantive activity must be archived instead.
+- Group seat reservations consume capacity even before an official patient exists, but they must remain outside patient, billing, and document flows until they are converted into a concrete participant.

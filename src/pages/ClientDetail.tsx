@@ -493,7 +493,7 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
       <div style={{ fontSize: 14 }}>
         <Text strong style={copy.color ? { color: copy.color } : undefined}>{copy.label}</Text>
         {bookingMeta && <Text type="secondary"> — {bookingMeta}</Text>}
-        {data.bookingNumber && (
+        {Boolean(data.bookingNumber) && (
           <div style={{ marginTop: 2 }}>
             <Text type="secondary" style={{ fontSize: 12 }}>
               Buchungsnummer: {String(data.bookingNumber)}

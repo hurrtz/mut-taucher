@@ -66,6 +66,8 @@ export interface TherapyGroup {
   label: string;
   maxParticipants: number;
   participantCount: number;
+  reservationCount: number;
+  occupiedCount: number;
   showOnHomepage: boolean;
   startDate: string | null;
   endDate: string | null;
@@ -78,6 +80,7 @@ export interface TherapyGroup {
   schedule: TherapyScheduleRule[];
   exceptions?: string[];
   participants?: GroupParticipant[];
+  reservations?: GroupReservation[];
 }
 
 export interface GroupParticipant {
@@ -87,6 +90,11 @@ export interface GroupParticipant {
   joinedAt: string;
   status: 'active' | 'left';
   invoiceStatus: 'none' | 'full_sent' | 'half1_sent' | 'half2_sent';
+}
+
+export interface GroupReservation {
+  id: number;
+  createdAt: string;
 }
 
 export interface GroupSession {

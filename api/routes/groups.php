@@ -6,6 +6,82 @@ require_once __DIR__ . '/clients.php';
 
 // ─── Helper: format group row ────────────────────────────────────
 
+function fetchGroupReservations(PDO $db, int $groupId): array {
+    $stmt = $db->prepare(
+        'SELECT id, created_at
+         FROM group_reservations
+         WHERE group_id = ?
+         ORDER BY created_at ASC, id ASC'
+    );
+    $stmt->execute([$groupId]);
+
+    return $stmt->fetchAll();
+}
+
+function fetchGroupSeatSummary(PDO $db, int $groupId): ?array {
+    $stmt = $db->prepare(
+        'SELECT g.id, g.max_participants,
+                (SELECT COUNT(*) FROM group_participants gp WHERE gp.group_id = g.id AND gp.status = \'active\') AS participant_count,
+                (SELECT COUNT(*) FROM group_reservations gr WHERE gr.group_id = g.id) AS reservation_count
+         FROM therapy_groups g
+         WHERE g.id = ?'
+    );
+    $stmt->execute([$groupId]);
+    $summary = $stmt->fetch();
+
+    return $summary ?: null;
+}
+
+function findGroupParticipant(PDO $db, int $groupId, int $clientId): ?array {
+    $stmt = $db->prepare(
+        'SELECT id, status
+         FROM group_participants
+         WHERE group_id = ? AND client_id = ?'
+    );
+    $stmt->execute([$groupId, $clientId]);
+    $participant = $stmt->fetch();
+
+    return $participant ?: null;
+}
+
+function activateOrInsertGroupParticipant(PDO $db, int $groupId, int $clientId, ?array $existingParticipant = null): void {
+    $existing = $existingParticipant ?? findGroupParticipant($db, $groupId, $clientId);
+
+    if ($existing) {
+        $db->prepare(
+            'UPDATE group_participants
+             SET status = \'active\', left_at = NULL, joined_at = NOW()
+             WHERE id = ?'
+        )->execute([$existing['id']]);
+        return;
+    }
+
+    $db->prepare(
+        'INSERT INTO group_participants (group_id, client_id) VALUES (?, ?)'
+    )->execute([$groupId, $clientId]);
+}
+
+function createFutureGroupPaymentRows(PDO $db, int $groupId, int $clientId): void {
+    $futureStmt = $db->prepare(
+        'SELECT id
+         FROM group_sessions
+         WHERE group_id = ? AND session_date >= CURDATE() AND status = \'scheduled\''
+    );
+    $futureStmt->execute([$groupId]);
+    $futureSessions = $futureStmt->fetchAll();
+
+    if (empty($futureSessions)) {
+        return;
+    }
+
+    $payStmt = $db->prepare(
+        'INSERT IGNORE INTO group_session_payments (group_session_id, client_id) VALUES (?, ?)'
+    );
+    foreach ($futureSessions as $session) {
+        $payStmt->execute([$session['id'], $clientId]);
+    }
+}
+
 function formatGroupRow(array $g, PDO $db): array {
     // Schedule rules
     $schedStmt = $db->prepare(
@@ -24,12 +100,17 @@ function formatGroupRow(array $g, PDO $db): array {
     );
     $partStmt->execute([$g['id']]);
     $participants = $partStmt->fetchAll();
+    $reservations = fetchGroupReservations($db, (int)$g['id']);
+    $participantCount = count($participants);
+    $reservationCount = count($reservations);
 
     return [
         'id'                     => (int)$g['id'],
         'label'                  => $g['label'],
         'maxParticipants'        => (int)$g['max_participants'],
-        'participantCount'       => count($participants),
+        'participantCount'       => $participantCount,
+        'reservationCount'       => $reservationCount,
+        'occupiedCount'          => $participantCount + $reservationCount,
         'showOnHomepage'         => (bool)$g['show_on_homepage'],
         'startDate'              => $g['start_date'],
         'endDate'                => $g['end_date'],
@@ -52,6 +133,10 @@ function formatGroupRow(array $g, PDO $db): array {
             'status'        => $p['status'],
             'invoiceStatus' => $p['invoice_status'] ?? 'none',
         ], $participants),
+        'reservations'           => array_map(fn($r) => [
+            'id'        => (int)$r['id'],
+            'createdAt' => $r['created_at'],
+        ], $reservations),
     ];
 }
 
@@ -116,6 +201,10 @@ function handleGetGroup(int $id): void {
         'status'        => $p['status'],
         'invoiceStatus' => $p['invoice_status'] ?? 'none',
     ], $partStmt->fetchAll());
+    $result['reservations'] = array_map(fn($r) => [
+        'id'        => (int)$r['id'],
+        'createdAt' => $r['created_at'],
+    ], fetchGroupReservations($db, $id));
 
     echo json_encode($result);
 }
@@ -310,36 +399,22 @@ function handleAddParticipant(int $groupId): void {
         return;
     }
 
-    // Check max constraint
-    $groupStmt = $db->prepare('SELECT max_participants FROM therapy_groups WHERE id = ?');
-    $groupStmt->execute([$groupId]);
-    $group = $groupStmt->fetch();
-
-    if (!$group) {
+    $summary = fetchGroupSeatSummary($db, $groupId);
+    if (!$summary) {
         http_response_code(404);
         echo json_encode(['error' => 'Gruppe nicht gefunden']);
         return;
     }
 
-    $countStmt = $db->prepare(
-        'SELECT COUNT(*) FROM group_participants WHERE group_id = ? AND status = \'active\''
-    );
-    $countStmt->execute([$groupId]);
-    $currentCount = (int)$countStmt->fetchColumn();
+    $currentCount = (int)$summary['participant_count'] + (int)$summary['reservation_count'];
 
-    if ($currentCount >= (int)$group['max_participants']) {
+    if ($currentCount >= (int)$summary['max_participants']) {
         http_response_code(400);
-        echo json_encode(['error' => 'Maximale Teilnehmerzahl erreicht']);
+        echo json_encode(['error' => 'Maximale Platzanzahl erreicht']);
         return;
     }
 
-    // Check if already a participant (possibly left)
-    $existingStmt = $db->prepare(
-        'SELECT id, status FROM group_participants WHERE group_id = ? AND client_id = ?'
-    );
-    $existingStmt->execute([$groupId, $clientId]);
-    $existing = $existingStmt->fetch();
-
+    $existing = findGroupParticipant($db, $groupId, (int)$clientId);
     if ($existing && $existing['status'] === 'active') {
         http_response_code(409);
         echo json_encode(['error' => 'Patient:in ist bereits Teilnehmer:in']);
@@ -348,32 +423,8 @@ function handleAddParticipant(int $groupId): void {
 
     $db->beginTransaction();
     try {
-        if ($existing) {
-            // Re-activate
-            $db->prepare(
-                'UPDATE group_participants SET status = \'active\', left_at = NULL, joined_at = NOW() WHERE id = ?'
-            )->execute([$existing['id']]);
-        } else {
-            $db->prepare(
-                'INSERT INTO group_participants (group_id, client_id) VALUES (?, ?)'
-            )->execute([$groupId, $clientId]);
-        }
-
-        // Create payment rows for future scheduled sessions
-        $futureStmt = $db->prepare(
-            'SELECT id FROM group_sessions WHERE group_id = ? AND session_date >= CURDATE() AND status = \'scheduled\''
-        );
-        $futureStmt->execute([$groupId]);
-        $futureSessions = $futureStmt->fetchAll();
-
-        if (!empty($futureSessions)) {
-            $payStmt = $db->prepare(
-                'INSERT IGNORE INTO group_session_payments (group_session_id, client_id) VALUES (?, ?)'
-            );
-            foreach ($futureSessions as $session) {
-                $payStmt->execute([$session['id'], $clientId]);
-            }
-        }
+        activateOrInsertGroupParticipant($db, $groupId, (int)$clientId, $existing);
+        createFutureGroupPaymentRows($db, $groupId, (int)$clientId);
 
         $db->commit();
         echo json_encode(['message' => 'Teilnehmer:in hinzugefügt']);
@@ -403,6 +454,120 @@ function handleRemoveParticipant(int $groupId, int $clientId): void {
     }
 
     echo json_encode(['message' => 'Teilnehmer:in entfernt']);
+}
+
+/**
+ * POST /api/admin/groups/:id/reservations
+ */
+function handleAddReservation(int $groupId): void {
+    requireAuth();
+    $db = getDB();
+
+    $summary = fetchGroupSeatSummary($db, $groupId);
+    if (!$summary) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Gruppe nicht gefunden']);
+        return;
+    }
+
+    $occupiedCount = (int)$summary['participant_count'] + (int)$summary['reservation_count'];
+    if ($occupiedCount >= (int)$summary['max_participants']) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Maximale Platzanzahl erreicht']);
+        return;
+    }
+
+    $stmt = $db->prepare(
+        'INSERT INTO group_reservations (group_id) VALUES (?)'
+    );
+    $stmt->execute([$groupId]);
+
+    echo json_encode([
+        'id' => (int)$db->lastInsertId(),
+        'message' => 'Platz reserviert',
+    ]);
+}
+
+/**
+ * DELETE /api/admin/groups/:id/reservations/:reservationId
+ */
+function handleRemoveReservation(int $groupId, int $reservationId): void {
+    requireAuth();
+    $db = getDB();
+
+    $stmt = $db->prepare(
+        'DELETE FROM group_reservations
+         WHERE id = ? AND group_id = ?'
+    );
+    $stmt->execute([$reservationId, $groupId]);
+
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Reservierung nicht gefunden']);
+        return;
+    }
+
+    echo json_encode(['message' => 'Reservierung entfernt']);
+}
+
+/**
+ * POST /api/admin/groups/:id/reservations/:reservationId/fill
+ * Body: { clientId }
+ */
+function handleFillReservation(int $groupId, int $reservationId): void {
+    requireAuth();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $db = getDB();
+
+    $clientId = $input['clientId'] ?? null;
+    if (!$clientId) {
+        http_response_code(400);
+        echo json_encode(['error' => 'clientId ist erforderlich']);
+        return;
+    }
+
+    $reservationStmt = $db->prepare(
+        'SELECT id
+         FROM group_reservations
+         WHERE id = ? AND group_id = ?'
+    );
+    $reservationStmt->execute([$reservationId, $groupId]);
+    $reservation = $reservationStmt->fetch();
+
+    if (!$reservation) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Reservierung nicht gefunden']);
+        return;
+    }
+
+    $existing = findGroupParticipant($db, $groupId, (int)$clientId);
+    if ($existing && $existing['status'] === 'active') {
+        http_response_code(409);
+        echo json_encode(['error' => 'Patient:in ist bereits Teilnehmer:in']);
+        return;
+    }
+
+    $db->beginTransaction();
+    try {
+        $deleteStmt = $db->prepare(
+            'DELETE FROM group_reservations
+             WHERE id = ? AND group_id = ?'
+        );
+        $deleteStmt->execute([$reservationId, $groupId]);
+
+        if ($deleteStmt->rowCount() === 0) {
+            throw new RuntimeException('Reservierung konnte nicht mehr gefunden werden');
+        }
+
+        activateOrInsertGroupParticipant($db, $groupId, (int)$clientId, $existing);
+        createFutureGroupPaymentRows($db, $groupId, (int)$clientId);
+
+        $db->commit();
+        echo json_encode(['message' => 'Reservierung besetzt']);
+    } catch (\Exception $e) {
+        $db->rollBack();
+        throw $e;
+    }
 }
 
 // ─── Schedule Exceptions ─────────────────────────────────────────

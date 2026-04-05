@@ -53,5 +53,6 @@ sequenceDiagram
 - **Decision:** `useDocumentMeta()` owns runtime title, canonical, Open Graph, and Twitter metadata, while `scripts/prerender.mjs` materializes the stable public routes after build.
 - **Decision:** Consent gating happens before analytics initialization. On `localhost` and under `/admin`, analytics stays disabled even if consent exists.
 - **Decision:** Public booking is slot-first: selecting a concrete slot opens the booking modal that restates slot context, price, and legal disclosures before the submission request is sent.
+- **Decision:** The homepage group ad consumes backend seat availability rather than deriving its own counts in the browser; remaining seats are based on occupied group seats, including unnamed therapist reservations.
 - **Decision:** Shared browser state is intentionally small: consent in `localStorage`, auth token in `sessionStorage`, and no client-side duplication of operational booking truth.
 - **Decision:** Public content remains code-authored, which keeps the deployment simple but means content changes ship through the normal code pipeline.

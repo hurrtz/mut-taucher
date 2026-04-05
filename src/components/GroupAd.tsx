@@ -14,7 +14,8 @@ export default function GroupAd() {
 
   if (!group) return null;
 
-  const spotsLeft = group.maxParticipants - group.participantCount;
+  const occupiedCount = group.occupiedCount ?? (group.participantCount + group.reservationCount);
+  const spotsLeft = group.maxParticipants - occupiedCount;
   if (spotsLeft <= 0) return null;
 
   return (

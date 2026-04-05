@@ -13,7 +13,7 @@ Mut-Taucher is a single-product repository for a German psychotherapy practice. 
 
 - Public presentation of the practice, service offerings, knowledge content, and legal information
 - Public booking flow for introductory appointments, including validation, consent capture, and payment branching
-- Internal operations tooling for bookings, ongoing therapies, group programs, patient records, document workflows, and invoicing
+- Internal operations tooling for bookings, ongoing therapies, group programs, group-seat reservations, patient records, document workflows, and invoicing
 - Practice branding and document-template customization from the admin area
 - Email, PDF, payment, and analytics integrations around the core therapy workflow
 - Build-time prerendering and operator-run backup automation for SEO output and long-term retention

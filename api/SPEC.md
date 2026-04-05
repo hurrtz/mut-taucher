@@ -12,7 +12,7 @@
 | Admin auth and scheduling | `routes/admin.php`, `slots.php` | Login, recurring rules, one-off events, blocked days, booking lifecycle, cancellation workflows |
 | Patients and history | `routes/clients.php`, `routes/client_history.php` | Patient CRUD, archive/restore, timeline aggregation, notes, sent/received document archive |
 | Individual therapy | `routes/therapies.php` | Therapy CRUD, schedule rules, session generation, payment state, invoices |
-| Group therapy | `routes/groups.php` | Group CRUD, participants, group sessions, attendance, per-participant payment state, invoices |
+| Group therapy | `routes/groups.php` | Group CRUD, participants, seat reservations, group sessions, attendance, per-participant payment state, invoices |
 | Templates and branding | `routes/templates.php`, `routes/branding.php` | DB-backed template management, sending-point mappings, branding settings, logo variants |
 | Workbook | `routes/workbook.php` | Material upload, download, deletion, and distribution |
 | Shared operational services | `lib/*.php` | Mail transport, PDF generation, invoice numbering, booking notifications, document registry, payment helpers |
@@ -34,6 +34,7 @@
 - Admin endpoints require JWT auth; some binary endpoints also accept the token as a query parameter for iframe or image use cases.
 - Slot availability is generated server-side from recurring rules, one-off events, and booking reservation state.
 - Intro-call slots stay reserved for public booking while their booking is `pending_payment`, `confirmed`, or `completed`; only `cancelled` releases the slot back into the public pool.
+- Group capacity must count both active participants and active seat reservations.
 - Generated files and uploads under `api/assets/` are persistent application data, not disposable build output.
 - Archived invoices and payment requests are not just user-facing PDFs; they are also backup-classified financial records and must stay distinguishable from general archived files.
 - The booking lifecycle, invoice numbering, and document/template behavior should remain deterministic and database-backed.
@@ -44,3 +45,4 @@
 - Backup/export logic must be able to classify archived payment requests and invoices from database metadata so financial-retention storage can be enforced without manually curating file lists.
 - Intro-call lifecycle actions that matter operationally or archivally, including the original request, payment reminders, payment confirmation, completion, cancellation, and cancellation-email delivery, must be recoverable in the patient timeline.
 - Client deletion is only allowed for records without substantive downstream activity; a sent intro-call payment request alone does not make the client record durable.
+- Group seat reservations are operational planning state only: they consume capacity and affect homepage availability, but they must not create patient-linked payment rows, invoices, or history events until converted into a concrete participant.

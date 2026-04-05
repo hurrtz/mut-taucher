@@ -205,6 +205,22 @@ if ($method === 'DELETE' && preg_match('#^/admin/groups/(\d+)/participants/(\d+)
     exit;
 }
 
+// Admin: group reservations
+if ($method === 'POST' && preg_match('#^/admin/groups/(\d+)/reservations$#', $uri, $m)) {
+    handleAddReservation((int)$m[1]);
+    exit;
+}
+
+if ($method === 'POST' && preg_match('#^/admin/groups/(\d+)/reservations/(\d+)/fill$#', $uri, $m)) {
+    handleFillReservation((int)$m[1], (int)$m[2]);
+    exit;
+}
+
+if ($method === 'DELETE' && preg_match('#^/admin/groups/(\d+)/reservations/(\d+)$#', $uri, $m)) {
+    handleRemoveReservation((int)$m[1], (int)$m[2]);
+    exit;
+}
+
 // Admin: group schedule exceptions
 if ($method === 'POST' && preg_match('#^/admin/groups/(\d+)/exceptions$#', $uri, $m)) {
     handleToggleGroupException((int)$m[1]);

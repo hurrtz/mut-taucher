@@ -22,27 +22,35 @@ const { Text } = Typography;
 
 // ─── Participant Panel ───────────────────────────────────────────
 
-function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay, onSendBundleInvoice }: {
+function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onAddReservation, onRemoveReservation, onFillReservation, onBulkPay, onSendBundleInvoice }: {
   group: TherapyGroup;
   clients: Client[];
   sessions: GroupSession[];
   onAdd: (clientId: number) => void;
   onRemove: (clientId: number) => void;
+  onAddReservation: () => void;
+  onRemoveReservation: (reservationId: number) => void;
+  onFillReservation: (reservationId: number, clientId: number) => void;
   onBulkPay?: (groupId: number, clientId: number, count?: number | null) => void;
   onSendBundleInvoice?: (groupId: number, clientId: number, paymentMode: 'full' | 'half_first' | 'half_second') => void;
 }) {
   const styles = useAdminStyles();
   const [selectedClientId, setSelectedClientId] = useState(0);
+  const [selectedReservationClientIds, setSelectedReservationClientIds] = useState<Record<number, number>>({});
   const [bulkPayClient, setBulkPayClient] = useState<{ id: number; name: string; unpaid: number } | null>(null);
   const [bulkPayCount, setBulkPayCount] = useState(1);
   const [payAll, setPayAll] = useState(false);
 
   const activeParticipants = group.participants?.filter(p => p.status === 'active') ?? [];
+  const activeReservations = group.reservations ?? [];
   const participantIds = new Set(activeParticipants.map(p => p.clientId));
   const availableClients = clients.filter(c => c.status === 'active' && !participantIds.has(c.id));
-  const isFull = activeParticipants.length >= group.maxParticipants;
+  const occupiedCount = group.occupiedCount ?? (activeParticipants.length + activeReservations.length);
+  const reservationCount = group.reservationCount ?? activeReservations.length;
+  const spotsLeft = Math.max(0, group.maxParticipants - occupiedCount);
+  const isFull = spotsLeft <= 0;
   const pct = group.maxParticipants > 0
-    ? Math.round((activeParticipants.length / group.maxParticipants) * 100)
+    ? Math.round((occupiedCount / group.maxParticipants) * 100)
     : 0;
 
   const unpaidByClient = new Map<number, number>();
@@ -58,7 +66,10 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text strong style={{ fontSize: 14 }}>
-          Teilnehmer ({activeParticipants.length} / {group.maxParticipants})
+          Plätze ({occupiedCount} / {group.maxParticipants})
+        </Text>
+        <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>
+          {activeParticipants.length} Teilnehmer · {reservationCount} reserviert · {spotsLeft} frei
         </Text>
       </div>
 
@@ -175,31 +186,108 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onBulkPay
         </div>
       )}
 
-      {!isFull && availableClients.length > 0 && (
-        <Space.Compact style={{ width: '100%' }}>
-          <Select
-            showSearch
-            value={selectedClientId || undefined}
-            onChange={(val) => setSelectedClientId(val)}
-            placeholder="Patient:in auswählen..."
-            style={{ flex: 1 }}
-            optionFilterProp="label"
-            options={availableClients.map(c => ({
-              value: c.id,
-              label: `${c.lastName}, ${c.firstName} (${c.email})`,
-            }))}
-          />
-          <Button
-            type="primary"
-            onClick={() => { if (selectedClientId) { onAdd(selectedClientId); setSelectedClientId(0); } }}
-            disabled={!selectedClientId}
-          >
-            Hinzufügen
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Text strong style={{ fontSize: 14 }}>
+          Reservierungen ({activeReservations.length})
+        </Text>
+        {activeReservations.length === 0 ? (
+          <Text type="secondary" style={{ textAlign: 'center', padding: '8px 0' }}>Noch keine Reservierungen.</Text>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {activeReservations.map((reservation) => (
+              <Card size="small" key={reservation.id} styles={{ body: { padding: '8px 12px' } }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Text strong>Reservierter Platz</Text>
+                    <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>
+                      Seit {format(parseISO(reservation.createdAt), 'd. MMM yyyy', { locale: de })}
+                    </Text>
+                  </div>
+                  <Space wrap>
+                    <Select
+                      showSearch
+                      value={selectedReservationClientIds[reservation.id] || undefined}
+                      onChange={(value) => setSelectedReservationClientIds(prev => ({ ...prev, [reservation.id]: value }))}
+                      placeholder="Patient:in auswählen..."
+                      style={{ minWidth: 260 }}
+                      optionFilterProp="label"
+                      options={availableClients.map(c => ({
+                        value: c.id,
+                        label: `${c.lastName}, ${c.firstName} (${c.email})`,
+                      }))}
+                    />
+                    <Button
+                      type="primary"
+                      onClick={() => {
+                        const clientId = selectedReservationClientIds[reservation.id];
+                        if (!clientId) return;
+                        onFillReservation(reservation.id, clientId);
+                        setSelectedReservationClientIds(prev => {
+                          const next = { ...prev };
+                          delete next[reservation.id];
+                          return next;
+                        });
+                      }}
+                      disabled={!selectedReservationClientIds[reservation.id]}
+                    >
+                      Besetzen
+                    </Button>
+                    <Tooltip title="Reservierung entfernen">
+                      <Button
+                        type="text"
+                        icon={<CloseOutlined />}
+                        danger
+                        onClick={() => {
+                          Modal.confirm({
+                            title: 'Reservierung entfernen?',
+                            okText: 'Entfernen',
+                            cancelText: 'Abbrechen',
+                            okType: 'danger',
+                            onOk: () => onRemoveReservation(reservation.id),
+                          });
+                        }}
+                      />
+                    </Tooltip>
+                  </Space>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {!isFull && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {availableClients.length > 0 && (
+            <Space.Compact style={{ width: '100%' }}>
+              <Select
+                showSearch
+                value={selectedClientId || undefined}
+                onChange={(val) => setSelectedClientId(val)}
+                placeholder="Patient:in auswählen..."
+                style={{ flex: 1 }}
+                optionFilterProp="label"
+                options={availableClients.map(c => ({
+                  value: c.id,
+                  label: `${c.lastName}, ${c.firstName} (${c.email})`,
+                }))}
+              />
+              <Button
+                type="primary"
+                onClick={() => { if (selectedClientId) { onAdd(selectedClientId); setSelectedClientId(0); } }}
+                disabled={!selectedClientId}
+              >
+                Patient:in hinzufügen
+              </Button>
+            </Space.Compact>
+          )}
+          <Button onClick={onAddReservation}>
+            Platz reservieren
           </Button>
-        </Space.Compact>
+        </div>
       )}
       {isFull && (
-        <Text type="warning">Maximale Teilnehmerzahl erreicht.</Text>
+        <Text type="warning">Maximale Platzanzahl erreicht.</Text>
       )}
 
       <Modal
@@ -491,7 +579,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
 // ─── Group Card ─────────────────────────────────────────────────
 
 function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, onArchive,
-  onToggleHomepage, onAddParticipant, onRemoveParticipant,
+  onToggleHomepage, onAddParticipant, onRemoveParticipant, onAddReservation, onRemoveReservation, onFillReservation,
   onGenerateSessions, onUpdateSession, onDeleteSession,
   onUpdatePayment, onBulkPay, onSendBundleInvoice }: {
   group: TherapyGroup;
@@ -504,6 +592,9 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
   onToggleHomepage?: (id: number, current: boolean) => void;
   onAddParticipant: (groupId: number, clientId: number) => void;
   onRemoveParticipant: (groupId: number, clientId: number) => void;
+  onAddReservation: (groupId: number) => void;
+  onRemoveReservation: (groupId: number, reservationId: number) => void;
+  onFillReservation: (groupId: number, reservationId: number, clientId: number) => void;
   onGenerateSessions: (groupId: number, from: string, to: string) => void;
   onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
   onDeleteSession: (id: number, groupId: number) => void;
@@ -514,10 +605,11 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
   const styles = useAdminStyles();
   useEffect(() => { fetchSessions(group.id); }, [group.id, fetchSessions]);
 
+  const occupiedCount = group.occupiedCount ?? (group.participantCount + group.reservationCount);
   const pct = group.maxParticipants > 0
-    ? Math.round((group.participantCount / group.maxParticipants) * 100)
+    ? Math.round((occupiedCount / group.maxParticipants) * 100)
     : 0;
-  const spotsLeft = group.maxParticipants - group.participantCount;
+  const spotsLeft = Math.max(0, group.maxParticipants - occupiedCount);
   const scheduleLabel = group.schedule
     ?.map(s => `${DAY_LABELS[s.dayOfWeek]} ${s.time}${s.frequency === 'biweekly' ? ' (2-wöch.)' : ''}`)
     .join(', ');
@@ -618,8 +710,10 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
 
       <div style={{ marginTop: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <Text style={{ fontSize: 13 }}>{group.participantCount} / {group.maxParticipants} Teilnehmer</Text>
-          <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{spotsLeft > 0 ? `${spotsLeft} frei` : 'Voll'}</Text>
+          <Text style={{ fontSize: 13 }}>{occupiedCount} / {group.maxParticipants} Plätze belegt</Text>
+          <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>
+            {group.participantCount} Teilnehmer · {group.reservationCount} reserviert · {spotsLeft > 0 ? `${spotsLeft} frei` : 'Voll'}
+          </Text>
         </div>
         <Progress
           percent={Math.min(pct, 100)}
@@ -634,7 +728,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
           defaultActiveKey={[]}
           items={[{
             key: 'participants',
-            label: `Teilnehmer (${group.participantCount})`,
+            label: `Plätze (${occupiedCount})`,
             children: (
               <ParticipantPanel
                 group={group}
@@ -642,6 +736,9 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
                 sessions={sessions}
                 onAdd={(clientId) => onAddParticipant(group.id, clientId)}
                 onRemove={(clientId) => onRemoveParticipant(group.id, clientId)}
+                onAddReservation={() => onAddReservation(group.id)}
+                onRemoveReservation={(reservationId) => onRemoveReservation(group.id, reservationId)}
+                onFillReservation={(reservationId, clientId) => onFillReservation(group.id, reservationId, clientId)}
                 onBulkPay={onBulkPay}
                 onSendBundleInvoice={onSendBundleInvoice}
               />
@@ -667,7 +764,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
 // ─── Group Manager ───────────────────────────────────────────────
 
 export default function GroupManager({ groups, archivedGroups, clients, groupSessionsByGroup, fetchGroupSessions,
-  onEdit, onDelete, onArchive, onToggleHomepage, onAddParticipant, onRemoveParticipant,
+  onEdit, onDelete, onArchive, onToggleHomepage, onAddParticipant, onRemoveParticipant, onAddReservation, onRemoveReservation, onFillReservation,
   onGenerateSessions, onUpdateSession, onDeleteSession,
   onUpdatePayment, onBulkPay, onSendBundleInvoice,
   showNewForm, newForm }: {
@@ -682,6 +779,9 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
   onToggleHomepage: (id: number, current: boolean) => void;
   onAddParticipant: (groupId: number, clientId: number) => void;
   onRemoveParticipant: (groupId: number, clientId: number) => void;
+  onAddReservation: (groupId: number) => void;
+  onRemoveReservation: (groupId: number, reservationId: number) => void;
+  onFillReservation: (groupId: number, reservationId: number, clientId: number) => void;
   onGenerateSessions: (groupId: number, from: string, to: string) => void;
   onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
   onDeleteSession: (id: number, groupId: number) => void;
@@ -717,6 +817,9 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
                 onToggleHomepage={onToggleHomepage}
                 onAddParticipant={onAddParticipant}
                 onRemoveParticipant={onRemoveParticipant}
+                onAddReservation={onAddReservation}
+                onRemoveReservation={onRemoveReservation}
+                onFillReservation={onFillReservation}
                 onGenerateSessions={onGenerateSessions}
                 onUpdateSession={onUpdateSession}
                 onDeleteSession={onDeleteSession}
@@ -749,6 +852,9 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
                   fetchSessions={fetchGroupSessions}
                   onAddParticipant={onAddParticipant}
                   onRemoveParticipant={onRemoveParticipant}
+                  onAddReservation={onAddReservation}
+                  onRemoveReservation={onRemoveReservation}
+                  onFillReservation={onFillReservation}
                   onGenerateSessions={onGenerateSessions}
                   onUpdateSession={onUpdateSession}
                   onDeleteSession={onDeleteSession}

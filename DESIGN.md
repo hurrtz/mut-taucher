@@ -25,6 +25,7 @@ flowchart LR
 - **Decision:** The frontend remains a single SPA even though it contains both public and admin surfaces. The split is enforced with routing and lazy loading rather than separate frontend projects.
 - **Decision:** The admin UI stays route-based with local ownership per tab rather than returning to a single stateful admin page.
 - **Decision:** Booking is the operational entry point into the practice system: a public booking may reserve a slot, create or link a patient record, trigger therapist notifications, and begin payment/document history.
+- **Decision:** Group capacity distinguishes between official participants and unnamed reservations. Both consume seats for operational planning and homepage promotion, but only official participants participate in payment, invoicing, workbook, and patient-history flows.
 - **Decision:** The document system is DB-backed for templates and branding, but generated files remain archived under `api/assets/` so sent documents and uploads stay restorable.
 - **Decision:** Build-time and operator-run automation lives in `scripts/` so prerendering and backup logic can evolve with the app instead of being split across ad-hoc hosting-panel steps.
 - **Decision:** Backup retention is intentionally split by archive class: financial records go to the `10`-year retention path, while general operational archives use the `2`-year path.

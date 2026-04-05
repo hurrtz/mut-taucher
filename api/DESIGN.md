@@ -81,6 +81,7 @@ sequenceDiagram
 - **Decision:** `index.php` may short-circuit to a gitignored `local_dev_reset_wizard.php` for destructive local-only resets, but only when the file exists and localhost/site-url guards pass.
 - **Decision:** `slots.php` is the canonical availability engine for public booking; it derives availability from recurring rules, exceptions, events, and bookings with reserved states.
 - **Decision:** For intro calls, `slots.php` must continue treating `completed` bookings as reserved so finished appointments do not reopen their slot accidentally; only explicit cancellation releases the slot.
+- **Decision:** Group seat reservations live separately from `group_participants` so unnamed seats can consume capacity without leaking into payment, invoicing, workbook, or patient-history logic.
 - **Decision:** Bookings are inserted as `pending_payment` first, which lets the system reserve the slot before payment confirmation or manual completion.
 - **Decision:** Intro-call documents now have two phases: a payment request with its own booking number at booking time, and the actual invoice only after a payment-confirmed transition.
 - **Decision:** Intro-call lifecycle history is intentionally event-backed for patient timelines, while sent PDFs remain archived in `client_documents`; together they capture both operational state changes and outward-facing documents.

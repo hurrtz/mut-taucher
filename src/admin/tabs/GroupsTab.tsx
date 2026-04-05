@@ -13,7 +13,7 @@ export default function GroupsTab() {
   const {
     groups, archivedGroups, groupSessionsByGroup, error,
     fetchGroups, fetchArchivedGroups, addGroup, updateGroup, removeGroup,
-    addParticipant, removeParticipant,
+    addParticipant, removeParticipant, addReservation, removeReservation, fillReservation,
     fetchGroupSessions, generateGroupSessions,
     updateGroupSession, removeGroupSession,
     updatePayment, bulkPayGroupPayments, sendGroupBundleInvoice,
@@ -70,6 +70,9 @@ export default function GroupsTab() {
         onToggleHomepage={(id, current) => updateGroup(id, { showOnHomepage: !current })}
         onAddParticipant={addParticipant}
         onRemoveParticipant={removeParticipant}
+        onAddReservation={addReservation}
+        onRemoveReservation={removeReservation}
+        onFillReservation={fillReservation}
         onGenerateSessions={generateGroupSessions}
         onUpdateSession={updateGroupSession}
         onDeleteSession={removeGroupSession}
