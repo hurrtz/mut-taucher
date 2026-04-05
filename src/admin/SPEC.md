@@ -10,7 +10,7 @@
 - `/admin/erstgespraeche`: booking review, payment confirmation, appointment start/completion, payment-reminder and cancellation emails, deferred invoice sending, and migration from booking to patient
 - `/admin/einzel`: individual therapy CRUD, schedule rules, generated sessions, payment state, and invoice sending
 - `/admin/gruppen`: group therapy CRUD, participant management, session generation, attendance, per-participant payment state, and invoices
-- `/admin/kunden` and `/admin/client/:id`: patient list, archive/restore lifecycle, timeline, notes, and document archive
+- `/admin/kunden` and `/admin/client/:id`: patient list, archive/restore lifecycle, filterable timeline, notes, and document archive
 - `/admin/dokumente`: HTML template editing, sending-point mappings, preview, branding settings, and logo management
 - `/admin/arbeitsmappe`: workbook-material upload, grouping, preview, and sharing to selected patients
 

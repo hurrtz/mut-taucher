@@ -26,7 +26,7 @@ flowchart TD
 | `TherapiesTab` | `useAdminTherapies`, `useAdminClients` | Individual therapies and session lifecycle |
 | `GroupsTab` | `useAdminGroups`, `useAdminClients` | Group setup, participants, sessions, attendance, invoices |
 | `PatientsTab` | `useAdminClients` | Patient list and navigation into detail history |
-| `ClientDetail` | `useClientHistory` | Timeline aggregation, notes, sent/received documents |
+| `ClientDetail` | `useClientHistory` | Timeline aggregation, status/document filtering, notes, sent/received documents |
 | `TemplatesTab` | `useAdminTemplates`, `useAdminBranding` | Template CRUD, preview, mappings, branding, logo variants |
 | `WorkbookTab` | `useAdminWorkbook`, `useAdminTherapies`, `useAdminGroups`, `useAdminClients` | Material library and distribution targeting |
 
@@ -52,9 +52,10 @@ sequenceDiagram
 
 ## Stable Design Decisions
 
-- The admin shell is route-based rather than tab-state-based; navigation is URL-addressable and each tab mounts independently.
-- Auth ownership stays in `AdminLayout`, while feature ownership stays inside the tab or detail page that needs the data.
-- `BookingsTab` is the control point for the transition from booking request/payment request to payment confirmation and finally invoice creation, so it must mirror server truth after every action rather than infer invoice readiness from a single status field.
-- The booking cards intentionally expose separate therapist actions for payment confirmation, appointment start/completion, reminder mail, and cancellation, because those actions have different downstream archive and billing consequences.
-- Binary workflows such as template preview, workbook preview, and document downloads use raw `fetch()` or query-token URLs when `apiFetch()` is not sufficient for `FormData` or binary responses.
-- Ant Design is the design system for the admin area, with `src/admin/theme.ts`, `src/admin/styles.ts`, and shared constants carrying the common visual language.
+- **Decision:** The admin shell is route-based rather than tab-state-based; navigation is URL-addressable and each tab mounts independently.
+- **Decision:** Auth ownership stays in `AdminLayout`, while feature ownership stays inside the tab or detail page that needs the data.
+- **Decision:** `BookingsTab` is the control point for the transition from booking request/payment request to payment confirmation and finally invoice creation, so it must mirror server truth after every action rather than infer invoice readiness from a single status field.
+- **Decision:** The booking cards intentionally expose separate therapist actions for payment confirmation, appointment start/completion, reminder mail, and cancellation, because those actions have different downstream archive and billing consequences.
+- **Decision:** `ClientDetail` keeps timeline filtering in the page layer so patient history can be sliced into status-vs-document views without changing the backend timeline contract.
+- **Decision:** Binary workflows such as template preview, workbook preview, and document downloads use raw `fetch()` or query-token URLs when `apiFetch()` is not sufficient for `FormData` or binary responses.
+- **Decision:** Ant Design is the design system for the admin area, with `src/admin/theme.ts`, `src/admin/styles.ts`, and shared constants carrying the common visual language.

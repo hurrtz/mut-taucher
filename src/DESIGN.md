@@ -32,6 +32,8 @@ sequenceDiagram
   API-->>Hook: generated available slots
   Hook-->>Booking: slot list
 
+  Visitor->>Booking: choose concrete slot
+  Booking->>Visitor: open booking modal with price and legal disclosures
   Visitor->>Booking: submit booking form
   Booking->>Hook: bookSlot(...)
   Hook->>API: POST /bookings
@@ -47,8 +49,9 @@ sequenceDiagram
 
 ## Stable Design Decisions
 
-- `App.tsx` is the single route root for both public and admin branches; admin code is lazy-loaded so the public site does not eagerly load the full admin UI.
-- `useDocumentMeta()` owns runtime title, canonical, Open Graph, and Twitter metadata, while `scripts/prerender.mjs` materializes the stable public routes after build.
-- Consent gating happens before analytics initialization. On `localhost` and under `/admin`, analytics stays disabled even if consent exists.
-- Shared browser state is intentionally small: consent in `localStorage`, auth token in `sessionStorage`, and no client-side duplication of operational booking truth.
-- Public content remains code-authored, which keeps the deployment simple but means content changes ship through the normal code pipeline.
+- **Decision:** `App.tsx` is the single route root for both public and admin branches; admin code is lazy-loaded so the public site does not eagerly load the full admin UI.
+- **Decision:** `useDocumentMeta()` owns runtime title, canonical, Open Graph, and Twitter metadata, while `scripts/prerender.mjs` materializes the stable public routes after build.
+- **Decision:** Consent gating happens before analytics initialization. On `localhost` and under `/admin`, analytics stays disabled even if consent exists.
+- **Decision:** Public booking is slot-first: selecting a concrete slot opens the booking modal that restates slot context, price, and legal disclosures before the submission request is sent.
+- **Decision:** Shared browser state is intentionally small: consent in `localStorage`, auth token in `sessionStorage`, and no client-side duplication of operational booking truth.
+- **Decision:** Public content remains code-authored, which keeps the deployment simple but means content changes ship through the normal code pipeline.

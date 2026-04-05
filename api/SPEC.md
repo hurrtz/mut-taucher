@@ -30,6 +30,7 @@
 ## Important Constraints
 
 - `index.php` is the front controller and explicit route dispatcher.
+- `index.php` may serve a gitignored `local_dev_reset_wizard.php` on localhost for destructive local resets, but that browser-only entrypoint is intentionally outside the production API contract.
 - Admin endpoints require JWT auth; some binary endpoints also accept the token as a query parameter for iframe or image use cases.
 - Slot availability is generated server-side from recurring rules, one-off events, and booking reservation state.
 - Intro-call slots stay reserved for public booking while their booking is `pending_payment`, `confirmed`, or `completed`; only `cancelled` releases the slot back into the public pool.

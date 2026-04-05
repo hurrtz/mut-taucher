@@ -8,7 +8,7 @@
 
 - Public route tree in `App.tsx` for home, about, service detail, article detail, legal pages, booking result pages, and admin entry points
 - Code-authored public content and shared frontend types in `src/lib/data.ts`
-- Public booking UX with month calendar, slot selection, form validation, consent gates, and payment-aware booking submission
+- Public booking UX with month calendar, slot selection, slot-first booking modal, form validation, legal consent gates, and payment-aware booking submission
 - Contact form and public group-promotion surface
 - Runtime metadata and structured data for SEO
 - Consent-gated public analytics and session replay initialization
@@ -25,6 +25,7 @@
 
 - Public operational state, especially slot availability and booking results, must come from the API.
 - After a successful booking, the public booking UI must stop presenting that slot as bookable immediately and should rely on fresh, uncached `/api/slots` responses for subsequent availability.
+- The public booking flow must clearly disclose the intro-call price, the `48`-hour free-cancellation window, and the Ausfallhonorar rule before submission, and it must require explicit acknowledgement of terms, privacy information, and early-start withdrawal handling.
 - Public services and article content are maintained in source code, not a remote CMS.
 - The admin surface is a child boundary of `src/` and should stay documented in `src/admin/*`.
 - The public frontend should remain usable without analytics consent; tracking helpers must degrade to no-ops.

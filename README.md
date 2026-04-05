@@ -248,4 +248,5 @@ This layout avoids the old failure mode where one changed file forced a fresh up
 - [src/SPEC.md](src/SPEC.md) and [src/DESIGN.md](src/DESIGN.md): frontend docs
 - [src/admin/SPEC.md](src/admin/SPEC.md) and [src/admin/DESIGN.md](src/admin/DESIGN.md): admin docs
 - [api/SPEC.md](api/SPEC.md) and [api/DESIGN.md](api/DESIGN.md): backend docs
+- [scripts/SPEC.md](scripts/SPEC.md) and [scripts/DESIGN.md](scripts/DESIGN.md): build/backup automation docs
 - `docs/plans/`: change-specific planning/design docs
