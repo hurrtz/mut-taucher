@@ -342,6 +342,7 @@ function handleGetTherapySessions(int $therapyId): void {
         'paymentPaidDate' => $s['payment_paid_date'],
         'invoiceSent'     => (bool)$s['invoice_sent'],
         'invoiceSentAt'   => $s['invoice_sent_at'],
+        'sessionCostCentsOverride' => $s['session_cost_cents_override'] !== null ? (int)$s['session_cost_cents_override'] : null,
         'createdAt'       => $s['created_at'],
     ], $sessions);
 
@@ -372,15 +373,19 @@ function handleCreateTherapySession(int $therapyId): void {
     $therapy = $therapyStmt->fetch();
     $defaultDuration = $therapy ? (int)$therapy['session_duration_minutes'] : 60;
 
+    $overrideRaw = $input['sessionCostCentsOverride'] ?? null;
+    $override = ($overrideRaw === null || $overrideRaw === '') ? null : (int)$overrideRaw;
+
     $stmt = $db->prepare(
-        'INSERT INTO therapy_sessions (therapy_id, session_date, session_time, duration_minutes)
-         VALUES (?, ?, ?, ?)'
+        'INSERT INTO therapy_sessions (therapy_id, session_date, session_time, duration_minutes, session_cost_cents_override)
+         VALUES (?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $therapyId,
         $date,
         $time,
         $input['durationMinutes'] ?? $defaultDuration,
+        $override,
     ]);
 
     echo json_encode(['id' => (int)$db->lastInsertId(), 'message' => 'Sitzung angelegt']);
@@ -523,6 +528,11 @@ function handleUpdateSession(int $id): void {
         $fields[] = 'duration_minutes = ?';
         $params[] = (int)$input['durationMinutes'];
     }
+    if (array_key_exists('sessionCostCentsOverride', $input)) {
+        $raw = $input['sessionCostCentsOverride'];
+        $fields[] = 'session_cost_cents_override = ?';
+        $params[] = ($raw === null || $raw === '') ? null : (int)$raw;
+    }
 
     if (empty($fields)) {
         http_response_code(400);
@@ -605,7 +615,10 @@ function sendTherapySessionInvoice(PDO $db, int $sessionId): string {
     $dateFormatted = date('d.m.Y', strtotime($session['session_date']));
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
     $siteUrl = $config['site_url'] ?? '';
-    $amountCents = (int)$session['session_cost_cents'];
+    $amountCents = resolveSessionCost(
+        $session['session_cost_cents_override'] !== null ? (int)$session['session_cost_cents_override'] : null,
+        (int)$session['session_cost_cents']
+    );
     $amountFormatted = number_format($amountCents / 100, 2, ',', '.') . ' €';
     $durationMinutes = (int)$session['duration_minutes'];
     $therapyLabel = $session['therapy_label'];

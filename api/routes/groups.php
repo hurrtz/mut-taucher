@@ -655,6 +655,7 @@ function handleGetGroupSessions(int $groupId): void {
             'durationMinutes' => (int)$s['duration_minutes'],
             'status'          => $s['status'],
             'notes'           => $s['notes'],
+            'sessionCostCentsOverride' => $s['session_cost_cents_override'] !== null ? (int)$s['session_cost_cents_override'] : null,
             'createdAt'       => $s['created_at'],
             'payments'        => array_map(fn($p) => [
                 'id'              => (int)$p['id'],
@@ -698,16 +699,20 @@ function handleCreateGroupSession(int $groupId): void {
     $group = $groupStmt->fetch();
     $defaultDuration = $group ? (int)$group['session_duration_minutes'] : 90;
 
+    $overrideRaw = $input['sessionCostCentsOverride'] ?? null;
+    $override = ($overrideRaw === null || $overrideRaw === '') ? null : (int)$overrideRaw;
+
     $db->beginTransaction();
     try {
         $stmt = $db->prepare(
-            'INSERT INTO group_sessions (group_id, session_date, session_time, duration_minutes) VALUES (?, ?, ?, ?)'
+            'INSERT INTO group_sessions (group_id, session_date, session_time, duration_minutes, session_cost_cents_override) VALUES (?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $groupId,
             $date,
             $time,
             $input['durationMinutes'] ?? $defaultDuration,
+            $override,
         ]);
         $sessionId = $db->lastInsertId();
 
@@ -878,6 +883,11 @@ function handleUpdateGroupSession(int $id): void {
         $fields[] = 'duration_minutes = ?';
         $params[] = (int)$input['durationMinutes'];
     }
+    if (array_key_exists('sessionCostCentsOverride', $input)) {
+        $raw = $input['sessionCostCentsOverride'];
+        $fields[] = 'session_cost_cents_override = ?';
+        $params[] = ($raw === null || $raw === '') ? null : (int)$raw;
+    }
 
     if (empty($fields)) {
         http_response_code(400);
@@ -1028,6 +1038,7 @@ function sendGroupSessionInvoice(PDO $db, int $paymentId): string {
 
     $stmt = $db->prepare(
         'SELECT gsp.*, gs.session_date, gs.session_time, gs.duration_minutes,
+                gs.session_cost_cents_override,
                 g.session_cost_cents, g.label as group_label,
                 c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix,
                 c.email as client_email,
@@ -1050,7 +1061,10 @@ function sendGroupSessionInvoice(PDO $db, int $paymentId): string {
     $dateFormatted = date('d.m.Y', strtotime($payment['session_date']));
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
     $siteUrl = $config['site_url'] ?? '';
-    $amountCents = (int)$payment['session_cost_cents'];
+    $amountCents = resolveSessionCost(
+        $payment['session_cost_cents_override'] !== null ? (int)$payment['session_cost_cents_override'] : null,
+        (int)$payment['session_cost_cents']
+    );
     $amountFormatted = number_format($amountCents / 100, 2, ',', '.') . ' €';
     $durationMinutes = (int)$payment['duration_minutes'];
     $therapyLabel = $payment['group_label'];
