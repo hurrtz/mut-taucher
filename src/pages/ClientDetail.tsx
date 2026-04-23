@@ -11,8 +11,9 @@ import {
   UploadOutlined, FormOutlined, DownloadOutlined, EditOutlined,
   DeleteOutlined, LoadingOutlined, TeamOutlined,
 } from '@ant-design/icons';
-import { Card, Button, Tag, Space, Typography, Spin, Input, Modal, Alert, Radio, theme } from 'antd';
+import { Card, Button, Tag, Space, Typography, Spin, Input, Modal, Alert, Radio, Select, message, theme } from 'antd';
 import { SESSION_STATUS_LABELS } from '../admin/constants';
+import { CLIENT_DOCUMENT_TYPES, INVOICE_NUMBER_PATTERN, labelForDocumentType } from '../lib/clientDocumentTypes';
 
 const { Text, Title } = Typography;
 
@@ -312,25 +313,47 @@ function NoteForm({ onSubmit }: { onSubmit: (content: string) => Promise<void> }
 
 // ─── Document Upload Form ────────────────────────────────────────
 
-function DocumentUploadForm({ onUpload }: { onUpload: (file: File, label: string, notes?: string) => Promise<void> }) {
+function DocumentUploadForm({ onUpload }: {
+  onUpload: (
+    file: File,
+    label: string,
+    notes?: string,
+    opts?: { documentType?: string | null; invoiceNumber?: string | null },
+  ) => Promise<void>;
+}) {
   const [label, setLabel] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState<string | null>(null);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const invoiceNumberRequired = documentType === 'rechnung';
+  const invoiceNumberValid = !invoiceNumberRequired || INVOICE_NUMBER_PATTERN.test(invoiceNumber);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!file || !label.trim() || submitting) return;
+    if (invoiceNumberRequired && !invoiceNumberValid) return;
     setSubmitting(true);
     try {
-      await onUpload(file, label.trim());
+      await onUpload(file, label.trim(), undefined, {
+        documentType: documentType ?? undefined,
+        invoiceNumber: invoiceNumberRequired ? invoiceNumber : undefined,
+      });
       setLabel('');
       setFile(null);
+      setDocumentType(null);
+      setInvoiceNumber('');
       if (fileRef.current) fileRef.current.value = '';
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : 'Upload fehlgeschlagen');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const showInvoiceError = invoiceNumberRequired && invoiceNumber.length > 0 && !invoiceNumberValid;
 
   return (
     <Card size="small">
@@ -343,16 +366,36 @@ function DocumentUploadForm({ onUpload }: { onUpload: (file: File, label: string
             onChange={e => setFile(e.target.files?.[0] ?? null)}
             style={{ fontSize: 14 }}
           />
+          <Select
+            value={documentType ?? undefined}
+            onChange={v => {
+              setDocumentType(v ?? null);
+              if (v !== 'rechnung') setInvoiceNumber('');
+            }}
+            placeholder="Dokumententyp (optional)"
+            allowClear
+            style={{ width: 260 }}
+            options={CLIENT_DOCUMENT_TYPES.map(t => ({ value: t.key, label: t.label }))}
+          />
           <Input
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="Bezeichnung"
             style={{ width: 200 }}
           />
+          {invoiceNumberRequired && (
+            <Input
+              value={invoiceNumber}
+              onChange={e => setInvoiceNumber(e.target.value)}
+              placeholder="Rechnungsnummer (JJ-NNNN)"
+              status={showInvoiceError ? 'error' : undefined}
+              style={{ width: 200 }}
+            />
+          )}
           <Button
             type="primary"
             htmlType="submit"
-            disabled={!file || !label.trim()}
+            disabled={!file || !label.trim() || (invoiceNumberRequired && !invoiceNumberValid)}
             loading={submitting}
           >
             Hochladen
@@ -507,12 +550,17 @@ function EventContent({ event, onUpdateNote, onDeleteNote, onDeleteDocument }: {
   if (type === 'document_sent' || type === 'document_received') {
     const docId = data.id as number;
     const isSent = type === 'document_sent';
+    const rawLabel = (data.label as string | null | undefined) ?? '';
+    const typeLabel = labelForDocumentType(data.documentType as string | null | undefined);
+    const invoiceNumber = data.invoiceNumber as string | null | undefined;
+    const invoiceSuffix = invoiceNumber ? ` [${invoiceNumber}]` : '';
+    const displayLabel = (rawLabel || typeLabel || 'Dokument') + invoiceSuffix;
     return (
       <div style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <Text strong>
           {isSent ? 'Dokument gesendet:' : 'Dokument empfangen:'}
         </Text>
-        <Text>{data.label as string}</Text>
+        <Text>{displayLabel}</Text>
         <a
           href={`/api/admin/client-documents/${docId}/download?token=${getToken()}`}
           target="_blank"
