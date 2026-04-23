@@ -301,7 +301,7 @@ Im Erstgespräch klären wir gemeinsam, ob dieses Format für Sie das Richtige i
 
 ## Kosten & Abrechnung
 
-**Einzeltherapie (60 Minuten): 120 €**
+**Einzeltherapie (60 Minuten): 110 €**
 
 Die Abrechnung erfolgt als Selbstzahlerleistung nach dem Heilpraktikergesetz (ohne Umsatzsteuer). Sie erhalten eine Rechnung. Eine Übernahme durch gesetzliche Krankenkassen ist nicht möglich. Für privat Versicherte besteht je nach Vertrag die Möglichkeit einer teilweisen Kostenerstattung — bitte klären Sie dies vorab direkt mit Ihrer Versicherung.
 
