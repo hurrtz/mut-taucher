@@ -216,28 +216,6 @@ function handleGetGroup(int $id): void {
     $excStmt->execute([$id]);
     $result['exceptions'] = array_column($excStmt->fetchAll(), 'exception_date');
 
-    // Add participants
-    $partStmt = $db->prepare(
-        'SELECT gp.client_id, c.title as client_title, c.first_name as client_first_name, c.last_name as client_last_name, c.suffix as client_suffix, c.email as client_email, gp.joined_at, gp.status, gp.invoice_status
-         FROM group_participants gp
-         JOIN clients c ON gp.client_id = c.id
-         WHERE gp.group_id = ?
-         ORDER BY c.last_name, c.first_name'
-    );
-    $partStmt->execute([$id]);
-    $result['participants'] = array_map(fn($p) => [
-        'clientId'      => (int)$p['client_id'],
-        'clientName'    => composeClientName($p['client_title'], $p['client_first_name'], $p['client_last_name'], $p['client_suffix']),
-        'clientEmail'   => $p['client_email'],
-        'joinedAt'      => $p['joined_at'],
-        'status'        => $p['status'],
-        'invoiceStatus' => $p['invoice_status'] ?? 'none',
-    ], $partStmt->fetchAll());
-    $result['reservations'] = array_map(fn($r) => [
-        'id'        => (int)$r['id'],
-        'createdAt' => $r['created_at'],
-    ], fetchGroupReservations($db, $id));
-
     echo json_encode($result);
 }
 
