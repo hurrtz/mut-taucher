@@ -4,6 +4,7 @@ require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/clients.php';
 require_once __DIR__ . '/../lib/InvoiceNumber.php';
+require_once __DIR__ . '/../lib/DocumentCompleteness.php';
 
 // ─── Helper: format group row ────────────────────────────────────
 
@@ -105,36 +106,66 @@ function formatGroupRow(array $g, PDO $db): array {
     $participantCount = count($participants);
     $reservationCount = count($reservations);
 
+    $groupStarted = (
+        ($g['status'] ?? 'active') === 'active'
+        && !empty($g['start_date'])
+        && strtotime($g['start_date']) <= strtotime(date('Y-m-d'))
+    );
+
+    $participantDtos = [];
+    $statusPriority = ['sends-pending' => 3, 'signed-pending' => 2, 'complete' => 1];
+    $worst = null;
+
+    foreach ($participants as $p) {
+        $participantDocStatus = null;
+        if ($groupStarted && $p['status'] === 'active') {
+            $sendsStmt = $db->prepare(
+                'SELECT document_key FROM document_sends
+                 WHERE context_type = \'group\' AND context_id = ? AND client_id = ?'
+            );
+            $sendsStmt->execute([(int)$g['id'], (int)$p['client_id']]);
+            $participantDocStatus = computeDocumentStatus($sendsStmt->fetchAll(), 'group');
+
+            if ($worst === null || $statusPriority[$participantDocStatus] > $statusPriority[$worst]) {
+                $worst = $participantDocStatus;
+            }
+        }
+
+        $participantDtos[] = [
+            'clientId'       => (int)$p['client_id'],
+            'clientName'     => composeClientName($p['client_title'], $p['client_first_name'], $p['client_last_name'], $p['client_suffix']),
+            'clientEmail'    => $p['client_email'],
+            'joinedAt'       => $p['joined_at'],
+            'status'         => $p['status'],
+            'invoiceStatus'  => $p['invoice_status'] ?? 'none',
+            'documentStatus' => $participantDocStatus,
+        ];
+    }
+
     return [
-        'id'                     => (int)$g['id'],
-        'label'                  => $g['label'],
-        'maxParticipants'        => (int)$g['max_participants'],
-        'participantCount'       => $participantCount,
-        'reservationCount'       => $reservationCount,
-        'occupiedCount'          => $participantCount + $reservationCount,
-        'showOnHomepage'         => (bool)$g['show_on_homepage'],
-        'startDate'              => $g['start_date'],
-        'endDate'                => $g['end_date'],
-        'status'                 => $g['status'],
-        'videoLink'              => $g['video_link'],
-        'sessionCostCents'       => (int)$g['session_cost_cents'],
-        'sessionDurationMinutes' => (int)$g['session_duration_minutes'],
-        'notes'                  => $g['notes'],
-        'createdAt'              => $g['created_at'],
-        'schedule'               => array_map(fn($s) => [
+        'id'                         => (int)$g['id'],
+        'label'                      => $g['label'],
+        'maxParticipants'            => (int)$g['max_participants'],
+        'participantCount'           => $participantCount,
+        'reservationCount'           => $reservationCount,
+        'occupiedCount'              => $participantCount + $reservationCount,
+        'showOnHomepage'             => (bool)$g['show_on_homepage'],
+        'startDate'                  => $g['start_date'],
+        'endDate'                    => $g['end_date'],
+        'status'                     => $g['status'],
+        'videoLink'                  => $g['video_link'],
+        'sessionCostCents'           => (int)$g['session_cost_cents'],
+        'sessionDurationMinutes'     => (int)$g['session_duration_minutes'],
+        'notes'                      => $g['notes'],
+        'createdAt'                  => $g['created_at'],
+        'schedule'                   => array_map(fn($s) => [
             'dayOfWeek' => (int)$s['day_of_week'],
             'frequency' => $s['frequency'],
             'time'      => $s['time'],
         ], $schedule),
-        'participants'           => array_map(fn($p) => [
-            'clientId'      => (int)$p['client_id'],
-            'clientName'    => composeClientName($p['client_title'], $p['client_first_name'], $p['client_last_name'], $p['client_suffix']),
-            'clientEmail'   => $p['client_email'],
-            'joinedAt'      => $p['joined_at'],
-            'status'        => $p['status'],
-            'invoiceStatus' => $p['invoice_status'] ?? 'none',
-        ], $participants),
-        'reservations'           => array_map(fn($r) => [
+        'participants'               => $participantDtos,
+        'participantsDocumentStatus' => $groupStarted ? $worst : null,
+        'reservations'               => array_map(fn($r) => [
             'id'        => (int)$r['id'],
             'createdAt' => $r['created_at'],
         ], $reservations),
