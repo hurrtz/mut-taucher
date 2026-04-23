@@ -38,6 +38,8 @@
 - Generated files and uploads under `api/assets/` are persistent application data, not disposable build output.
 - Archived invoices and payment requests are not just user-facing PDFs; they are also backup-classified financial records and must stay distinguishable from general archived files.
 - The booking lifecycle, invoice numbering, and document/template behavior should remain deterministic and database-backed.
+- Invoice numbers are also reservable for externally-issued documents: uploading a received `rechnung` atomically reserves its `invoice_number` in `invoice_numbers` before the file is moved, preventing collisions with auto-generated numbers.
+- Archived client documents may carry a nullable `document_type` (free `VARCHAR`, validated against a PHP whitelist) whose keys mirror `document_templates.template_key` so sent templates and received signed copies can be linked.
 - Intro-call bookings use a separate `booking_number` and payment-request document before an invoice exists.
 - Actual intro-call invoices are generated only after payment has been confirmed, whether that confirmation came from Stripe/PayPal automatically or from a therapist-side manual payment confirmation; the invoice must reference the earlier booking number.
 - Intro-call status and intro-call payment are separate concerns: a therapist may start or complete an intro call before payment is confirmed, but that must not consume an invoice number or send an invoice.
