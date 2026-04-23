@@ -31,3 +31,12 @@ function generateInvoiceNumber(PDO $db): string {
         throw $e;
     }
 }
+
+/**
+ * Resolve the effective cost (in cents) for a session.
+ * Returns the override when set (including the legitimate value 0),
+ * otherwise falls back to the therapy/group default.
+ */
+function resolveSessionCost(?int $override, int $default): int {
+    return $override ?? $default;
+}
