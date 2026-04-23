@@ -3,6 +3,7 @@ import type { Therapy, TherapySession } from '../../lib/data';
 import { DAY_LABELS, SESSION_STATUS_LABELS, SESSION_STATUS_COLORS } from '../constants';
 import { useAdminStyles } from '../styles';
 import { DocumentCollapse } from './DocumentChecklist';
+import DocumentStatusBadge from './DocumentStatusBadge';
 import AddSessionModal, { type AddSessionSubmit } from './AddSessionModal';
 import { therapyHasInteraction } from '../utils';
 import { format, parseISO, addMonths } from 'date-fns';
@@ -355,6 +356,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
         <Space size={4} style={{ display: 'flex', color: styles.token.colorTextSecondary }}>
           <EuroCircleOutlined /> <span>{(therapy.sessionCostCents / 100).toFixed(0)} € · {therapy.sessionDurationMinutes} Min.</span>
         </Space>
+        <DocumentStatusBadge status={therapy.documentStatus} />
         {therapy.videoLink && (
           <a
             href={therapy.videoLink}
