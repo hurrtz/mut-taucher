@@ -840,21 +840,16 @@ function handleDocumentStatus(): void {
 
     $clientId = isset($_GET['clientId']) ? (int)$_GET['clientId'] : 0;
 
+    $sql = 'SELECT document_key, sent_at FROM document_sends WHERE context_type = ? AND context_id = ?';
+    $params = [$contextType, $contextId];
     if ($clientId > 0) {
-        $stmt = $db->prepare(
-            'SELECT document_key, sent_at FROM document_sends
-             WHERE context_type = ? AND context_id = ? AND client_id = ?
-             ORDER BY sent_at DESC'
-        );
-        $stmt->execute([$contextType, $contextId, $clientId]);
-    } else {
-        $stmt = $db->prepare(
-            'SELECT document_key, sent_at FROM document_sends
-             WHERE context_type = ? AND context_id = ?
-             ORDER BY sent_at DESC'
-        );
-        $stmt->execute([$contextType, $contextId]);
+        $sql .= ' AND client_id = ?';
+        $params[] = $clientId;
     }
+    $sql .= ' ORDER BY sent_at DESC';
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
     $sends = $stmt->fetchAll();
 
     $result = array_map(fn($s) => [
