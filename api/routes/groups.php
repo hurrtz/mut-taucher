@@ -699,8 +699,7 @@ function handleCreateGroupSession(int $groupId): void {
     $group = $groupStmt->fetch();
     $defaultDuration = $group ? (int)$group['session_duration_minutes'] : 90;
 
-    $overrideRaw = $input['sessionCostCentsOverride'] ?? null;
-    $override = ($overrideRaw === null || $overrideRaw === '') ? null : (int)$overrideRaw;
+    $override = parseOverrideCents($input['sessionCostCentsOverride'] ?? null);
 
     $db->beginTransaction();
     try {
@@ -884,9 +883,8 @@ function handleUpdateGroupSession(int $id): void {
         $params[] = (int)$input['durationMinutes'];
     }
     if (array_key_exists('sessionCostCentsOverride', $input)) {
-        $raw = $input['sessionCostCentsOverride'];
         $fields[] = 'session_cost_cents_override = ?';
-        $params[] = ($raw === null || $raw === '') ? null : (int)$raw;
+        $params[] = parseOverrideCents($input['sessionCostCentsOverride']);
     }
 
     if (empty($fields)) {

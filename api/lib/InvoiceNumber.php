@@ -40,3 +40,12 @@ function generateInvoiceNumber(PDO $db): string {
 function resolveSessionCost(?int $override, int $default): int {
     return $override ?? $default;
 }
+
+/**
+ * Parse a cost-override input value (cents) from a request body.
+ * Returns null when the value is missing, explicit null, or an empty string;
+ * otherwise casts to an unsigned integer (in cents).
+ */
+function parseOverrideCents(mixed $raw): ?int {
+    return ($raw === null || $raw === '') ? null : (int)$raw;
+}

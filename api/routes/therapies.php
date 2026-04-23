@@ -373,8 +373,7 @@ function handleCreateTherapySession(int $therapyId): void {
     $therapy = $therapyStmt->fetch();
     $defaultDuration = $therapy ? (int)$therapy['session_duration_minutes'] : 60;
 
-    $overrideRaw = $input['sessionCostCentsOverride'] ?? null;
-    $override = ($overrideRaw === null || $overrideRaw === '') ? null : (int)$overrideRaw;
+    $override = parseOverrideCents($input['sessionCostCentsOverride'] ?? null);
 
     $stmt = $db->prepare(
         'INSERT INTO therapy_sessions (therapy_id, session_date, session_time, duration_minutes, session_cost_cents_override)
@@ -529,9 +528,8 @@ function handleUpdateSession(int $id): void {
         $params[] = (int)$input['durationMinutes'];
     }
     if (array_key_exists('sessionCostCentsOverride', $input)) {
-        $raw = $input['sessionCostCentsOverride'];
         $fields[] = 'session_cost_cents_override = ?';
-        $params[] = ($raw === null || $raw === '') ? null : (int)$raw;
+        $params[] = parseOverrideCents($input['sessionCostCentsOverride']);
     }
 
     if (empty($fields)) {
