@@ -371,7 +371,7 @@ function handleUploadClientDocument(int $clientId): void {
         }
     } elseif ($invoiceNumber !== null) {
         http_response_code(400);
-        echo json_encode(['error' => 'Rechnungsnummer ist nur für Typ „Rechnung" erlaubt']);
+        echo json_encode(['error' => 'Rechnungsnummer ist nur für Typ "Rechnung" erlaubt']);
         return;
     }
 
@@ -409,6 +409,9 @@ function handleUploadClientDocument(int $clientId): void {
             $notes,
         ]);
     } catch (Throwable $e) {
+        // Best-effort FS cleanup: the file landed but the DB row did not.
+        // Any invoice-number reservation is intentionally NOT released — a stranded
+        // sequence number is harmless; a double-assignable number is not.
         @unlink($destPath);
         throw $e;
     }
