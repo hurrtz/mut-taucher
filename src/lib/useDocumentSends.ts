@@ -34,27 +34,35 @@ export function useDocumentSends() {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState<string | null>(null);
 
-  const fetchStatus = useCallback(async (contextType: string, contextId: number) => {
+  const fetchStatus = useCallback(async (contextType: string, contextId: number, clientId?: number) => {
     setError(null);
     try {
-      const data = await apiFetch<DocumentSend[]>(
-        `/admin/documents/status?contextType=${contextType}&contextId=${contextId}`
-      );
+      const url = clientId
+        ? `/admin/documents/status?contextType=${contextType}&contextId=${contextId}&clientId=${clientId}`
+        : `/admin/documents/status?contextType=${contextType}&contextId=${contextId}`;
+      const data = await apiFetch<DocumentSend[]>(url);
       setSends(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Laden des Dokumentstatus');
     }
   }, []);
 
-  const sendDocument = useCallback(async (contextType: string, contextId: number, documentKey: string) => {
+  const sendDocument = useCallback(async (
+    contextType: string,
+    contextId: number,
+    documentKey: string,
+    clientId?: number,
+  ) => {
     setError(null);
     setSending(documentKey);
     try {
+      const body: Record<string, unknown> = { contextType, contextId, documentKey };
+      if (clientId) body.clientId = clientId;
       await apiFetch('/admin/documents/send', {
         method: 'POST',
-        body: JSON.stringify({ contextType, contextId, documentKey }),
+        body: JSON.stringify(body),
       });
-      await fetchStatus(contextType, contextId);
+      await fetchStatus(contextType, contextId, clientId);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Senden');
     } finally {
