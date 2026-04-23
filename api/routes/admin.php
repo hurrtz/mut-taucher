@@ -736,9 +736,32 @@ function handleDocumentSend(): void {
         $clientCity = $row['city'] ?? '';
         $clientCountry = $row['country'] ?? '';
     } elseif ($contextType === 'group') {
-        // Groups don't have a single client — document sends are recorded but not emailed
-        $clientName = '';
-        $clientEmail = '';
+        $clientId = isset($input['clientId']) ? (int)$input['clientId'] : 0;
+        if ($clientId <= 0) {
+            http_response_code(400);
+            echo json_encode(['error' => 'clientId ist für Gruppen-Dokumente erforderlich']);
+            return;
+        }
+        $stmt = $db->prepare(
+            'SELECT c.title, c.first_name, c.last_name, c.suffix, c.email, c.street, c.zip, c.city, c.country
+             FROM group_participants gp
+             JOIN clients c ON gp.client_id = c.id
+             WHERE gp.group_id = ? AND gp.client_id = ? AND gp.status = \'active\''
+        );
+        $stmt->execute([$contextId, $clientId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Aktive Gruppenteilnehmer:in nicht gefunden']);
+            return;
+        }
+        $resolvedClientId = $clientId;
+        $clientName = composeClientName($row['title'], $row['first_name'], $row['last_name'], $row['suffix']);
+        $clientEmail = $row['email'];
+        $clientStreet = $row['street'] ?? '';
+        $clientZip = $row['zip'] ?? '';
+        $clientCity = $row['city'] ?? '';
+        $clientCountry = $row['country'] ?? '';
     }
 
     // If document has a PDF template, generate and send
