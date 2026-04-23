@@ -49,3 +49,17 @@ function resolveSessionCost(?int $override, int $default): int {
 function parseOverrideCents(mixed $raw): ?int {
     return ($raw === null || $raw === '') ? null : (int)$raw;
 }
+
+/**
+ * Parse an invoice number in format YY-NNNN into its components.
+ * Returns null on malformed input.
+ */
+function parseInvoiceNumber(string $number): ?array {
+    if (!preg_match('/^(\d{2})-(\d{4})$/', $number, $m)) {
+        return null;
+    }
+    return [
+        'year_prefix'     => $m[1],
+        'sequence_number' => (int)$m[2],
+    ];
+}
