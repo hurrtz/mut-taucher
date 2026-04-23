@@ -300,6 +300,11 @@ if ($method === 'PUT' && preg_match('#^/admin/clients/(\d+)$#', $uri, $m)) {
     exit;
 }
 
+if ($method === 'DELETE' && preg_match('#^/admin/clients/(\d+)$#', $uri, $m)) {
+    handleDeleteClient((int)$m[1]);
+    exit;
+}
+
 // Admin: client history (timeline, notes, documents)
 if ($method === 'GET' && preg_match('#^/admin/clients/(\d+)/timeline$#', $uri, $m)) {
     handleGetClientTimeline((int)$m[1]);
