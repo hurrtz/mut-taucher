@@ -77,6 +77,7 @@ export interface TherapyGroup {
   sessionDurationMinutes: number;
   notes: string | null;
   createdAt: string;
+  participantsDocumentStatus: DocumentStatus;
   schedule: TherapyScheduleRule[];
   exceptions?: string[];
   participants?: GroupParticipant[];
@@ -90,6 +91,7 @@ export interface GroupParticipant {
   joinedAt: string;
   status: 'active' | 'left';
   invoiceStatus: 'none' | 'full_sent' | 'half1_sent' | 'half2_sent';
+  documentStatus: DocumentStatus;
 }
 
 export interface GroupReservation {
@@ -164,6 +166,7 @@ export interface Therapy {
   sessionCostCents: number;
   sessionDurationMinutes: number;
   notes: string | null;
+  documentStatus: DocumentStatus;
   createdAt: string;
   schedule: TherapyScheduleRule[];
   exceptions?: string[];
@@ -185,6 +188,8 @@ export interface TherapySession {
   sessionCostCentsOverride: number | null;
   createdAt: string;
 }
+
+export type DocumentStatus = 'complete' | 'signed-pending' | 'sends-pending' | null;
 
 export interface DocumentSend {
   documentKey: string;
