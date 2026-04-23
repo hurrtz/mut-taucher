@@ -142,7 +142,7 @@ function handleCreateTherapy(): void {
             $input['startDate'] ?? date('Y-m-d'),
             $input['endDate'] ?? null,
             $input['videoLink'] ?? null,
-            $input['sessionCostCents'] ?? 12000,
+            $input['sessionCostCents'] ?? 11000,
             $input['sessionDurationMinutes'] ?? 60,
             $input['notes'] ?? null,
         ]);
@@ -205,7 +205,7 @@ function handleUpdateTherapy(int $id): void {
             $input['endDate'] ?? null,
             $input['status'] ?? 'active',
             $input['videoLink'] ?? null,
-            $input['sessionCostCents'] ?? 12000,
+            $input['sessionCostCents'] ?? 11000,
             $input['sessionDurationMinutes'] ?? 60,
             $input['notes'] ?? null,
             $id,
