@@ -4,6 +4,7 @@ require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/clients.php';
 require_once __DIR__ . '/../lib/InvoiceNumber.php';
+require_once __DIR__ . '/../lib/DocumentCompleteness.php';
 
 // ─── Therapies CRUD ─────────────────────────────────────────────
 
@@ -33,6 +34,17 @@ function handleGetTherapies(): void {
         $scheduleStmt->execute([$t['id']]);
         $schedule = $scheduleStmt->fetchAll();
 
+        $documentStatus = null;
+        if (($t['status'] ?? 'active') === 'active'
+            && !empty($t['start_date'])
+            && strtotime($t['start_date']) <= strtotime(date('Y-m-d'))) {
+            $sendsStmt = $db->prepare(
+                'SELECT document_key FROM document_sends WHERE context_type = \'therapy\' AND context_id = ?'
+            );
+            $sendsStmt->execute([(int)$t['id']]);
+            $documentStatus = computeDocumentStatus($sendsStmt->fetchAll(), 'therapy');
+        }
+
         $result[] = [
             'id'                     => (int)$t['id'],
             'clientId'               => (int)$t['client_id'],
@@ -46,6 +58,7 @@ function handleGetTherapies(): void {
             'sessionCostCents'       => (int)$t['session_cost_cents'],
             'sessionDurationMinutes' => (int)$t['session_duration_minutes'],
             'notes'                  => $t['notes'],
+            'documentStatus'         => $documentStatus,
             'createdAt'              => $t['created_at'],
             'schedule'               => array_map(fn($s) => [
                 'dayOfWeek' => (int)$s['day_of_week'],
@@ -92,6 +105,17 @@ function handleGetTherapy(int $id): void {
     $exceptionsStmt->execute([$id]);
     $exceptions = array_column($exceptionsStmt->fetchAll(), 'exception_date');
 
+    $documentStatus = null;
+    if (($t['status'] ?? 'active') === 'active'
+        && !empty($t['start_date'])
+        && strtotime($t['start_date']) <= strtotime(date('Y-m-d'))) {
+        $sendsStmt = $db->prepare(
+            'SELECT document_key FROM document_sends WHERE context_type = \'therapy\' AND context_id = ?'
+        );
+        $sendsStmt->execute([(int)$t['id']]);
+        $documentStatus = computeDocumentStatus($sendsStmt->fetchAll(), 'therapy');
+    }
+
     echo json_encode([
         'id'                     => (int)$t['id'],
         'clientId'               => (int)$t['client_id'],
@@ -105,6 +129,7 @@ function handleGetTherapy(int $id): void {
         'sessionCostCents'       => (int)$t['session_cost_cents'],
         'sessionDurationMinutes' => (int)$t['session_duration_minutes'],
         'notes'                  => $t['notes'],
+        'documentStatus'         => $documentStatus,
         'createdAt'              => $t['created_at'],
         'schedule'               => array_map(fn($s) => [
             'dayOfWeek' => (int)$s['day_of_week'],
