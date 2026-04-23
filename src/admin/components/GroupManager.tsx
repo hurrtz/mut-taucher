@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import type { TherapyGroup, Client, GroupSession } from '../../lib/data';
 import { DAY_LABELS, SESSION_STATUS_LABELS, SESSION_STATUS_COLORS } from '../constants';
 import { useAdminStyles } from '../styles';
-import { DocumentCollapse } from './DocumentChecklist';
+import DocumentChecklist from './DocumentChecklist';
+import DocumentStatusBadge from './DocumentStatusBadge';
 import AddSessionModal, { type AddSessionSubmit } from './AddSessionModal';
 import { groupHasInteraction } from '../utils';
 import { format, parseISO, addMonths } from 'date-fns';
@@ -11,7 +12,7 @@ import dayjs from 'dayjs';
 import {
   SyncOutlined, CalendarOutlined, EuroCircleOutlined, VideoCameraOutlined,
   DeleteOutlined, HomeOutlined, CloseOutlined, CheckCircleOutlined, FileTextOutlined,
-  ContainerOutlined, EditOutlined,
+  ContainerOutlined, EditOutlined, FolderOpenOutlined,
 } from '@ant-design/icons';
 import {
   Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Tooltip,
@@ -41,6 +42,7 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onAddRese
   const [bulkPayClient, setBulkPayClient] = useState<{ id: number; name: string; unpaid: number } | null>(null);
   const [bulkPayCount, setBulkPayCount] = useState(1);
   const [payAll, setPayAll] = useState(false);
+  const [expandedDocsClientId, setExpandedDocsClientId] = useState<number | null>(null);
 
   const activeParticipants = group.participants?.filter(p => p.status === 'active') ?? [];
   const activeReservations = group.reservations ?? [];
@@ -100,12 +102,15 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onAddRese
               { key: 'half_second', label: '2. Teilzahlung (50%)', disabled: !canSendHalf2 },
             ];
 
+            const docsExpanded = expandedDocsClientId === p.clientId;
+
             return (
               <Card size="small" key={p.clientId} styles={{ body: { padding: '8px 12px' } }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <Text strong>{p.clientName}</Text>
                     <Text type="secondary">{p.clientEmail}</Text>
+                    <DocumentStatusBadge status={p.documentStatus} />
                     {unpaidCount > 0 && (
                       <Tag color="gold">{unpaidCount} offen</Tag>
                     )}
@@ -116,6 +121,14 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onAddRese
                     )}
                   </div>
                   <Space size={0}>
+                    <Tooltip title={docsExpanded ? 'Dokumente ausblenden' : 'Dokumente anzeigen'}>
+                      <Button
+                        type="text"
+                        icon={<FolderOpenOutlined />}
+                        onClick={() => setExpandedDocsClientId(docsExpanded ? null : p.clientId)}
+                        style={{ color: docsExpanded ? styles.token.colorPrimary : undefined }}
+                      />
+                    </Tooltip>
                     {onBulkPay && unpaidCount > 0 && (
                       <Tooltip title="Sammelzahlung">
                         <Button
@@ -181,6 +194,15 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onAddRese
                     </Tooltip>
                   </Space>
                 </div>
+                {docsExpanded && (
+                  <div style={{ borderTop: `1px solid ${styles.token.colorBorderSecondary}`, paddingTop: 8, marginTop: 8 }}>
+                    <DocumentChecklist
+                      contextType="group"
+                      contextId={group.id}
+                      clientId={p.clientId}
+                    />
+                  </div>
+                )}
               </Card>
             );
           })}
@@ -721,6 +743,9 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
         <Space size={4} style={{ display: 'flex', color: styles.token.colorTextSecondary }}>
           <EuroCircleOutlined /> <span>{(group.sessionCostCents / 100).toFixed(0)} € · {group.sessionDurationMinutes} Min.</span>
         </Space>
+        <Space size={4} style={{ display: 'flex', marginTop: 4 }}>
+          <DocumentStatusBadge status={group.participantsDocumentStatus} />
+        </Space>
         {group.videoLink && (
           <a href={group.videoLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: styles.token.fontSizeSM }}>
             <Space size={4}>
@@ -777,8 +802,6 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
           onDeleteSession={(id) => onDeleteSession(id, group.id)}
           onUpdatePayment={(pid, updates) => onUpdatePayment(pid, updates, group.id)}
         />
-
-        <DocumentCollapse contextType="group" contextId={group.id} />
       </div>
     </Card>
   );
