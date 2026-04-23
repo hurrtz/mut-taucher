@@ -14,16 +14,17 @@ import {
 
 const { Text } = Typography;
 
-export default function DocumentChecklist({ contextType, contextId, onCompletionChange }: {
+export default function DocumentChecklist({ contextType, contextId, clientId, onCompletionChange }: {
   contextType: 'therapy' | 'group';
   contextId: number;
+  clientId?: number;
   onCompletionChange?: (allDone: boolean) => void;
 }) {
   const { sending, fetchStatus, sendDocument, isSent, getSentAt } = useDocumentSends();
 
   useEffect(() => {
-    if (contextId) fetchStatus(contextType, contextId);
-  }, [contextType, contextId, fetchStatus]);
+    if (contextId) fetchStatus(contextType, contextId, clientId);
+  }, [contextType, contextId, clientId, fetchStatus]);
 
   const defs = useMemo(() => DOCUMENT_DEFINITIONS[contextType] ?? [], [contextType]);
 
@@ -93,7 +94,7 @@ export default function DocumentChecklist({ contextType, contextId, onCompletion
                         key="send"
                         icon={isSending ? <Spin size="small" /> : <SendOutlined />}
                         disabled={isSending}
-                        onClick={() => sendDocument(contextType, contextId, doc.key)}
+                        onClick={() => sendDocument(contextType, contextId, doc.key, clientId)}
                         title={sent ? 'Erneut senden' : 'PDF senden'}
                         style={
                           sent
@@ -108,7 +109,7 @@ export default function DocumentChecklist({ contextType, contextId, onCompletion
                         key="mark"
                         icon={isSending ? <Spin size="small" /> : sent ? <CheckOutlined /> : <FileTextOutlined />}
                         disabled={sent || isSending}
-                        onClick={() => sendDocument(contextType, contextId, doc.key)}
+                        onClick={() => sendDocument(contextType, contextId, doc.key, clientId)}
                         title={sent ? 'Vermerkt' : 'Als erledigt markieren'}
                         style={
                           sent
@@ -124,7 +125,7 @@ export default function DocumentChecklist({ contextType, contextId, onCompletion
                         key="sign"
                         icon={isSigningSending ? <Spin size="small" /> : <SafetyCertificateOutlined />}
                         disabled={!sent || isSigningSending}
-                        onClick={() => sendDocument(contextType, contextId, doc.signedCounterpart!)}
+                        onClick={() => sendDocument(contextType, contextId, doc.signedCounterpart!, clientId)}
                         title={
                           signed
                             ? 'Erneut als unterschrieben markieren'
@@ -198,9 +199,10 @@ export default function DocumentChecklist({ contextType, contextId, onCompletion
   );
 }
 
-export function DocumentCollapse({ contextType, contextId }: {
+export function DocumentCollapse({ contextType, contextId, clientId }: {
   contextType: 'therapy' | 'group';
   contextId: number;
+  clientId?: number;
 }) {
   const [allDone, setAllDone] = useState(false);
   const handleCompletionChange = useCallback((done: boolean) => setAllDone(done), []);
@@ -215,6 +217,7 @@ export function DocumentCollapse({ contextType, contextId }: {
           <DocumentChecklist
             contextType={contextType}
             contextId={contextId}
+            clientId={clientId}
             onCompletionChange={handleCompletionChange}
           />
         ),
