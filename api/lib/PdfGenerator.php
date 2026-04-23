@@ -93,7 +93,7 @@ class PdfGenerator {
             '{{session_count}}'     => htmlspecialchars((string)($extra['sessionCount'] ?? '')),
             '{{total_amount}}'      => htmlspecialchars($extra['totalAmount'] ?? ''),
             '{{payment_label}}'     => htmlspecialchars($extra['paymentLabel'] ?? ''),
-            '{{payment_note}}'      => htmlspecialchars($extra['paymentNote'] ?? 'Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.'),
+            '{{payment_note}}'      => htmlspecialchars($extra['paymentNote'] ?? 'Bitte überweisen Sie den Betrag vor dem Termin.'),
             '{{bank_account_holder}}' => htmlspecialchars($this->config['bank_account_holder'] ?? ''),
             '{{bank_iban}}'           => htmlspecialchars($this->config['bank_iban'] ?? ''),
             '{{bank_bic}}'            => htmlspecialchars($this->config['bank_bic'] ?? ''),
@@ -183,7 +183,7 @@ class PdfGenerator {
             'sessionCount'   => '10',
             'totalAmount'    => '950,00 €',
             'paymentLabel'   => 'Gesamtbetrag',
-            'paymentNote'    => 'Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.',
+            'paymentNote'    => 'Bitte überweisen Sie den Betrag vor dem Termin.',
         ]);
     }
 

@@ -10,7 +10,7 @@ $sessionTime = $extra['sessionTime'] ?? '';
 $clientStreet = htmlspecialchars($extra['clientStreet'] ?? '');
 $clientZip = htmlspecialchars($extra['clientZip'] ?? '');
 $clientCity = htmlspecialchars($extra['clientCity'] ?? '');
-$paymentNote = htmlspecialchars($extra['paymentNote'] ?? 'Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.');
+$paymentNote = htmlspecialchars($extra['paymentNote'] ?? 'Bitte überweisen Sie den Betrag vor dem Termin.');
 
 $config = require __DIR__ . '/../../config.php';
 $tName = htmlspecialchars($therapistName);
