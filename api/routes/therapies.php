@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/clients.php';
+require_once __DIR__ . '/../lib/InvoiceNumber.php';
 
 // ─── Therapies CRUD ─────────────────────────────────────────────
 
