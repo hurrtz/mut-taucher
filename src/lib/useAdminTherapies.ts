@@ -106,12 +106,18 @@ export function useAdminTherapies() {
   }, []);
 
 
-  const addSession = useCallback(async (therapyId: number, session: { date: string; time: string; durationMinutes?: number }) => {
+  const addSession = useCallback(async (
+    therapyId: number,
+    session: { date: string; time: string; durationMinutes?: number; sessionCostCentsOverride?: number | null },
+  ) => {
     setError(null);
     try {
+      const payload: Record<string, unknown> = { date: session.date, time: session.time };
+      if (session.durationMinutes !== undefined) payload.durationMinutes = session.durationMinutes;
+      if (session.sessionCostCentsOverride !== undefined) payload.sessionCostCentsOverride = session.sessionCostCentsOverride;
       await apiFetch(`/admin/therapies/${therapyId}/sessions`, {
         method: 'POST',
-        body: JSON.stringify(session),
+        body: JSON.stringify(payload),
       });
       await fetchSessions(therapyId);
     } catch (e) {

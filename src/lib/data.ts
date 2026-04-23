@@ -106,6 +106,7 @@ export interface GroupSession {
   status: 'scheduled' | 'completed' | 'cancelled';
   notes: string | null;
   createdAt: string;
+  sessionCostCentsOverride: number | null;
   payments: GroupSessionPayment[];
 }
 
@@ -181,6 +182,7 @@ export interface TherapySession {
   paymentPaidDate: string | null;
   invoiceSent: boolean;
   invoiceSentAt: string | null;
+  sessionCostCentsOverride: number | null;
   createdAt: string;
 }
 

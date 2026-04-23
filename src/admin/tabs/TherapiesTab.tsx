@@ -13,7 +13,7 @@ export default function TherapiesTab() {
   const {
     therapies, archivedTherapies, sessionsByTherapy, error,
     fetchTherapies, fetchArchivedTherapies, addTherapy, updateTherapy, removeTherapy,
-    fetchSessions, generateSessions, updateSession, removeSession, sendInvoice,
+    fetchSessions, addSession, generateSessions, updateSession, removeSession, sendInvoice,
   } = useAdminTherapies();
   const { clients, fetchClients } = useAdminClients();
 
@@ -68,6 +68,7 @@ export default function TherapiesTab() {
         onDelete={removeTherapy}
         onArchive={async (id) => { await updateTherapy(id, { status: 'archived' }); await fetchArchivedTherapies(); }}
         onGenerateSessions={generateSessions}
+        onAddSession={addSession}
         onUpdateSession={updateSession}
         onDeleteSession={removeSession}
         onSendInvoice={sendInvoice}

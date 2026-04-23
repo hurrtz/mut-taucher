@@ -14,7 +14,7 @@ export default function GroupsTab() {
     groups, archivedGroups, groupSessionsByGroup, error,
     fetchGroups, fetchArchivedGroups, addGroup, updateGroup, removeGroup,
     addParticipant, removeParticipant, addReservation, removeReservation, fillReservation,
-    fetchGroupSessions, generateGroupSessions,
+    fetchGroupSessions, addGroupSession, generateGroupSessions,
     updateGroupSession, removeGroupSession,
     updatePayment, bulkPayGroupPayments, sendGroupBundleInvoice,
   } = useAdminGroups();
@@ -74,6 +74,7 @@ export default function GroupsTab() {
         onRemoveReservation={removeReservation}
         onFillReservation={fillReservation}
         onGenerateSessions={generateGroupSessions}
+        onAddSession={addGroupSession}
         onUpdateSession={updateGroupSession}
         onDeleteSession={removeGroupSession}
         onUpdatePayment={updatePayment}

@@ -3,6 +3,7 @@ import type { TherapyGroup, Client, GroupSession } from '../../lib/data';
 import { DAY_LABELS, SESSION_STATUS_LABELS, SESSION_STATUS_COLORS } from '../constants';
 import { useAdminStyles } from '../styles';
 import { DocumentCollapse } from './DocumentChecklist';
+import AddSessionModal, { type AddSessionSubmit } from './AddSessionModal';
 import { groupHasInteraction } from '../utils';
 import { format, parseISO, addMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -332,10 +333,11 @@ function ParticipantPanel({ group, clients, sessions, onAdd, onRemove, onAddRese
 
 // ─── Group Session Panel ─────────────────────────────────────────
 
-function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDeleteSession, onUpdatePayment }: {
+function GroupSessionPanel({ group, sessions, onGenerate, onAddSession, onUpdateSession, onDeleteSession, onUpdatePayment }: {
   group: TherapyGroup;
   sessions: GroupSession[];
   onGenerate: (from: string, to: string) => void;
+  onAddSession?: (groupId: number, body: AddSessionSubmit) => Promise<void>;
   onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
   onDeleteSession: (id: number) => void;
   onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }) => void;
@@ -348,6 +350,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
   const [editDate, setEditDate] = useState('');
   const [editTime, setEditTime] = useState('');
   const [editDuration, setEditDuration] = useState(90);
+  const [addOpen, setAddOpen] = useState(false);
 
   const allPayments = sessions.flatMap(s => s.payments);
   const totalDue = allPayments.filter(p => p.paymentStatus === 'due').length;
@@ -454,6 +457,11 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
                       {totalCount > 0 && (
                         <Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{paidCount}/{totalCount} bezahlt</Text>
                       )}
+                      {s.sessionCostCentsOverride !== null && (
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {(s.sessionCostCentsOverride / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € (abweichend)
+                        </Text>
+                      )}
                     </div>
                   )}
                   <Space size={8}>
@@ -545,6 +553,19 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
         </div>
       )}
 
+      {onAddSession && (
+        <>
+          <Button onClick={() => setAddOpen(true)}>+ Einzeltermin hinzufügen</Button>
+          <AddSessionModal
+            open={addOpen}
+            onClose={() => setAddOpen(false)}
+            onSubmit={(body) => onAddSession(group.id, body)}
+            defaultDurationMinutes={group.sessionDurationMinutes}
+            defaultCostCents={group.sessionCostCents}
+          />
+        </>
+      )}
+
       <Collapse
         items={[{
           key: 'gen',
@@ -580,7 +601,7 @@ function GroupSessionPanel({ group, sessions, onGenerate, onUpdateSession, onDel
 
 function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, onArchive,
   onToggleHomepage, onAddParticipant, onRemoveParticipant, onAddReservation, onRemoveReservation, onFillReservation,
-  onGenerateSessions, onUpdateSession, onDeleteSession,
+  onGenerateSessions, onAddSession, onUpdateSession, onDeleteSession,
   onUpdatePayment, onBulkPay, onSendBundleInvoice }: {
   group: TherapyGroup;
   clients: Client[];
@@ -596,6 +617,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
   onRemoveReservation: (groupId: number, reservationId: number) => void;
   onFillReservation: (groupId: number, reservationId: number, clientId: number) => void;
   onGenerateSessions: (groupId: number, from: string, to: string) => void;
+  onAddSession?: (groupId: number, body: AddSessionSubmit) => Promise<void>;
   onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
   onDeleteSession: (id: number, groupId: number) => void;
   onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }, groupId: number) => void;
@@ -750,6 +772,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
           group={group}
           sessions={sessions}
           onGenerate={(from, to) => onGenerateSessions(group.id, from, to)}
+          onAddSession={onAddSession}
           onUpdateSession={onUpdateSession}
           onDeleteSession={(id) => onDeleteSession(id, group.id)}
           onUpdatePayment={(pid, updates) => onUpdatePayment(pid, updates, group.id)}
@@ -765,7 +788,7 @@ function GroupCard({ group, clients, sessions, fetchSessions, onEdit, onDelete, 
 
 export default function GroupManager({ groups, archivedGroups, clients, groupSessionsByGroup, fetchGroupSessions,
   onEdit, onDelete, onArchive, onToggleHomepage, onAddParticipant, onRemoveParticipant, onAddReservation, onRemoveReservation, onFillReservation,
-  onGenerateSessions, onUpdateSession, onDeleteSession,
+  onGenerateSessions, onAddSession, onUpdateSession, onDeleteSession,
   onUpdatePayment, onBulkPay, onSendBundleInvoice,
   showNewForm, newForm }: {
   groups: TherapyGroup[];
@@ -783,6 +806,7 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
   onRemoveReservation: (groupId: number, reservationId: number) => void;
   onFillReservation: (groupId: number, reservationId: number, clientId: number) => void;
   onGenerateSessions: (groupId: number, from: string, to: string) => void;
+  onAddSession?: (groupId: number, body: AddSessionSubmit) => Promise<void>;
   onUpdateSession: (id: number, updates: Partial<GroupSession>) => void;
   onDeleteSession: (id: number, groupId: number) => void;
   onUpdatePayment: (paymentId: number, updates: { paymentStatus?: string; paymentPaidDate?: string | null; attendanceStatus?: string | null }, groupId: number) => void;
@@ -821,6 +845,7 @@ export default function GroupManager({ groups, archivedGroups, clients, groupSes
                 onRemoveReservation={onRemoveReservation}
                 onFillReservation={onFillReservation}
                 onGenerateSessions={onGenerateSessions}
+                onAddSession={onAddSession}
                 onUpdateSession={onUpdateSession}
                 onDeleteSession={onDeleteSession}
                 onUpdatePayment={onUpdatePayment}

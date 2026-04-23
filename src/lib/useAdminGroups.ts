@@ -167,12 +167,18 @@ export function useAdminGroups() {
   }, [fetchGroupSessions, fetchGroups]);
 
 
-  const addGroupSession = useCallback(async (groupId: number, session: { date: string; time: string; durationMinutes?: number }) => {
+  const addGroupSession = useCallback(async (
+    groupId: number,
+    session: { date: string; time: string; durationMinutes?: number; sessionCostCentsOverride?: number | null },
+  ) => {
     setError(null);
     try {
+      const payload: Record<string, unknown> = { date: session.date, time: session.time };
+      if (session.durationMinutes !== undefined) payload.durationMinutes = session.durationMinutes;
+      if (session.sessionCostCentsOverride !== undefined) payload.sessionCostCentsOverride = session.sessionCostCentsOverride;
       await apiFetch(`/admin/groups/${groupId}/sessions`, {
         method: 'POST',
-        body: JSON.stringify(session),
+        body: JSON.stringify(payload),
       });
       await fetchGroupSessions(groupId);
     } catch (e) {

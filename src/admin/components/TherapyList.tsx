@@ -3,6 +3,7 @@ import type { Therapy, TherapySession } from '../../lib/data';
 import { DAY_LABELS, SESSION_STATUS_LABELS, SESSION_STATUS_COLORS } from '../constants';
 import { useAdminStyles } from '../styles';
 import { DocumentCollapse } from './DocumentChecklist';
+import AddSessionModal, { type AddSessionSubmit } from './AddSessionModal';
 import { therapyHasInteraction } from '../utils';
 import { format, parseISO, addMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -17,10 +18,11 @@ import dayjs from 'dayjs';
 
 // ─── Session Panel ───────────────────────────────────────────────
 
-function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDeleteSession, onSendInvoice }: {
+function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSession, onDeleteSession, onSendInvoice }: {
   therapy: Therapy;
   sessions: TherapySession[];
   onGenerate: (from: string, to: string) => void;
+  onAddSession?: (therapyId: number, body: AddSessionSubmit) => Promise<void>;
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number) => void;
   onSendInvoice: (id: number) => void;
@@ -31,6 +33,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
   const [editDate, setEditDate] = useState('');
   const [editTime, setEditTime] = useState('');
   const [editDuration, setEditDuration] = useState(60);
+  const [addOpen, setAddOpen] = useState(false);
   const styles = useAdminStyles();
 
   const totalDue = sessions.filter(s => s.paymentStatus === 'due' && s.status !== 'cancelled').length;
@@ -196,6 +199,11 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
                 </Space>
                 </Space>
               </div>
+              {s.sessionCostCentsOverride !== null && (
+                <Typography.Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+                  {(s.sessionCostCentsOverride / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € (abweichend)
+                </Typography.Text>
+              )}
               {s.notes && (
                 <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM, marginTop: 4, display: 'block' }}>
                   {s.notes}
@@ -205,6 +213,19 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
           );
           })}
         </div>
+      )}
+
+      {onAddSession && (
+        <>
+          <Button onClick={() => setAddOpen(true)}>+ Einzeltermin hinzufügen</Button>
+          <AddSessionModal
+            open={addOpen}
+            onClose={() => setAddOpen(false)}
+            onSubmit={(body) => onAddSession(therapy.id, body)}
+            defaultDurationMinutes={therapy.sessionDurationMinutes}
+            defaultCostCents={therapy.sessionCostCents}
+          />
+        </>
       )}
 
       <Collapse
@@ -241,7 +262,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onUpdateSession, onDelete
 // ─── Therapy Card ────────────────────────────────────────────────
 
 function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArchive, onGenerateSessions,
-  onUpdateSession, onDeleteSession, onSendInvoice }: {
+  onAddSession, onUpdateSession, onDeleteSession, onSendInvoice }: {
   therapy: Therapy;
   sessions: TherapySession[];
   fetchSessions: (therapyId: number) => void;
@@ -249,6 +270,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
   onDelete?: (id: number) => void;
   onArchive?: (id: number) => void;
   onGenerateSessions: (therapyId: number, from: string, to: string) => void;
+  onAddSession?: (therapyId: number, body: AddSessionSubmit) => Promise<void>;
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number, therapyId: number) => void;
   onSendInvoice: (id: number) => void;
@@ -352,6 +374,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
           therapy={therapy}
           sessions={sessions}
           onGenerate={(from, to) => onGenerateSessions(therapy.id, from, to)}
+          onAddSession={onAddSession}
           onUpdateSession={onUpdateSession}
           onDeleteSession={(id) => onDeleteSession(id, therapy.id)}
           onSendInvoice={onSendInvoice}
@@ -366,7 +389,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
 // ─── Therapy List ────────────────────────────────────────────────
 
 export default function TherapyList({ therapies, archivedTherapies, sessionsByTherapy, fetchSessions,
-  onEdit, onDelete, onArchive, onGenerateSessions, onUpdateSession, onDeleteSession, onSendInvoice,
+  onEdit, onDelete, onArchive, onGenerateSessions, onAddSession, onUpdateSession, onDeleteSession, onSendInvoice,
   showNewForm, newForm }: {
   therapies: Therapy[];
   archivedTherapies: Therapy[];
@@ -376,6 +399,7 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
   onDelete: (id: number) => void;
   onArchive: (id: number) => void;
   onGenerateSessions: (therapyId: number, from: string, to: string) => void;
+  onAddSession?: (therapyId: number, body: AddSessionSubmit) => Promise<void>;
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number, therapyId: number) => void;
   onSendInvoice: (id: number) => void;
@@ -405,6 +429,7 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
                 onDelete={onDelete}
                 onArchive={onArchive}
                 onGenerateSessions={onGenerateSessions}
+                onAddSession={onAddSession}
                 onUpdateSession={onUpdateSession}
                 onDeleteSession={onDeleteSession}
                 onSendInvoice={onSendInvoice}
