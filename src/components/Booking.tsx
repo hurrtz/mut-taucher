@@ -13,6 +13,7 @@ export default function Booking() {
   const [selectedSlot, setSelectedSlot] = useState<PublicSlot | null>(null);
   const [bookingForm, setBookingForm] = useState({ firstName: '', lastName: '', email: '', phone: '', street: '', zip: '', city: '', message: '' });
   const [consent, setConsent] = useState({ agb: false, datenschutz: false, widerruf: false });
+  const [isExistingClient, setIsExistingClient] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ email?: string | null; phone?: string | null }>({});
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'wire_transfer'>('wire_transfer');
   const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
@@ -34,6 +35,7 @@ export default function Booking() {
   const prevMonth = () => setCurrentMonth(addMonths(currentMonth, -1));
 
   const allConsented = consent.agb && consent.datenschutz && consent.widerruf;
+  const canSubmit = allConsented && !isExistingClient;
 
   const handleBook = async (e: FormEvent) => {
     e.preventDefault();
@@ -312,6 +314,27 @@ export default function Booking() {
               </div>
 
               <form onSubmit={handleBook} className="space-y-4">
+                {/* 0. Bereits Kunde Gate */}
+                <div>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isExistingClient}
+                      onChange={e => setIsExistingClient(e.target.checked)}
+                      className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm text-gray-600">Ich bin bereits Kunde bei Mut Taucher</span>
+                  </label>
+                  {isExistingClient && (
+                    <div role="alert" className="mt-3 flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span>Dieser Termin ist nur für Erstkunden. Für alle weiteren Anfragen oder Termine wenden Sie sich bitte direkt an mich.</span>
+                    </div>
+                  )}
+                </div>
+
+                {!isExistingClient && (
+                  <>
                 {/* 2. Persönliche Angaben */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -507,7 +530,7 @@ export default function Booking() {
                 {/* 5. Kostenpflichtiger Buchungsbutton */}
                 <button
                   type="submit"
-                  disabled={booking || !allConsented}
+                  disabled={booking || !canSubmit}
                   className="w-full py-3 px-6 bg-primary hover:bg-teal-500 text-white font-semibold text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {booking && <Loader2 className="h-5 w-5 animate-spin" />}
@@ -518,6 +541,8 @@ export default function Booking() {
                 <p className="text-xs text-gray-400 text-center leading-relaxed">
                   Mit der Buchung entsteht ein kostenpflichtiger Vertrag über ein Erstgespräch ({formatDuration(selectedSlot.durationMinutes)}) zum Preis von 95,00&nbsp;€.
                 </p>
+                  </>
+                )}
               </form>
             </div>
           </div>
