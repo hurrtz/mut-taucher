@@ -8,6 +8,19 @@ require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/clients.php'; // composeClientName
 
+const CLIENT_DOCUMENT_TYPES = [
+    'behandlungsvertrag',
+    'onlinetherapie',
+    'schweigepflichtentbindung',
+    'video_einverstaendnis',
+    'datenschutz_digital',
+    'email_einwilligung',
+    'datenschutzinfo',
+    'rechnung',
+    'zahlungsaufforderung',
+    'sonstiges',
+];
+
 // ─── Timeline ────────────────────────────────────────────────────
 
 function handleGetClientTimeline(int $clientId): void {
@@ -109,7 +122,7 @@ function handleGetClientTimeline(int $clientId): void {
 
     // 3. Client documents (sent & received)
     $stmt = $db->prepare(
-        'SELECT id, direction, label, filename, mime_type, file_size, notes, created_at
+        'SELECT id, direction, label, document_type, invoice_number, filename, mime_type, file_size, notes, created_at
          FROM client_documents
          WHERE client_id = ?
          ORDER BY created_at DESC'
@@ -123,6 +136,8 @@ function handleGetClientTimeline(int $clientId): void {
             'data' => [
                 'id' => (int)$row['id'],
                 'label' => $row['label'],
+                'documentType' => $row['document_type'],
+                'invoiceNumber' => $row['invoice_number'],
                 'filename' => $row['filename'],
                 'mimeType' => $row['mime_type'],
                 'fileSize' => (int)$row['file_size'],
@@ -322,6 +337,44 @@ function handleUploadClientDocument(int $clientId): void {
         return;
     }
 
+    $documentType = isset($_POST['document_type']) && $_POST['document_type'] !== ''
+        ? (string)$_POST['document_type']
+        : null;
+    $invoiceNumber = isset($_POST['invoice_number']) && $_POST['invoice_number'] !== ''
+        ? (string)$_POST['invoice_number']
+        : null;
+
+    if ($documentType !== null && !in_array($documentType, CLIENT_DOCUMENT_TYPES, true)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Ungültiger Dokumententyp']);
+        return;
+    }
+
+    if ($documentType === 'rechnung') {
+        if ($invoiceNumber === null) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Rechnungsnummer ist erforderlich']);
+            return;
+        }
+        require_once __DIR__ . '/../lib/InvoiceNumber.php';
+        if (parseInvoiceNumber($invoiceNumber) === null) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Ungültiges Rechnungsnummer-Format (erwartet: JJ-NNNN)']);
+            return;
+        }
+        try {
+            reserveInvoiceNumber($db, $invoiceNumber);
+        } catch (InvoiceNumberTaken $e) {
+            http_response_code(409);
+            echo json_encode(['error' => 'Diese Rechnungsnummer ist bereits vergeben.']);
+            return;
+        }
+    } elseif ($invoiceNumber !== null) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Rechnungsnummer ist nur für Typ „Rechnung" erlaubt']);
+        return;
+    }
+
     $dir = __DIR__ . '/../assets/client_docs/' . $clientId;
     if (!is_dir($dir)) {
         mkdir($dir, 0755, true);
@@ -339,19 +392,26 @@ function handleUploadClientDocument(int $clientId): void {
 
     $relativePath = 'assets/client_docs/' . $clientId . '/' . $safeName;
 
-    $stmt = $db->prepare(
-        'INSERT INTO client_documents (client_id, direction, label, filename, mime_type, file_size, file_path, notes)
-         VALUES (?, "received", ?, ?, ?, ?, ?, ?)'
-    );
-    $stmt->execute([
-        $clientId,
-        $label,
-        $file['name'],
-        $file['type'] ?: 'application/octet-stream',
-        $file['size'],
-        $relativePath,
-        $notes,
-    ]);
+    try {
+        $stmt = $db->prepare(
+            'INSERT INTO client_documents (client_id, direction, label, document_type, invoice_number, filename, mime_type, file_size, file_path, notes)
+             VALUES (?, "received", ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $clientId,
+            $label,
+            $documentType,
+            $invoiceNumber,
+            $file['name'],
+            $file['type'] ?: 'application/octet-stream',
+            $file['size'],
+            $relativePath,
+            $notes,
+        ]);
+    } catch (Throwable $e) {
+        @unlink($destPath);
+        throw $e;
+    }
 
     $id = (int)$db->lastInsertId();
     $stmt = $db->prepare('SELECT * FROM client_documents WHERE id = ?');
