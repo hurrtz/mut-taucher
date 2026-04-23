@@ -63,3 +63,32 @@ function parseInvoiceNumber(string $number): ?array {
         'sequence_number' => (int)$m[2],
     ];
 }
+
+/**
+ * Thrown when a caller tries to reserve an invoice number that is already taken.
+ */
+class InvoiceNumberTaken extends RuntimeException {}
+
+/**
+ * Reserve a specific externally-issued invoice number so it won't be auto-generated later.
+ * Throws InvoiceNumberTaken if the number is already in use.
+ * Throws RuntimeException on malformed input.
+ */
+function reserveInvoiceNumber(PDO $db, string $number): void {
+    $parts = parseInvoiceNumber($number);
+    if ($parts === null) {
+        throw new RuntimeException("Malformed invoice number: {$number}");
+    }
+
+    try {
+        $stmt = $db->prepare(
+            'INSERT INTO invoice_numbers (year_prefix, sequence_number, invoice_number) VALUES (?, ?, ?)'
+        );
+        $stmt->execute([$parts['year_prefix'], $parts['sequence_number'], $number]);
+    } catch (PDOException $e) {
+        if ($e->getCode() === '23000') {
+            throw new InvoiceNumberTaken("Invoice number already reserved: {$number}", 0, $e);
+        }
+        throw $e;
+    }
+}
