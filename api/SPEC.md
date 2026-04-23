@@ -48,3 +48,4 @@
 - Intro-call lifecycle actions that matter operationally or archivally, including the original request, payment reminders, payment confirmation, completion, cancellation, and cancellation-email delivery, must be recoverable in the patient timeline.
 - Client deletion is only allowed for records without substantive downstream activity; a sent intro-call payment request alone does not make the client record durable.
 - Group seat reservations are operational planning state only: they consume capacity and affect homepage availability, but they must not create patient-linked payment rows, invoices, or history events until converted into a concrete participant.
+- Group document sends are recorded per participant (`document_sends.client_id` populated for `context_type = 'group'`); participant completeness is computed against the `DOCUMENT_DEFINITIONS` mirror in `lib/DocumentCompleteness.php`.

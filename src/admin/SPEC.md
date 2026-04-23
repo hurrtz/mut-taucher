@@ -34,3 +34,4 @@
 - The patient list must distinguish disposable booking-only client records from durable patient records: disposable records can be deleted, while records with substantive activity must be archived instead.
 - Group seat reservations consume capacity even before an official patient exists, but they must remain outside patient, billing, and document flows until they are converted into a concrete participant.
 - Therapy and group flows support creating ad-hoc single sessions from a shared modal; such sessions may carry a per-session `session_cost_cents_override` that takes precedence over the therapy/group default when the invoice is generated.
+- Therapy and group cards surface a three-state document-completeness badge (red `Dokumente fehlen`, orange `Unterschriften fehlen`, none for complete or not-started); group cards aggregate the worst state across active participants, and each participant row carries its own badge and checklist.
