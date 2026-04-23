@@ -838,12 +838,23 @@ function handleDocumentStatus(): void {
         return;
     }
 
-    $stmt = $db->prepare(
-        'SELECT document_key, sent_at FROM document_sends
-         WHERE context_type = ? AND context_id = ?
-         ORDER BY sent_at DESC'
-    );
-    $stmt->execute([$contextType, $contextId]);
+    $clientId = isset($_GET['clientId']) ? (int)$_GET['clientId'] : 0;
+
+    if ($clientId > 0) {
+        $stmt = $db->prepare(
+            'SELECT document_key, sent_at FROM document_sends
+             WHERE context_type = ? AND context_id = ? AND client_id = ?
+             ORDER BY sent_at DESC'
+        );
+        $stmt->execute([$contextType, $contextId, $clientId]);
+    } else {
+        $stmt = $db->prepare(
+            'SELECT document_key, sent_at FROM document_sends
+             WHERE context_type = ? AND context_id = ?
+             ORDER BY sent_at DESC'
+        );
+        $stmt->execute([$contextType, $contextId]);
+    }
     $sends = $stmt->fetchAll();
 
     $result = array_map(fn($s) => [
