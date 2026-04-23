@@ -45,7 +45,7 @@ export default function Booking() {
       setFieldErrors({ email: emailErr, phone: phoneErr });
       return;
     }
-    if (!selectedSlot || !bookingForm.firstName || !bookingForm.lastName || !bookingForm.email || !bookingForm.phone || !bookingForm.street || !bookingForm.zip || !bookingForm.city || !allConsented) return;
+    if (!selectedSlot || !bookingForm.firstName || !bookingForm.lastName || !bookingForm.email || !bookingForm.phone || !bookingForm.street || !bookingForm.zip || !bookingForm.city || !canSubmit) return;
 
     const result = await bookSlot(
       { ruleId: selectedSlot.ruleId, eventId: selectedSlot.eventId },
@@ -335,212 +335,212 @@ export default function Booking() {
 
                 {!isExistingClient && (
                   <>
-                {/* 2. Persönliche Angaben */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="modal-firstName" className="block text-sm font-medium text-gray-700 mb-1">Vorname *</label>
-                    <input
-                      type="text"
-                      id="modal-firstName"
-                      required
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                      value={bookingForm.firstName}
-                      onChange={e => setBookingForm({...bookingForm, firstName: e.target.value})}
-                      placeholder="Vorname"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="modal-lastName" className="block text-sm font-medium text-gray-700 mb-1">Nachname *</label>
-                    <input
-                      type="text"
-                      id="modal-lastName"
-                      required
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                      value={bookingForm.lastName}
-                      onChange={e => setBookingForm({...bookingForm, lastName: e.target.value})}
-                      placeholder="Nachname"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="modal-email" className="block text-sm font-medium text-gray-700 mb-1">E-Mail *</label>
-                  <input
-                    type="email"
-                    id="modal-email"
-                    required
-                    className={`w-full rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border ${fieldErrors.email ? 'border-red-400' : 'border-gray-300'}`}
-                    value={bookingForm.email}
-                    onChange={e => { setBookingForm({...bookingForm, email: e.target.value}); if (fieldErrors.email) setFieldErrors(p => ({ ...p, email: validateEmail(e.target.value) })); }}
-                    onBlur={e => setFieldErrors(p => ({ ...p, email: validateEmail(e.target.value) }))}
-                    placeholder="ihre@email.de"
-                  />
-                  {fieldErrors.email && <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>}
-                </div>
-                <div>
-                  <label htmlFor="modal-phone" className="block text-sm font-medium text-gray-700 mb-1">Telefon *</label>
-                  <input
-                    type="tel"
-                    id="modal-phone"
-                    required
-                    className={`w-full rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border ${fieldErrors.phone ? 'border-red-400' : 'border-gray-300'}`}
-                    value={bookingForm.phone}
-                    onChange={e => { setBookingForm({...bookingForm, phone: e.target.value}); if (fieldErrors.phone) setFieldErrors(p => ({ ...p, phone: validatePhone(e.target.value) })); }}
-                    onBlur={e => setFieldErrors(p => ({ ...p, phone: validatePhone(e.target.value) }))}
-                    placeholder="+49 …"
-                  />
-                  {fieldErrors.phone && <p className="text-xs text-red-500 mt-1">{fieldErrors.phone}</p>}
-                </div>
-                <div>
-                  <label htmlFor="modal-street" className="block text-sm font-medium text-gray-700 mb-1">Straße und Hausnummer *</label>
-                  <input
-                    type="text"
-                    id="modal-street"
-                    required
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                    value={bookingForm.street}
-                    onChange={e => setBookingForm({...bookingForm, street: e.target.value})}
-                    placeholder="Musterstraße 1"
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label htmlFor="modal-zip" className="block text-sm font-medium text-gray-700 mb-1">PLZ *</label>
-                    <input
-                      type="text"
-                      id="modal-zip"
-                      required
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                      value={bookingForm.zip}
-                      onChange={e => setBookingForm({...bookingForm, zip: e.target.value})}
-                      placeholder="10115"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label htmlFor="modal-city" className="block text-sm font-medium text-gray-700 mb-1">Ort *</label>
-                    <input
-                      type="text"
-                      id="modal-city"
-                      required
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
-                      value={bookingForm.city}
-                      onChange={e => setBookingForm({...bookingForm, city: e.target.value})}
-                      placeholder="Berlin"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="modal-message" className="block text-sm font-medium text-gray-700 mb-1">Kurze Nachricht oder Anliegen <span className="font-normal text-gray-400">(optional)</span></label>
-                  <textarea
-                    id="modal-message"
-                    rows={3}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border resize-none"
-                    value={bookingForm.message}
-                    onChange={e => setBookingForm({...bookingForm, message: e.target.value})}
-                    placeholder="Was beschäftigt Sie derzeit?"
-                  />
-                </div>
-
-                {/* 3. Zahlungsart */}
-                <fieldset className="space-y-2">
-                  <legend className="text-sm font-medium text-gray-700">Zahlungsart *</legend>
-                  {/* Stripe and PayPal temporarily disabled
-                  <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'stripe' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <input type="radio" name="paymentMethod" value="stripe" checked={paymentMethod === 'stripe'}
-                      onChange={() => setPaymentMethod('stripe')}
-                      className="text-primary focus:ring-primary" />
+                  {/* 2. Persönliche Angaben */}
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <span className="text-sm font-medium text-text">Kreditkarte / Online-Zahlung</span>
-                      <span className="block text-xs text-gray-400">Sichere Zahlung über Stripe</span>
+                      <label htmlFor="modal-firstName" className="block text-sm font-medium text-gray-700 mb-1">Vorname *</label>
+                      <input
+                        type="text"
+                        id="modal-firstName"
+                        required
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                        value={bookingForm.firstName}
+                        onChange={e => setBookingForm({...bookingForm, firstName: e.target.value})}
+                        placeholder="Vorname"
+                      />
                     </div>
-                  </label>
-                  <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'paypal' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <input type="radio" name="paymentMethod" value="paypal" checked={paymentMethod === 'paypal'}
-                      onChange={() => setPaymentMethod('paypal')}
-                      className="text-primary focus:ring-primary" />
                     <div>
-                      <span className="text-sm font-medium text-text">PayPal</span>
-                      <span className="block text-xs text-gray-400">Sichere Zahlung über PayPal</span>
+                      <label htmlFor="modal-lastName" className="block text-sm font-medium text-gray-700 mb-1">Nachname *</label>
+                      <input
+                        type="text"
+                        id="modal-lastName"
+                        required
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                        value={bookingForm.lastName}
+                        onChange={e => setBookingForm({...bookingForm, lastName: e.target.value})}
+                        placeholder="Nachname"
+                      />
                     </div>
-                  </label>
-                  */}
-                  <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'wire_transfer' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <input type="radio" name="paymentMethod" value="wire_transfer" checked={paymentMethod === 'wire_transfer'}
-                      onChange={() => setPaymentMethod('wire_transfer')}
-                      className="text-primary focus:ring-primary" />
-                    <div>
-                      <span className="text-sm font-medium text-text">Überweisung</span>
-                      <span className="block text-xs text-gray-400">Bankdaten werden nach der Buchung angezeigt</span>
-                    </div>
-                  </label>
-                </fieldset>
-
-                {/* 4. Zahlungsinformation */}
-                <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 leading-relaxed space-y-2">
-                  <p><strong className="text-gray-600">Hinweis:</strong> Termine können bis 48&nbsp;Stunden vorher kostenfrei abgesagt werden. Danach fällt ein Ausfallhonorar an.</p>
-                </div>
-
-                {/* 4. Rechtliche Checkboxen */}
-                <div className="space-y-3 pt-2">
-                  <label className="flex items-start gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={consent.agb}
-                      onChange={e => setConsent({...consent, agb: e.target.checked})}
-                      className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm text-gray-600">
-                      Ich habe die{' '}
-                      <a href="/agb" target="_blank" className="text-primary underline hover:text-teal-600">Behandlungsbedingungen einschließlich der Ausfallregelung</a>{' '}
-                      gelesen und akzeptiere sie. *
-                    </span>
-                  </label>
-                  <label className="flex items-start gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={consent.datenschutz}
-                      onChange={e => setConsent({...consent, datenschutz: e.target.checked})}
-                      className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm text-gray-600">
-                      Ich habe die{' '}
-                      <a href="/datenschutz" target="_blank" className="text-primary underline hover:text-teal-600">Datenschutzerklärung</a>{' '}
-                      zur Kenntnis genommen. *
-                    </span>
-                  </label>
-                  <label className="flex items-start gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={consent.widerruf}
-                      onChange={e => setConsent({...consent, widerruf: e.target.checked})}
-                      className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm text-gray-600">
-                      Ich verlange ausdrücklich, dass die Dienstleistung bereits vor Ablauf der Widerrufsfrist beginnt. Mir ist bekannt, dass mein Widerrufsrecht mit vollständiger Vertragserfüllung erlischt. *
-                    </span>
-                  </label>
-                </div>
-
-                {error && (
-                  <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-3">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    {error}
                   </div>
-                )}
+                  <div>
+                    <label htmlFor="modal-email" className="block text-sm font-medium text-gray-700 mb-1">E-Mail *</label>
+                    <input
+                      type="email"
+                      id="modal-email"
+                      required
+                      className={`w-full rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border ${fieldErrors.email ? 'border-red-400' : 'border-gray-300'}`}
+                      value={bookingForm.email}
+                      onChange={e => { setBookingForm({...bookingForm, email: e.target.value}); if (fieldErrors.email) setFieldErrors(p => ({ ...p, email: validateEmail(e.target.value) })); }}
+                      onBlur={e => setFieldErrors(p => ({ ...p, email: validateEmail(e.target.value) }))}
+                      placeholder="ihre@email.de"
+                    />
+                    {fieldErrors.email && <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="modal-phone" className="block text-sm font-medium text-gray-700 mb-1">Telefon *</label>
+                    <input
+                      type="tel"
+                      id="modal-phone"
+                      required
+                      className={`w-full rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border ${fieldErrors.phone ? 'border-red-400' : 'border-gray-300'}`}
+                      value={bookingForm.phone}
+                      onChange={e => { setBookingForm({...bookingForm, phone: e.target.value}); if (fieldErrors.phone) setFieldErrors(p => ({ ...p, phone: validatePhone(e.target.value) })); }}
+                      onBlur={e => setFieldErrors(p => ({ ...p, phone: validatePhone(e.target.value) }))}
+                      placeholder="+49 …"
+                    />
+                    {fieldErrors.phone && <p className="text-xs text-red-500 mt-1">{fieldErrors.phone}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="modal-street" className="block text-sm font-medium text-gray-700 mb-1">Straße und Hausnummer *</label>
+                    <input
+                      type="text"
+                      id="modal-street"
+                      required
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                      value={bookingForm.street}
+                      onChange={e => setBookingForm({...bookingForm, street: e.target.value})}
+                      placeholder="Musterstraße 1"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label htmlFor="modal-zip" className="block text-sm font-medium text-gray-700 mb-1">PLZ *</label>
+                      <input
+                        type="text"
+                        id="modal-zip"
+                        required
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                        value={bookingForm.zip}
+                        onChange={e => setBookingForm({...bookingForm, zip: e.target.value})}
+                        placeholder="10115"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label htmlFor="modal-city" className="block text-sm font-medium text-gray-700 mb-1">Ort *</label>
+                      <input
+                        type="text"
+                        id="modal-city"
+                        required
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border"
+                        value={bookingForm.city}
+                        onChange={e => setBookingForm({...bookingForm, city: e.target.value})}
+                        placeholder="Berlin"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="modal-message" className="block text-sm font-medium text-gray-700 mb-1">Kurze Nachricht oder Anliegen <span className="font-normal text-gray-400">(optional)</span></label>
+                    <textarea
+                      id="modal-message"
+                      rows={3}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 px-3 py-2 border resize-none"
+                      value={bookingForm.message}
+                      onChange={e => setBookingForm({...bookingForm, message: e.target.value})}
+                      placeholder="Was beschäftigt Sie derzeit?"
+                    />
+                  </div>
 
-                {/* 5. Kostenpflichtiger Buchungsbutton */}
-                <button
-                  type="submit"
-                  disabled={booking || !canSubmit}
-                  className="w-full py-3 px-6 bg-primary hover:bg-teal-500 text-white font-semibold text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {booking && <Loader2 className="h-5 w-5 animate-spin" />}
-                  Kostenpflichtig buchen
-                </button>
+                  {/* 3. Zahlungsart */}
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium text-gray-700">Zahlungsart *</legend>
+                    {/* Stripe and PayPal temporarily disabled
+                    <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'stripe' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" name="paymentMethod" value="stripe" checked={paymentMethod === 'stripe'}
+                        onChange={() => setPaymentMethod('stripe')}
+                        className="text-primary focus:ring-primary" />
+                      <div>
+                        <span className="text-sm font-medium text-text">Kreditkarte / Online-Zahlung</span>
+                        <span className="block text-xs text-gray-400">Sichere Zahlung über Stripe</span>
+                      </div>
+                    </label>
+                    <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'paypal' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" name="paymentMethod" value="paypal" checked={paymentMethod === 'paypal'}
+                        onChange={() => setPaymentMethod('paypal')}
+                        className="text-primary focus:ring-primary" />
+                      <div>
+                        <span className="text-sm font-medium text-text">PayPal</span>
+                        <span className="block text-xs text-gray-400">Sichere Zahlung über PayPal</span>
+                      </div>
+                    </label>
+                    */}
+                    <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'wire_transfer' ? 'border-primary bg-teal-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" name="paymentMethod" value="wire_transfer" checked={paymentMethod === 'wire_transfer'}
+                        onChange={() => setPaymentMethod('wire_transfer')}
+                        className="text-primary focus:ring-primary" />
+                      <div>
+                        <span className="text-sm font-medium text-text">Überweisung</span>
+                        <span className="block text-xs text-gray-400">Bankdaten werden nach der Buchung angezeigt</span>
+                      </div>
+                    </label>
+                  </fieldset>
 
-                {/* 6. Hinweis unter dem Button */}
-                <p className="text-xs text-gray-400 text-center leading-relaxed">
-                  Mit der Buchung entsteht ein kostenpflichtiger Vertrag über ein Erstgespräch ({formatDuration(selectedSlot.durationMinutes)}) zum Preis von 95,00&nbsp;€.
-                </p>
+                  {/* 4. Zahlungsinformation */}
+                  <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 leading-relaxed space-y-2">
+                    <p><strong className="text-gray-600">Hinweis:</strong> Termine können bis 48&nbsp;Stunden vorher kostenfrei abgesagt werden. Danach fällt ein Ausfallhonorar an.</p>
+                  </div>
+
+                  {/* 4. Rechtliche Checkboxen */}
+                  <div className="space-y-3 pt-2">
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={consent.agb}
+                        onChange={e => setConsent({...consent, agb: e.target.checked})}
+                        className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-600">
+                        Ich habe die{' '}
+                        <a href="/agb" target="_blank" className="text-primary underline hover:text-teal-600">Behandlungsbedingungen einschließlich der Ausfallregelung</a>{' '}
+                        gelesen und akzeptiere sie. *
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={consent.datenschutz}
+                        onChange={e => setConsent({...consent, datenschutz: e.target.checked})}
+                        className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-600">
+                        Ich habe die{' '}
+                        <a href="/datenschutz" target="_blank" className="text-primary underline hover:text-teal-600">Datenschutzerklärung</a>{' '}
+                        zur Kenntnis genommen. *
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={consent.widerruf}
+                        onChange={e => setConsent({...consent, widerruf: e.target.checked})}
+                        className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-600">
+                        Ich verlange ausdrücklich, dass die Dienstleistung bereits vor Ablauf der Widerrufsfrist beginnt. Mir ist bekannt, dass mein Widerrufsrecht mit vollständiger Vertragserfüllung erlischt. *
+                      </span>
+                    </label>
+                  </div>
+
+                  {error && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-3">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      {error}
+                    </div>
+                  )}
+
+                  {/* 5. Kostenpflichtiger Buchungsbutton */}
+                  <button
+                    type="submit"
+                    disabled={booking || !canSubmit}
+                    className="w-full py-3 px-6 bg-primary hover:bg-teal-500 text-white font-semibold text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {booking && <Loader2 className="h-5 w-5 animate-spin" />}
+                    Kostenpflichtig buchen
+                  </button>
+
+                  {/* 6. Hinweis unter dem Button */}
+                  <p className="text-xs text-gray-400 text-center leading-relaxed">
+                    Mit der Buchung entsteht ein kostenpflichtiger Vertrag über ein Erstgespräch ({formatDuration(selectedSlot.durationMinutes)}) zum Preis von 95,00&nbsp;€.
+                  </p>
                   </>
                 )}
               </form>
