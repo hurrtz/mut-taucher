@@ -1055,7 +1055,7 @@ function sendGroupSessionInvoice(PDO $db, int $paymentId): string {
     $durationMinutes = (int)$payment['duration_minutes'];
     $therapyLabel = $payment['group_label'];
     $invoiceNumber = generateInvoiceNumber($db);
-    $paymentNote = 'Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.';
+    $paymentNote = "Bitte überweisen Sie den Betrag vor dem Termin am {$dateFormatted}.";
 
     $pdfGen = new PdfGenerator();
     $pdfContent = $pdfGen->generate('rechnung', $clientName, $dateFormatted, [

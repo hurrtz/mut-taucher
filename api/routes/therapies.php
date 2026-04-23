@@ -610,7 +610,7 @@ function sendTherapySessionInvoice(PDO $db, int $sessionId): string {
     $durationMinutes = (int)$session['duration_minutes'];
     $therapyLabel = $session['therapy_label'];
     $invoiceNumber = generateInvoiceNumber($db);
-    $paymentNote = 'Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.';
+    $paymentNote = "Bitte überweisen Sie den Betrag vor dem Termin am {$dateFormatted}.";
 
     $pdfGen = new PdfGenerator();
     $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_einzeltherapie', 'rechnung');
