@@ -34,6 +34,8 @@ interface ClientDocument {
   file_size: number;
   file_path: string;
   notes: string | null;
+  documentType: string | null;
+  invoiceNumber: string | null;
   created_at: string;
 }
 
@@ -87,11 +89,18 @@ export function useClientHistory(clientId: number) {
     await fetchTimeline();
   }, [fetchTimeline]);
 
-  const uploadDocument = useCallback(async (file: File, label: string, notes?: string) => {
+  const uploadDocument = useCallback(async (
+    file: File,
+    label: string,
+    notes?: string,
+    opts?: { documentType?: string | null; invoiceNumber?: string | null },
+  ) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('label', label);
     if (notes) formData.append('notes', notes);
+    if (opts?.documentType) formData.append('document_type', opts.documentType);
+    if (opts?.invoiceNumber) formData.append('invoice_number', opts.invoiceNumber);
 
     await apiFetch<ClientDocument>(`/admin/clients/${clientId}/documents`, {
       method: 'POST',
