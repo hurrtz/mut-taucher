@@ -4,7 +4,7 @@ import { ConfigProvider, Layout, Menu, Typography, Button, FloatButton, Card, In
 import {
   BarChartOutlined, LogoutOutlined,
   CalendarOutlined, TeamOutlined, UserOutlined, FileTextOutlined,
-  VideoCameraOutlined, BookOutlined,
+  VideoCameraOutlined, BookOutlined, MailOutlined,
 } from '@ant-design/icons';
 import deDE from 'antd/locale/de_DE';
 import adminTheme from './theme';
@@ -41,6 +41,7 @@ function buildMenuItems(counts: NavCounts | null) {
     { key: 'kunden', icon: <UserOutlined />, label: <NavLabel text="Patienten" count={counts?.kunden} /> },
     { key: 'dokumente', icon: <FileTextOutlined />, label: <NavLabel text="Vorlagen" count={counts?.dokumente} /> },
     { key: 'arbeitsmappe', icon: <BookOutlined />, label: 'Arbeitsmappe' },
+    { key: 'email', icon: <MailOutlined />, label: 'E-Mail' },
   ];
 }
 

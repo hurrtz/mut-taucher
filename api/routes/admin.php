@@ -1303,3 +1303,70 @@ function handleGetCounts(): void {
 
     echo json_encode($counts);
 }
+
+/**
+ * POST /api/admin/email
+ * Body: { to, cc, bcc, subject, body }
+ * Recipient fields accept comma/semicolon-separated address lists.
+ * Sends a plain-text email via the configured provider (Brevo / SMTP).
+ */
+function handleSendComposedEmail(): void {
+    requireAuth();
+    require_once __DIR__ . '/../lib/Mailer.php';
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    // Parse a "a@x.de, b@y.de" string into [['email' => ...], ...], validating each.
+    $parse = function (string $raw): array {
+        $out = [];
+        foreach (preg_split('/[,;]+/', $raw) as $addr) {
+            $addr = trim($addr);
+            if ($addr === '') continue;
+            if (!filter_var($addr, FILTER_VALIDATE_EMAIL)) {
+                throw new InvalidArgumentException("Ungültige E-Mail-Adresse: $addr");
+            }
+            $out[] = ['email' => $addr];
+        }
+        return $out;
+    };
+
+    $subject = trim((string)($input['subject'] ?? ''));
+    $body    = (string)($input['body'] ?? '');
+
+    try {
+        $to  = $parse((string)($input['to'] ?? ''));
+        $cc  = $parse((string)($input['cc'] ?? ''));
+        $bcc = $parse((string)($input['bcc'] ?? ''));
+    } catch (InvalidArgumentException $e) {
+        http_response_code(400);
+        echo json_encode(['error' => $e->getMessage()]);
+        return;
+    }
+
+    if (empty($to)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Mindestens ein Empfänger (An) ist erforderlich']);
+        return;
+    }
+    if ($subject === '') {
+        http_response_code(400);
+        echo json_encode(['error' => 'Betreff ist erforderlich']);
+        return;
+    }
+    if (trim($body) === '') {
+        http_response_code(400);
+        echo json_encode(['error' => 'Nachricht ist erforderlich']);
+        return;
+    }
+
+    try {
+        (new Mailer())->sendPlain($to, $cc, $bcc, $subject, $body);
+    } catch (\Exception $e) {
+        error_log('handleSendEmail failed: ' . $e->getMessage());
+        http_response_code(502);
+        echo json_encode(['error' => 'E-Mail konnte nicht gesendet werden: ' . $e->getMessage()]);
+        return;
+    }
+
+    echo json_encode(['sent' => true]);
+}

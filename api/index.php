@@ -100,6 +100,12 @@ if ($method === 'GET' && $uri === '/admin/counts') {
     exit;
 }
 
+// Admin: compose & send a plain-text email
+if ($method === 'POST' && $uri === '/admin/email') {
+    handleSendComposedEmail();
+    exit;
+}
+
 // Admin: rules
 if ($method === 'GET' && $uri === '/admin/rules') {
     handleGetRules();

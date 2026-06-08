@@ -20,6 +20,7 @@ const GroupsTab = lazy(() => import('./admin/tabs/GroupsTab'));
 const PatientsTab = lazy(() => import('./admin/tabs/PatientsTab'));
 const TemplatesTab = lazy(() => import('./admin/tabs/TemplatesTab'));
 const WorkbookTab = lazy(() => import('./admin/tabs/WorkbookTab'));
+const EmailTab = lazy(() => import('./admin/tabs/EmailTab'));
 const ClientDetail = lazy(() => import('./pages/ClientDetail'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -91,6 +92,7 @@ function App() {
           <Route path="kunden" element={<PatientsTab />} />
           <Route path="dokumente" element={<TemplatesTab />} />
           <Route path="arbeitsmappe" element={<WorkbookTab />} />
+          <Route path="email" element={<EmailTab />} />
           <Route path="client/:id" element={<ClientDetail />} />
         </Route>
 
