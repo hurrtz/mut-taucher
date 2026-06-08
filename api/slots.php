@@ -52,13 +52,18 @@ function generateSlots(PDO $db, string $from, string $to): array {
     }
 
     $horizonDate = date('Y-m-d', strtotime('+12 months'));
+
+    // Minimum lead time for website bookings: the current day and the next day
+    // are not bookable, so the earliest available date is the day after tomorrow.
+    $minBookableDate = date('Y-m-d', strtotime('+2 days'));
+
     $slots = [];
 
     foreach ($rules as $rule) {
         $ruleStart = $rule['start_date'];
         $ruleEnd = $rule['end_date'] ?? $horizonDate;
 
-        $effectiveStart = max($from, $ruleStart);
+        $effectiveStart = max($from, $ruleStart, $minBookableDate);
         $effectiveEnd = min($to, $ruleEnd, $horizonDate);
 
         if ($effectiveStart > $effectiveEnd) continue;
@@ -128,6 +133,9 @@ function generateSlots(PDO $db, string $from, string $to): array {
     foreach ($events as $event) {
         $eventId = (int)$event['id'];
         if (isset($bookedEventIds[$eventId])) continue;
+
+        // Enforce the same lead time as recurring slots.
+        if ($event['event_date'] < $minBookableDate) continue;
 
         $slots[] = [
             'id'              => 'event-' . $eventId,
