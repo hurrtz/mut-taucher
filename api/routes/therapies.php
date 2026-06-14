@@ -861,12 +861,14 @@ function handlePreviewTherapyPackageInvoice(int $therapyId): void {
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
     $invoiceNumber = peekNextInvoiceNumber($db); // indicative only
     $htmlBody = renderTherapyPackageEmailBody($config, $clientName, $invoiceNumber, $amountFormatted, $dateFormatted, THERAPY_PACKAGE_PAYMENT_NOTE);
+    $pdfContent = renderTherapyPackagePdf($therapy, $lineItems, $invoiceNumber, $amountFormatted, $dateFormatted, $clientName, THERAPY_PACKAGE_PAYMENT_NOTE);
 
     echo json_encode([
         'to'            => $therapy['client_email'],
         'toName'        => $clientName,
         'subject'       => "Rechnung {$invoiceNumber} — {$therapistName}",
         'htmlBody'      => $htmlBody,
+        'pdfBase64'     => base64_encode($pdfContent),
         'invoiceNumber' => $invoiceNumber,
         'sessionCount'  => count($sessions),
         'totalAmount'   => $amountFormatted,

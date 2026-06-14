@@ -13,7 +13,7 @@ import {
   VideoCameraOutlined, DeleteOutlined, CheckCircleOutlined,
   FileTextOutlined, ContainerOutlined, EditOutlined,
 } from '@ant-design/icons';
-import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse, TimePicker, InputNumber, Tooltip, Alert } from 'antd';
+import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse, TimePicker, InputNumber, Tooltip, Alert, Tabs } from 'antd';
 import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
 
@@ -40,8 +40,18 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [preview, setPreview] = useState<PackageInvoicePreview | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const styles = useAdminStyles();
+
+  // Turn the previewed PDF (base64) into an object URL the iframe can render.
+  useEffect(() => {
+    if (!preview?.pdfBase64) { setPdfUrl(null); return; }
+    const bytes = Uint8Array.from(atob(preview.pdfBase64), c => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    setPdfUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [preview]);
 
   const totalDue = sessions.filter(s => s.paymentStatus === 'due' && s.status !== 'cancelled').length;
   const totalPaid = sessions.filter(s => s.paymentStatus === 'paid' && s.status !== 'cancelled').length;
@@ -158,7 +168,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
         title="Paketrechnung — Vorschau"
         open={previewOpen}
         onCancel={closePreview}
-        width={720}
+        width={860}
         footer={[
           <Button key="discard" onClick={closePreview}>Verwerfen</Button>,
           <Button key="send" type="primary" loading={sending} onClick={confirmSend}>Senden</Button>,
@@ -183,14 +193,35 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
               showIcon
               message="Die endgültige Rechnungsnummer wird erst beim Senden vergeben."
             />
-            <div>
-              <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>E-Mail-Vorschau</Typography.Text>
-              <iframe
-                title="E-Mail-Vorschau"
-                srcDoc={preview.htmlBody}
-                style={{ width: '100%', height: 360, border: `1px solid ${styles.token.colorBorder}`, borderRadius: styles.token.borderRadius }}
-              />
-            </div>
+            <Tabs
+              defaultActiveKey="pdf"
+              items={[
+                {
+                  key: 'pdf',
+                  label: 'Rechnung (PDF)',
+                  children: pdfUrl ? (
+                    <iframe
+                      title="Rechnungs-Vorschau"
+                      src={pdfUrl}
+                      style={{ width: '100%', height: 540, border: `1px solid ${styles.token.colorBorder}`, borderRadius: styles.token.borderRadius }}
+                    />
+                  ) : (
+                    <Typography.Text type="secondary">PDF wird geladen …</Typography.Text>
+                  ),
+                },
+                {
+                  key: 'email',
+                  label: 'E-Mail',
+                  children: (
+                    <iframe
+                      title="E-Mail-Vorschau"
+                      srcDoc={preview.htmlBody}
+                      style={{ width: '100%', height: 540, border: `1px solid ${styles.token.colorBorder}`, borderRadius: styles.token.borderRadius }}
+                    />
+                  ),
+                },
+              ]}
+            />
           </Space>
         )}
       </Modal>

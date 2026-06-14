@@ -195,6 +195,7 @@ export interface PackageInvoicePreview {
   toName: string;
   subject: string;
   htmlBody: string;
+  pdfBase64: string;
   invoiceNumber: string;
   sessionCount: number;
   totalAmount: string;
