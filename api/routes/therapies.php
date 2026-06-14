@@ -5,6 +5,7 @@ require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/clients.php';
 require_once __DIR__ . '/../lib/InvoiceNumber.php';
 require_once __DIR__ . '/../lib/DocumentCompleteness.php';
+require_once __DIR__ . '/../lib/TherapyCredit.php';
 
 // ─── Therapies CRUD ─────────────────────────────────────────────
 
@@ -331,6 +332,29 @@ function handleToggleTherapyException(int $therapyId): void {
 // ─── Therapy Sessions ───────────────────────────────────────────
 
 /**
+ * Map a therapy_sessions DB row to its camelCased API shape.
+ */
+function formatTherapySessionRow(array $s): array {
+    return [
+        'id'              => (int)$s['id'],
+        'therapyId'       => (int)$s['therapy_id'],
+        'sessionDate'     => $s['session_date'],
+        'sessionTime'     => $s['session_time'],
+        'durationMinutes' => (int)$s['duration_minutes'],
+        'status'          => $s['status'],
+        'notes'           => $s['notes'],
+        'paymentStatus'   => $s['payment_status'],
+        'paidFromCredit'  => (bool)$s['paid_from_credit'],
+        'paymentDueDate'  => $s['payment_due_date'],
+        'paymentPaidDate' => $s['payment_paid_date'],
+        'invoiceSent'     => (bool)$s['invoice_sent'],
+        'invoiceSentAt'   => $s['invoice_sent_at'],
+        'sessionCostCentsOverride' => $s['session_cost_cents_override'] !== null ? (int)$s['session_cost_cents_override'] : null,
+        'createdAt'       => $s['created_at'],
+    ];
+}
+
+/**
  * GET /api/admin/therapies/:id/sessions?from=&to=
  */
 function handleGetTherapySessions(int $therapyId): void {
@@ -355,22 +379,7 @@ function handleGetTherapySessions(int $therapyId): void {
     $stmt->execute($params);
     $sessions = $stmt->fetchAll();
 
-    $result = array_map(fn($s) => [
-        'id'              => (int)$s['id'],
-        'therapyId'       => (int)$s['therapy_id'],
-        'sessionDate'     => $s['session_date'],
-        'sessionTime'     => $s['session_time'],
-        'durationMinutes' => (int)$s['duration_minutes'],
-        'status'          => $s['status'],
-        'notes'           => $s['notes'],
-        'paymentStatus'   => $s['payment_status'],
-        'paymentDueDate'  => $s['payment_due_date'],
-        'paymentPaidDate' => $s['payment_paid_date'],
-        'invoiceSent'     => (bool)$s['invoice_sent'],
-        'invoiceSentAt'   => $s['invoice_sent_at'],
-        'sessionCostCentsOverride' => $s['session_cost_cents_override'] !== null ? (int)$s['session_cost_cents_override'] : null,
-        'createdAt'       => $s['created_at'],
-    ], $sessions);
+    $result = array_map('formatTherapySessionRow', $sessions);
 
     echo json_encode(array_values($result));
 }
@@ -522,6 +531,16 @@ function handleUpdateSession(int $id): void {
     $input = json_decode(file_get_contents('php://input'), true);
     $db = getDB();
 
+    // Current state is needed to decide credit (Guthaben) handling on payment changes.
+    $cur = $db->prepare('SELECT therapy_id, status, payment_status FROM therapy_sessions WHERE id = ?');
+    $cur->execute([$id]);
+    $current = $cur->fetch();
+    if (!$current) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Sitzung nicht gefunden']);
+        return;
+    }
+
     $fields = [];
     $params = [];
 
@@ -536,6 +555,17 @@ function handleUpdateSession(int $id): void {
     if (isset($input['paymentStatus'])) {
         $fields[] = 'payment_status = ?';
         $params[] = $input['paymentStatus'];
+
+        // Guthaben: when settling a previously-open session, spend available credit
+        // instead of booking new money. When re-opening, release any credit it held.
+        if ($input['paymentStatus'] === 'paid' && $current['payment_status'] !== 'paid') {
+            $available = therapyNetCredit($db, (int)$current['therapy_id'], $id);
+            $fields[] = 'paid_from_credit = ?';
+            $params[] = $available > 0 ? 1 : 0;
+        } elseif ($input['paymentStatus'] === 'due') {
+            $fields[] = 'paid_from_credit = ?';
+            $params[] = 0;
+        }
     }
     if (isset($input['paymentPaidDate'])) {
         $fields[] = 'payment_paid_date = ?';
@@ -584,7 +614,11 @@ function handleUpdateSession(int $id): void {
         }
     }
 
-    echo json_encode(['message' => 'Sitzung aktualisiert']);
+    // Return the updated session so the client reflects backend-decided fields
+    // (e.g. paid_from_credit) without a refetch.
+    $updated = $db->prepare('SELECT * FROM therapy_sessions WHERE id = ?');
+    $updated->execute([$id]);
+    echo json_encode(formatTherapySessionRow($updated->fetch()));
 }
 
 /**
@@ -706,4 +740,131 @@ function handleSendInvoice(int $sessionId): void {
         http_response_code(500);
         echo json_encode(['error' => 'Rechnung konnte nicht gesendet werden: ' . $e->getMessage()]);
     }
+}
+
+/**
+ * POST /api/admin/therapies/:id/invoice
+ * Generates and sends one package invoice (Paketrechnung) covering all open, unpaid,
+ * not-yet-invoiced sessions of a therapy.
+ */
+function handleSendTherapyPackageInvoice(int $therapyId): void {
+    requireAuth();
+    require_once __DIR__ . '/../lib/Mailer.php';
+    require_once __DIR__ . '/../lib/PdfGenerator.php';
+    require_once __DIR__ . '/../lib/InvoiceNumber.php';
+    require_once __DIR__ . '/client_history.php';
+    $config = require __DIR__ . '/../config.php';
+    $db = getDB();
+
+    // Load therapy + client
+    $stmt = $db->prepare(
+        'SELECT t.id, t.client_id, t.label AS therapy_label, t.session_cost_cents,
+                c.title AS client_title, c.first_name AS client_first_name, c.last_name AS client_last_name, c.suffix AS client_suffix,
+                c.email AS client_email,
+                c.street AS client_street, c.zip AS client_zip, c.city AS client_city, c.country AS client_country
+         FROM therapies t
+         JOIN clients c ON t.client_id = c.id
+         WHERE t.id = ?'
+    );
+    $stmt->execute([$therapyId]);
+    $therapy = $stmt->fetch();
+    if (!$therapy) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Therapie nicht gefunden']);
+        return;
+    }
+
+    // Sessions covered by the package invoice
+    $sessStmt = $db->prepare(
+        "SELECT * FROM therapy_sessions
+         WHERE therapy_id = ? AND status <> 'cancelled' AND payment_status = 'due' AND invoice_sent = 0
+         ORDER BY session_date ASC, session_time ASC"
+    );
+    $sessStmt->execute([$therapyId]);
+    $sessions = $sessStmt->fetchAll();
+
+    if (empty($sessions)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Keine offenen, noch nicht berechneten Sitzungen']);
+        return;
+    }
+
+    $defaultCost = (int)$therapy['session_cost_cents'];
+    $totalCents = packageInvoiceTotalCents($sessions, $defaultCost);
+    $lineItems = array_map(function ($s) use ($defaultCost) {
+        $override = $s['session_cost_cents_override'] !== null ? (int)$s['session_cost_cents_override'] : null;
+        $cost = resolveSessionCost($override, $defaultCost);
+        return [
+            'date'     => date('d.m.Y', strtotime($s['session_date'])),
+            'time'     => $s['session_time'],
+            'duration' => (int)$s['duration_minutes'],
+            'amount'   => number_format($cost / 100, 2, ',', '.') . ' €',
+        ];
+    }, $sessions);
+
+    $clientName = composeClientName($therapy['client_title'], $therapy['client_first_name'], $therapy['client_last_name'], $therapy['client_suffix']);
+    $dateFormatted = date('d.m.Y');
+    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $siteUrl = $config['site_url'] ?? '';
+    $amountFormatted = number_format($totalCents / 100, 2, ',', '.') . ' €';
+    $sessionCount = count($sessions);
+    $invoiceNumber = generateInvoiceNumber($db);
+    $paymentNote = 'Bitte überweisen Sie den Gesamtbetrag innerhalb von 14 Tagen.';
+
+    $pdfGen = new PdfGenerator();
+    $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_einzeltherapie_paket', 'rechnung_einzeltherapie_paket');
+    $pdfContent = $pdfGen->generate($templateKey, $clientName, $dateFormatted, [
+        'invoiceNumber'   => $invoiceNumber,
+        'amountFormatted' => $amountFormatted,
+        'totalAmount'     => $amountFormatted,
+        'therapyLabel'    => $therapy['therapy_label'] ?: 'Einzeltherapie',
+        'sessionCount'    => $sessionCount,
+        'sessions'        => $lineItems,
+        'clientStreet'    => $therapy['client_street'] ?? '',
+        'clientZip'       => $therapy['client_zip'] ?? '',
+        'clientCity'      => $therapy['client_city'] ?? '',
+        'clientCountry'   => $therapy['client_country'] ?? '',
+        'paymentNote'     => $paymentNote,
+    ]);
+
+    // Cover email (shares the single-invoice template)
+    $sessionDate = $dateFormatted;
+    $bookingNumber = null;
+    $documentName = 'Rechnung';
+    ob_start();
+    include __DIR__ . '/../templates/email/invoice_cover.php';
+    $htmlBody = ob_get_clean();
+
+    try {
+        $mailer = new Mailer();
+        $pdfFilename = "Rechnung_{$invoiceNumber}.pdf";
+        $mailer->sendWithPdf(
+            $therapy['client_email'],
+            $clientName,
+            "Rechnung {$invoiceNumber} — {$therapistName}",
+            $htmlBody,
+            $pdfContent,
+            $pdfFilename
+        );
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Rechnung konnte nicht gesendet werden: ' . $e->getMessage()]);
+        return;
+    }
+
+    // Mark covered sessions as invoiced (they stay "due" until payment is recorded)
+    $ids = array_map(fn($s) => (int)$s['id'], $sessions);
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $db->prepare(
+        "UPDATE therapy_sessions SET invoice_sent = 1, invoice_sent_at = NOW() WHERE id IN ($placeholders)"
+    )->execute($ids);
+
+    archiveSentDocument((int)$therapy['client_id'], "Rechnung {$invoiceNumber}", $pdfContent, $pdfFilename);
+
+    echo json_encode([
+        'message'       => 'Rechnung gesendet',
+        'invoiceNumber' => $invoiceNumber,
+        'sessionCount'  => $sessionCount,
+        'totalAmount'   => $amountFormatted,
+    ]);
 }

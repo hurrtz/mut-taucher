@@ -143,15 +143,16 @@ export function useAdminTherapies() {
   const updateSession = useCallback(async (id: number, updates: Partial<TherapySession>) => {
     setError(null);
     try {
-      await apiFetch(`/admin/sessions/${id}`, {
+      // The backend returns the full updated session so client-decided fields
+      // (e.g. paidFromCredit) are reflected without a refetch.
+      const saved = await apiFetch<TherapySession>(`/admin/sessions/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(updates),
       });
-      // Update local state
       setSessionsByTherapy(prev => {
         const updated: Record<number, TherapySession[]> = {};
         for (const [tid, list] of Object.entries(prev)) {
-          updated[Number(tid)] = list.map(s => s.id === id ? { ...s, ...updates } : s);
+          updated[Number(tid)] = list.map(s => s.id === id ? { ...s, ...updates, ...saved } : s);
         }
         return updated;
       });
@@ -188,6 +189,21 @@ export function useAdminTherapies() {
     }
   }, []);
 
+  const sendPackageInvoice = useCallback(async (therapyId: number) => {
+    setError(null);
+    try {
+      const result = await apiFetch<{ invoiceNumber: string; sessionCount: number; totalAmount: string }>(
+        `/admin/therapies/${therapyId}/invoice`,
+        { method: 'POST' },
+      );
+      await fetchSessions(therapyId);
+      return result;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Rechnungsversand');
+      return null;
+    }
+  }, [fetchSessions]);
+
   return {
     therapies,
     archivedTherapies,
@@ -205,5 +221,6 @@ export function useAdminTherapies() {
     updateSession,
     removeSession,
     sendInvoice,
+    sendPackageInvoice,
   };
 }

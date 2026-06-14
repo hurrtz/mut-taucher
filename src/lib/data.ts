@@ -181,6 +181,7 @@ export interface TherapySession {
   status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
   notes: string | null;
   paymentStatus: 'due' | 'paid';
+  paidFromCredit: boolean;
   paymentDueDate: string | null;
   paymentPaidDate: string | null;
   invoiceSent: boolean;

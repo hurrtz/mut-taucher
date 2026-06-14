@@ -19,7 +19,7 @@ import dayjs from 'dayjs';
 
 // ─── Session Panel ───────────────────────────────────────────────
 
-function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSession, onDeleteSession, onSendInvoice }: {
+function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSession, onDeleteSession, onSendInvoice, onSendPackageInvoice }: {
   therapy: Therapy;
   sessions: TherapySession[];
   onGenerate: (from: string, to: string) => void;
@@ -27,6 +27,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number) => void;
   onSendInvoice: (id: number) => void;
+  onSendPackageInvoice?: (therapyId: number) => Promise<{ invoiceNumber: string; sessionCount: number; totalAmount: string } | null>;
 }) {
   const [genFrom, setGenFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [genTo, setGenTo] = useState(format(addMonths(new Date(), 3), 'yyyy-MM-dd'));
@@ -35,18 +36,54 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
   const [editTime, setEditTime] = useState('');
   const [editDuration, setEditDuration] = useState(60);
   const [addOpen, setAddOpen] = useState(false);
+  const [sending, setSending] = useState(false);
   const styles = useAdminStyles();
 
   const totalDue = sessions.filter(s => s.paymentStatus === 'due' && s.status !== 'cancelled').length;
-  const totalPaid = sessions.filter(s => s.paymentStatus === 'paid').length;
+  const totalPaid = sessions.filter(s => s.paymentStatus === 'paid' && s.status !== 'cancelled').length;
   const amountDue = totalDue * therapy.sessionCostCents;
   const amountPaid = totalPaid * therapy.sessionCostCents;
+
+  // Guthaben: paid sessions that were cancelled create credit; sessions settled from
+  // credit consume it. Net credit is what the therapist still owes the client.
+  const creditSources = sessions.filter(s => s.status === 'cancelled' && s.paymentStatus === 'paid' && !s.paidFromCredit).length;
+  const creditConsumers = sessions.filter(s => s.paidFromCredit && s.status !== 'cancelled').length;
+  const credit = Math.max(0, creditSources - creditConsumers);
+  const creditAmount = credit * therapy.sessionCostCents;
+
+  const openUninvoiced = sessions.filter(s => s.status !== 'cancelled' && s.paymentStatus === 'due' && !s.invoiceSent);
+  const openUninvoicedCents = openUninvoiced.reduce((sum, s) => sum + (s.sessionCostCentsOverride ?? therapy.sessionCostCents), 0);
+  const colSpan = credit > 0 ? 6 : 8;
+
+  const handleSendPackageInvoice = () => {
+    if (!onSendPackageInvoice) return;
+    Modal.confirm({
+      title: 'Paketrechnung senden?',
+      content: `${openUninvoiced.length} offene Sitzung${openUninvoiced.length === 1 ? '' : 'en'} über insgesamt ${(openUninvoicedCents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € werden in einer Rechnung zusammengefasst und an ${therapy.clientName} gesendet.`,
+      okText: 'Senden',
+      cancelText: 'Abbrechen',
+      onOk: async () => {
+        setSending(true);
+        try {
+          const res = await onSendPackageInvoice(therapy.id);
+          if (res) {
+            Modal.success({
+              title: 'Rechnung gesendet',
+              content: `Rechnung ${res.invoiceNumber} über ${res.totalAmount} (${res.sessionCount} Sitzungen) wurde versendet.`,
+            });
+          }
+        } finally {
+          setSending(false);
+        }
+      },
+    });
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <Card size="small" type="inner" title="Finanzieller Status">
         <Row gutter={16}>
-          <Col span={8} style={{ textAlign: 'center' }}>
+          <Col span={colSpan} style={{ textAlign: 'center' }}>
             <Statistic
               title="Offen"
               value={(amountDue / 100).toFixed(0)}
@@ -55,7 +92,18 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
             />
             <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{totalDue} Sitzungen</Typography.Text>
           </Col>
-          <Col span={8} style={{ textAlign: 'center' }}>
+          {credit > 0 && (
+            <Col span={colSpan} style={{ textAlign: 'center' }}>
+              <Statistic
+                title="Guthaben"
+                value={(creditAmount / 100).toFixed(0)}
+                suffix="€"
+                valueStyle={{ color: styles.token.colorInfo }}
+              />
+              <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{credit} {credit === 1 ? 'Sitzung' : 'Sitzungen'}</Typography.Text>
+            </Col>
+          )}
+          <Col span={colSpan} style={{ textAlign: 'center' }}>
             <Statistic
               title="Bezahlt"
               value={(amountPaid / 100).toFixed(0)}
@@ -64,15 +112,27 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
             />
             <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{totalPaid} Sitzungen</Typography.Text>
           </Col>
-          <Col span={8} style={{ textAlign: 'center' }}>
+          <Col span={colSpan} style={{ textAlign: 'center' }}>
             <Statistic
               title="Gesamt"
               value={((amountDue + amountPaid) / 100).toFixed(0)}
               suffix="€"
             />
-            <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{sessions.length} Sitzungen</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{totalDue + totalPaid} Sitzungen</Typography.Text>
           </Col>
         </Row>
+        {onSendPackageInvoice && (
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={handleSendPackageInvoice}
+            disabled={openUninvoiced.length === 0}
+            loading={sending}
+            block
+            style={{ marginTop: 12 }}
+          >
+            Paketrechnung senden{openUninvoiced.length > 0 ? ` (${openUninvoiced.length})` : ''}
+          </Button>
+        )}
       </Card>
 
       {sessions.length === 0 ? (
@@ -164,7 +224,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
                       }}
                     />
                   </Tooltip>
-                  <Tooltip title={s.paymentStatus === 'paid' ? 'Als offen markieren' : 'Als bezahlt markieren'}>
+                  <Tooltip title={s.paymentStatus === 'paid' ? 'Als offen markieren' : (credit > 0 ? 'Mit Guthaben verrechnen' : 'Als bezahlt markieren')}>
                     <Button
                       type="text"
                       icon={<EuroCircleOutlined />}
@@ -172,7 +232,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
                         paymentStatus: s.paymentStatus === 'paid' ? 'due' : 'paid',
                         paymentPaidDate: s.paymentStatus === 'paid' ? null : format(new Date(), 'yyyy-MM-dd'),
                       })}
-                      style={{ color: s.paymentStatus === 'paid' ? styles.token.colorSuccess : undefined }}
+                      style={{ color: s.paymentStatus === 'paid' ? styles.token.colorSuccess : (credit > 0 ? styles.token.colorInfo : undefined) }}
                     />
                   </Tooltip>
                   <Tooltip title={s.invoiceSent ? 'Rechnung gesendet' : 'Rechnung senden'}>
@@ -203,6 +263,16 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
               {s.sessionCostCentsOverride !== null && (
                 <Typography.Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
                   {(s.sessionCostCentsOverride / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € (abweichend)
+                </Typography.Text>
+              )}
+              {s.status === 'cancelled' && s.paymentStatus === 'paid' && !s.paidFromCredit && (
+                <Typography.Text style={{ fontSize: 12, marginTop: 4, display: 'block', color: styles.token.colorInfo }}>
+                  → Guthaben erzeugt
+                </Typography.Text>
+              )}
+              {s.paidFromCredit && s.status !== 'cancelled' && (
+                <Typography.Text style={{ fontSize: 12, marginTop: 4, display: 'block', color: styles.token.colorInfo }}>
+                  Mit Guthaben verrechnet
                 </Typography.Text>
               )}
               {s.notes && (
@@ -263,7 +333,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
 // ─── Therapy Card ────────────────────────────────────────────────
 
 function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArchive, onGenerateSessions,
-  onAddSession, onUpdateSession, onDeleteSession, onSendInvoice }: {
+  onAddSession, onUpdateSession, onDeleteSession, onSendInvoice, onSendPackageInvoice }: {
   therapy: Therapy;
   sessions: TherapySession[];
   fetchSessions: (therapyId: number) => void;
@@ -275,6 +345,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number, therapyId: number) => void;
   onSendInvoice: (id: number) => void;
+  onSendPackageInvoice?: (therapyId: number) => Promise<{ invoiceNumber: string; sessionCount: number; totalAmount: string } | null>;
 }) {
   const styles = useAdminStyles();
 
@@ -380,6 +451,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
           onUpdateSession={onUpdateSession}
           onDeleteSession={(id) => onDeleteSession(id, therapy.id)}
           onSendInvoice={onSendInvoice}
+          onSendPackageInvoice={onSendPackageInvoice}
         />
 
         <DocumentCollapse contextType="therapy" contextId={therapy.id} />
@@ -392,7 +464,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
 
 export default function TherapyList({ therapies, archivedTherapies, sessionsByTherapy, fetchSessions,
   onEdit, onDelete, onArchive, onGenerateSessions, onAddSession, onUpdateSession, onDeleteSession, onSendInvoice,
-  showNewForm, newForm }: {
+  onSendPackageInvoice, showNewForm, newForm }: {
   therapies: Therapy[];
   archivedTherapies: Therapy[];
   sessionsByTherapy: Record<number, TherapySession[]>;
@@ -405,6 +477,7 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number, therapyId: number) => void;
   onSendInvoice: (id: number) => void;
+  onSendPackageInvoice?: (therapyId: number) => Promise<{ invoiceNumber: string; sessionCount: number; totalAmount: string } | null>;
   showNewForm: boolean;
   newForm: ReactNode;
 }) {
@@ -435,6 +508,7 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
                 onUpdateSession={onUpdateSession}
                 onDeleteSession={onDeleteSession}
                 onSendInvoice={onSendInvoice}
+                onSendPackageInvoice={onSendPackageInvoice}
               />
             ))
           )}
@@ -462,6 +536,7 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
                   onUpdateSession={onUpdateSession}
                   onDeleteSession={onDeleteSession}
                   onSendInvoice={onSendInvoice}
+                  onSendPackageInvoice={onSendPackageInvoice}
                 />
               ),
             }))}

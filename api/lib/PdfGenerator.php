@@ -257,6 +257,7 @@ class PdfGenerator {
             'zahlungsaufforderung_erstgespraech' => 'Zahlungsaufforderung — Erstgespräch',
             'rechnung_erstgespraech'    => 'Rechnung — Erstgespräch',
             'rechnung_einzeltherapie'   => 'Rechnung — Einzeltherapie',
+            'rechnung_einzeltherapie_paket' => 'Rechnung — Einzeltherapie (Paket)',
             'rechnung_gruppentherapie'  => 'Rechnung — Gruppentherapie',
         ];
 

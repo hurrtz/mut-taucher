@@ -383,6 +383,11 @@ if ($method === 'POST' && preg_match('#^/admin/therapies/(\d+)/exceptions$#', $u
     exit;
 }
 
+if ($method === 'POST' && preg_match('#^/admin/therapies/(\d+)/invoice$#', $uri, $m)) {
+    handleSendTherapyPackageInvoice((int)$m[1]);
+    exit;
+}
+
 // Admin: therapy sessions
 if ($method === 'GET' && preg_match('#^/admin/therapies/(\d+)/sessions$#', $uri, $m)) {
     handleGetTherapySessions((int)$m[1]);
