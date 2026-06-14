@@ -743,6 +743,138 @@ function handleSendInvoice(int $sessionId): void {
 }
 
 /**
+ * Load a therapy + client row for package invoicing, or null if not found.
+ */
+function loadTherapyForInvoice(PDO $db, int $therapyId): ?array {
+    $stmt = $db->prepare(
+        'SELECT t.id, t.client_id, t.label AS therapy_label, t.session_cost_cents,
+                c.title AS client_title, c.first_name AS client_first_name, c.last_name AS client_last_name, c.suffix AS client_suffix,
+                c.email AS client_email,
+                c.street AS client_street, c.zip AS client_zip, c.city AS client_city, c.country AS client_country
+         FROM therapies t
+         JOIN clients c ON t.client_id = c.id
+         WHERE t.id = ?'
+    );
+    $stmt->execute([$therapyId]);
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Sessions a package invoice covers: open (due), held (not cancelled), not yet invoiced.
+ */
+function loadPackageInvoiceSessions(PDO $db, int $therapyId): array {
+    $stmt = $db->prepare(
+        "SELECT * FROM therapy_sessions
+         WHERE therapy_id = ? AND status <> 'cancelled' AND payment_status = 'due' AND invoice_sent = 0
+         ORDER BY session_date ASC, session_time ASC"
+    );
+    $stmt->execute([$therapyId]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Map covered session rows to display line items (date/time/duration/amount).
+ */
+function therapyPackageLineItems(array $sessions, int $defaultCost): array {
+    return array_map(function ($s) use ($defaultCost) {
+        $override = $s['session_cost_cents_override'] !== null ? (int)$s['session_cost_cents_override'] : null;
+        $cost = resolveSessionCost($override, $defaultCost);
+        return [
+            'date'     => date('d.m.Y', strtotime($s['session_date'])),
+            'time'     => $s['session_time'],
+            'duration' => (int)$s['duration_minutes'],
+            'amount'   => number_format($cost / 100, 2, ',', '.') . ' €',
+        ];
+    }, $sessions);
+}
+
+/**
+ * Render the package invoice PDF.
+ */
+function renderTherapyPackagePdf(array $therapy, array $lineItems, string $invoiceNumber, string $amountFormatted, string $dateFormatted, string $clientName, string $paymentNote): string {
+    $pdfGen = new PdfGenerator();
+    $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_einzeltherapie_paket', 'rechnung_einzeltherapie_paket');
+    return $pdfGen->generate($templateKey, $clientName, $dateFormatted, [
+        'invoiceNumber'   => $invoiceNumber,
+        'amountFormatted' => $amountFormatted,
+        'totalAmount'     => $amountFormatted,
+        'therapyLabel'    => $therapy['therapy_label'] ?: 'Einzeltherapie',
+        'sessionCount'    => count($lineItems),
+        'sessions'        => $lineItems,
+        'clientStreet'    => $therapy['client_street'] ?? '',
+        'clientZip'       => $therapy['client_zip'] ?? '',
+        'clientCity'      => $therapy['client_city'] ?? '',
+        'clientCountry'   => $therapy['client_country'] ?? '',
+        'paymentNote'     => $paymentNote,
+    ]);
+}
+
+/**
+ * Render the cover email body for a package invoice (shared by preview + send).
+ */
+function renderTherapyPackageEmailBody(array $config, string $clientName, string $invoiceNumber, string $amountFormatted, string $dateFormatted, string $paymentNote): string {
+    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $siteUrl = $config['site_url'] ?? '';
+    $sessionDate = $dateFormatted;
+    $bookingNumber = null;
+    $documentName = 'Rechnung';
+    ob_start();
+    include __DIR__ . '/../templates/email/invoice_cover.php';
+    return ob_get_clean();
+}
+
+/** The fixed payment note used on package invoices. */
+const THERAPY_PACKAGE_PAYMENT_NOTE = 'Bitte überweisen Sie den Gesamtbetrag innerhalb von 14 Tagen.';
+
+/**
+ * GET /api/admin/therapies/:id/invoice/preview
+ * Returns the exact email (recipient, subject, body) and line items that the package
+ * invoice would send — without reserving an invoice number or sending anything.
+ */
+function handlePreviewTherapyPackageInvoice(int $therapyId): void {
+    requireAuth();
+    require_once __DIR__ . '/../lib/PdfGenerator.php';
+    require_once __DIR__ . '/../lib/InvoiceNumber.php';
+    $config = require __DIR__ . '/../config.php';
+    $db = getDB();
+
+    $therapy = loadTherapyForInvoice($db, $therapyId);
+    if (!$therapy) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Therapie nicht gefunden']);
+        return;
+    }
+
+    $sessions = loadPackageInvoiceSessions($db, $therapyId);
+    if (empty($sessions)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Keine offenen, noch nicht berechneten Sitzungen']);
+        return;
+    }
+
+    $defaultCost = (int)$therapy['session_cost_cents'];
+    $totalCents = packageInvoiceTotalCents($sessions, $defaultCost);
+    $lineItems = therapyPackageLineItems($sessions, $defaultCost);
+    $amountFormatted = number_format($totalCents / 100, 2, ',', '.') . ' €';
+    $clientName = composeClientName($therapy['client_title'], $therapy['client_first_name'], $therapy['client_last_name'], $therapy['client_suffix']);
+    $dateFormatted = date('d.m.Y');
+    $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
+    $invoiceNumber = peekNextInvoiceNumber($db); // indicative only
+    $htmlBody = renderTherapyPackageEmailBody($config, $clientName, $invoiceNumber, $amountFormatted, $dateFormatted, THERAPY_PACKAGE_PAYMENT_NOTE);
+
+    echo json_encode([
+        'to'            => $therapy['client_email'],
+        'toName'        => $clientName,
+        'subject'       => "Rechnung {$invoiceNumber} — {$therapistName}",
+        'htmlBody'      => $htmlBody,
+        'invoiceNumber' => $invoiceNumber,
+        'sessionCount'  => count($sessions),
+        'totalAmount'   => $amountFormatted,
+        'sessions'      => $lineItems,
+    ]);
+}
+
+/**
  * POST /api/admin/therapies/:id/invoice
  * Generates and sends one package invoice (Paketrechnung) covering all open, unpaid,
  * not-yet-invoiced sessions of a therapy.
@@ -756,33 +888,14 @@ function handleSendTherapyPackageInvoice(int $therapyId): void {
     $config = require __DIR__ . '/../config.php';
     $db = getDB();
 
-    // Load therapy + client
-    $stmt = $db->prepare(
-        'SELECT t.id, t.client_id, t.label AS therapy_label, t.session_cost_cents,
-                c.title AS client_title, c.first_name AS client_first_name, c.last_name AS client_last_name, c.suffix AS client_suffix,
-                c.email AS client_email,
-                c.street AS client_street, c.zip AS client_zip, c.city AS client_city, c.country AS client_country
-         FROM therapies t
-         JOIN clients c ON t.client_id = c.id
-         WHERE t.id = ?'
-    );
-    $stmt->execute([$therapyId]);
-    $therapy = $stmt->fetch();
+    $therapy = loadTherapyForInvoice($db, $therapyId);
     if (!$therapy) {
         http_response_code(404);
         echo json_encode(['error' => 'Therapie nicht gefunden']);
         return;
     }
 
-    // Sessions covered by the package invoice
-    $sessStmt = $db->prepare(
-        "SELECT * FROM therapy_sessions
-         WHERE therapy_id = ? AND status <> 'cancelled' AND payment_status = 'due' AND invoice_sent = 0
-         ORDER BY session_date ASC, session_time ASC"
-    );
-    $sessStmt->execute([$therapyId]);
-    $sessions = $sessStmt->fetchAll();
-
+    $sessions = loadPackageInvoiceSessions($db, $therapyId);
     if (empty($sessions)) {
         http_response_code(400);
         echo json_encode(['error' => 'Keine offenen, noch nicht berechneten Sitzungen']);
@@ -791,49 +904,16 @@ function handleSendTherapyPackageInvoice(int $therapyId): void {
 
     $defaultCost = (int)$therapy['session_cost_cents'];
     $totalCents = packageInvoiceTotalCents($sessions, $defaultCost);
-    $lineItems = array_map(function ($s) use ($defaultCost) {
-        $override = $s['session_cost_cents_override'] !== null ? (int)$s['session_cost_cents_override'] : null;
-        $cost = resolveSessionCost($override, $defaultCost);
-        return [
-            'date'     => date('d.m.Y', strtotime($s['session_date'])),
-            'time'     => $s['session_time'],
-            'duration' => (int)$s['duration_minutes'],
-            'amount'   => number_format($cost / 100, 2, ',', '.') . ' €',
-        ];
-    }, $sessions);
-
+    $lineItems = therapyPackageLineItems($sessions, $defaultCost);
+    $amountFormatted = number_format($totalCents / 100, 2, ',', '.') . ' €';
     $clientName = composeClientName($therapy['client_title'], $therapy['client_first_name'], $therapy['client_last_name'], $therapy['client_suffix']);
     $dateFormatted = date('d.m.Y');
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
-    $siteUrl = $config['site_url'] ?? '';
-    $amountFormatted = number_format($totalCents / 100, 2, ',', '.') . ' €';
     $sessionCount = count($sessions);
     $invoiceNumber = generateInvoiceNumber($db);
-    $paymentNote = 'Bitte überweisen Sie den Gesamtbetrag innerhalb von 14 Tagen.';
 
-    $pdfGen = new PdfGenerator();
-    $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_einzeltherapie_paket', 'rechnung_einzeltherapie_paket');
-    $pdfContent = $pdfGen->generate($templateKey, $clientName, $dateFormatted, [
-        'invoiceNumber'   => $invoiceNumber,
-        'amountFormatted' => $amountFormatted,
-        'totalAmount'     => $amountFormatted,
-        'therapyLabel'    => $therapy['therapy_label'] ?: 'Einzeltherapie',
-        'sessionCount'    => $sessionCount,
-        'sessions'        => $lineItems,
-        'clientStreet'    => $therapy['client_street'] ?? '',
-        'clientZip'       => $therapy['client_zip'] ?? '',
-        'clientCity'      => $therapy['client_city'] ?? '',
-        'clientCountry'   => $therapy['client_country'] ?? '',
-        'paymentNote'     => $paymentNote,
-    ]);
-
-    // Cover email (shares the single-invoice template)
-    $sessionDate = $dateFormatted;
-    $bookingNumber = null;
-    $documentName = 'Rechnung';
-    ob_start();
-    include __DIR__ . '/../templates/email/invoice_cover.php';
-    $htmlBody = ob_get_clean();
+    $pdfContent = renderTherapyPackagePdf($therapy, $lineItems, $invoiceNumber, $amountFormatted, $dateFormatted, $clientName, THERAPY_PACKAGE_PAYMENT_NOTE);
+    $htmlBody = renderTherapyPackageEmailBody($config, $clientName, $invoiceNumber, $amountFormatted, $dateFormatted, THERAPY_PACKAGE_PAYMENT_NOTE);
 
     try {
         $mailer = new Mailer();

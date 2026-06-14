@@ -13,7 +13,7 @@ export default function TherapiesTab() {
   const {
     therapies, archivedTherapies, sessionsByTherapy, error,
     fetchTherapies, fetchArchivedTherapies, addTherapy, updateTherapy, removeTherapy,
-    fetchSessions, addSession, generateSessions, updateSession, removeSession, sendInvoice, sendPackageInvoice,
+    fetchSessions, addSession, generateSessions, updateSession, removeSession, sendInvoice, previewPackageInvoice, sendPackageInvoice,
   } = useAdminTherapies();
   const { clients, fetchClients } = useAdminClients();
 
@@ -72,6 +72,7 @@ export default function TherapiesTab() {
         onUpdateSession={updateSession}
         onDeleteSession={removeSession}
         onSendInvoice={sendInvoice}
+        onPreviewPackageInvoice={previewPackageInvoice}
         onSendPackageInvoice={sendPackageInvoice}
         showNewForm={false}
         newForm={null}

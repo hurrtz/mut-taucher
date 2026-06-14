@@ -190,6 +190,17 @@ export interface TherapySession {
   createdAt: string;
 }
 
+export interface PackageInvoicePreview {
+  to: string;
+  toName: string;
+  subject: string;
+  htmlBody: string;
+  invoiceNumber: string;
+  sessionCount: number;
+  totalAmount: string;
+  sessions: { date: string; time: string; duration: number; amount: string }[];
+}
+
 export type DocumentStatus = 'complete' | 'signed-pending' | 'sends-pending' | null;
 
 export interface DocumentSend {

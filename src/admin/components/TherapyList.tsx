@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Therapy, TherapySession } from '../../lib/data';
+import type { Therapy, TherapySession, PackageInvoicePreview } from '../../lib/data';
 import { DAY_LABELS, SESSION_STATUS_LABELS, SESSION_STATUS_COLORS } from '../constants';
 import { useAdminStyles } from '../styles';
 import { DocumentCollapse } from './DocumentChecklist';
@@ -13,13 +13,13 @@ import {
   VideoCameraOutlined, DeleteOutlined, CheckCircleOutlined,
   FileTextOutlined, ContainerOutlined, EditOutlined,
 } from '@ant-design/icons';
-import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse, TimePicker, InputNumber, Tooltip } from 'antd';
+import { Card, Button, Tag, Space, Typography, Modal, Select, Statistic, Row, Col, DatePicker, Collapse, TimePicker, InputNumber, Tooltip, Alert } from 'antd';
 import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
 
 // ─── Session Panel ───────────────────────────────────────────────
 
-function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSession, onDeleteSession, onSendInvoice, onSendPackageInvoice }: {
+function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSession, onDeleteSession, onSendInvoice, onPreviewPackageInvoice, onSendPackageInvoice }: {
   therapy: Therapy;
   sessions: TherapySession[];
   onGenerate: (from: string, to: string) => void;
@@ -27,6 +27,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number) => void;
   onSendInvoice: (id: number) => void;
+  onPreviewPackageInvoice?: (therapyId: number) => Promise<PackageInvoicePreview | null>;
   onSendPackageInvoice?: (therapyId: number) => Promise<{ invoiceNumber: string; sessionCount: number; totalAmount: string } | null>;
 }) {
   const [genFrom, setGenFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -36,6 +37,9 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
   const [editTime, setEditTime] = useState('');
   const [editDuration, setEditDuration] = useState(60);
   const [addOpen, setAddOpen] = useState(false);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [preview, setPreview] = useState<PackageInvoicePreview | null>(null);
   const [sending, setSending] = useState(false);
   const styles = useAdminStyles();
 
@@ -52,36 +56,63 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
   const creditAmount = credit * therapy.sessionCostCents;
 
   const openUninvoiced = sessions.filter(s => s.status !== 'cancelled' && s.paymentStatus === 'due' && !s.invoiceSent);
-  const openUninvoicedCents = openUninvoiced.reduce((sum, s) => sum + (s.sessionCostCentsOverride ?? therapy.sessionCostCents), 0);
   const colSpan = credit > 0 ? 6 : 8;
 
-  const handleSendPackageInvoice = () => {
+  const openPreview = async () => {
+    if (!onPreviewPackageInvoice) return;
+    setLoadingPreview(true);
+    try {
+      const data = await onPreviewPackageInvoice(therapy.id);
+      if (data) {
+        setPreview(data);
+        setPreviewOpen(true);
+      }
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const closePreview = () => {
+    setPreviewOpen(false);
+    setPreview(null);
+  };
+
+  const confirmSend = async () => {
     if (!onSendPackageInvoice) return;
-    Modal.confirm({
-      title: 'Paketrechnung senden?',
-      content: `${openUninvoiced.length} offene Sitzung${openUninvoiced.length === 1 ? '' : 'en'} über insgesamt ${(openUninvoicedCents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € werden in einer Rechnung zusammengefasst und an ${therapy.clientName} gesendet.`,
-      okText: 'Senden',
-      cancelText: 'Abbrechen',
-      onOk: async () => {
-        setSending(true);
-        try {
-          const res = await onSendPackageInvoice(therapy.id);
-          if (res) {
-            Modal.success({
-              title: 'Rechnung gesendet',
-              content: `Rechnung ${res.invoiceNumber} über ${res.totalAmount} (${res.sessionCount} Sitzungen) wurde versendet.`,
-            });
-          }
-        } finally {
-          setSending(false);
-        }
-      },
-    });
+    setSending(true);
+    try {
+      const res = await onSendPackageInvoice(therapy.id);
+      closePreview();
+      if (res) {
+        Modal.success({
+          title: 'Rechnung gesendet',
+          content: `Rechnung ${res.invoiceNumber} über ${res.totalAmount} (${res.sessionCount} Sitzungen) wurde versendet.`,
+        });
+      }
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Card size="small" type="inner" title="Finanzieller Status">
+      <Card
+        size="small"
+        type="inner"
+        title="Finanzieller Status"
+        extra={onPreviewPackageInvoice && (
+          <Button
+            size="small"
+            type="primary"
+            icon={<FileTextOutlined />}
+            onClick={openPreview}
+            disabled={openUninvoiced.length === 0}
+            loading={loadingPreview}
+          >
+            Paketrechnung{openUninvoiced.length > 0 ? ` (${openUninvoiced.length})` : ''}
+          </Button>
+        )}
+      >
         <Row gutter={16}>
           <Col span={colSpan} style={{ textAlign: 'center' }}>
             <Statistic
@@ -121,19 +152,48 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
             <Typography.Text type="secondary" style={{ fontSize: styles.token.fontSizeSM }}>{totalDue + totalPaid} Sitzungen</Typography.Text>
           </Col>
         </Row>
-        {onSendPackageInvoice && (
-          <Button
-            icon={<FileTextOutlined />}
-            onClick={handleSendPackageInvoice}
-            disabled={openUninvoiced.length === 0}
-            loading={sending}
-            block
-            style={{ marginTop: 12 }}
-          >
-            Paketrechnung senden{openUninvoiced.length > 0 ? ` (${openUninvoiced.length})` : ''}
-          </Button>
-        )}
       </Card>
+
+      <Modal
+        title="Paketrechnung — Vorschau"
+        open={previewOpen}
+        onCancel={closePreview}
+        width={720}
+        footer={[
+          <Button key="discard" onClick={closePreview}>Verwerfen</Button>,
+          <Button key="send" type="primary" loading={sending} onClick={confirmSend}>Senden</Button>,
+        ]}
+      >
+        {preview && (
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <div>
+              <Typography.Text type="secondary">An: </Typography.Text>
+              <Typography.Text>{preview.toName} &lt;{preview.to}&gt;</Typography.Text>
+            </div>
+            <div>
+              <Typography.Text type="secondary">Betreff: </Typography.Text>
+              <Typography.Text>{preview.subject}</Typography.Text>
+            </div>
+            <div>
+              <Typography.Text type="secondary">Anhang: </Typography.Text>
+              <Typography.Text>Rechnung_{preview.invoiceNumber}.pdf — {preview.sessionCount} Sitzungen, {preview.totalAmount}</Typography.Text>
+            </div>
+            <Alert
+              type="info"
+              showIcon
+              message="Die endgültige Rechnungsnummer wird erst beim Senden vergeben."
+            />
+            <div>
+              <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>E-Mail-Vorschau</Typography.Text>
+              <iframe
+                title="E-Mail-Vorschau"
+                srcDoc={preview.htmlBody}
+                style={{ width: '100%', height: 360, border: `1px solid ${styles.token.colorBorder}`, borderRadius: styles.token.borderRadius }}
+              />
+            </div>
+          </Space>
+        )}
+      </Modal>
 
       {sessions.length === 0 ? (
         <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '16px 0' }}>
@@ -194,9 +254,11 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
                     </Typography.Text>
                     <Typography.Text type="secondary">{s.sessionTime} Uhr</Typography.Text>
                     <Tag color={SESSION_STATUS_COLORS[s.status]}>{SESSION_STATUS_LABELS[s.status]}</Tag>
-                    <Tag color={s.paymentStatus === 'paid' ? 'green' : 'gold'}>
-                      {s.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
-                    </Tag>
+                    {s.status !== 'cancelled' && (
+                      <Tag color={s.paymentStatus === 'paid' ? 'green' : 'gold'}>
+                        {s.paymentStatus === 'paid' ? 'Bezahlt' : 'Offen'}
+                      </Tag>
+                    )}
                   </Space>
                 )}
                 <Space size={8}>
@@ -224,6 +286,8 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
                       }}
                     />
                   </Tooltip>
+                  {s.status !== 'cancelled' && (
+                    <>
                   <Tooltip title={s.paymentStatus === 'paid' ? 'Als offen markieren' : (credit > 0 ? 'Mit Guthaben verrechnen' : 'Als bezahlt markieren')}>
                     <Button
                       type="text"
@@ -244,6 +308,8 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
                       style={{ color: s.invoiceSent ? styles.token.colorSuccess : undefined }}
                     />
                   </Tooltip>
+                    </>
+                  )}
                   <Tooltip title="Sitzung löschen">
                     <Button
                       type="text"
@@ -333,7 +399,7 @@ function SessionPanel({ therapy, sessions, onGenerate, onAddSession, onUpdateSes
 // ─── Therapy Card ────────────────────────────────────────────────
 
 function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArchive, onGenerateSessions,
-  onAddSession, onUpdateSession, onDeleteSession, onSendInvoice, onSendPackageInvoice }: {
+  onAddSession, onUpdateSession, onDeleteSession, onSendInvoice, onPreviewPackageInvoice, onSendPackageInvoice }: {
   therapy: Therapy;
   sessions: TherapySession[];
   fetchSessions: (therapyId: number) => void;
@@ -345,6 +411,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number, therapyId: number) => void;
   onSendInvoice: (id: number) => void;
+  onPreviewPackageInvoice?: (therapyId: number) => Promise<PackageInvoicePreview | null>;
   onSendPackageInvoice?: (therapyId: number) => Promise<{ invoiceNumber: string; sessionCount: number; totalAmount: string } | null>;
 }) {
   const styles = useAdminStyles();
@@ -451,6 +518,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
           onUpdateSession={onUpdateSession}
           onDeleteSession={(id) => onDeleteSession(id, therapy.id)}
           onSendInvoice={onSendInvoice}
+          onPreviewPackageInvoice={onPreviewPackageInvoice}
           onSendPackageInvoice={onSendPackageInvoice}
         />
 
@@ -464,7 +532,7 @@ function TherapyCard({ therapy, sessions, fetchSessions, onEdit, onDelete, onArc
 
 export default function TherapyList({ therapies, archivedTherapies, sessionsByTherapy, fetchSessions,
   onEdit, onDelete, onArchive, onGenerateSessions, onAddSession, onUpdateSession, onDeleteSession, onSendInvoice,
-  onSendPackageInvoice, showNewForm, newForm }: {
+  onPreviewPackageInvoice, onSendPackageInvoice, showNewForm, newForm }: {
   therapies: Therapy[];
   archivedTherapies: Therapy[];
   sessionsByTherapy: Record<number, TherapySession[]>;
@@ -477,6 +545,7 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
   onUpdateSession: (id: number, updates: Partial<TherapySession>) => void;
   onDeleteSession: (id: number, therapyId: number) => void;
   onSendInvoice: (id: number) => void;
+  onPreviewPackageInvoice?: (therapyId: number) => Promise<PackageInvoicePreview | null>;
   onSendPackageInvoice?: (therapyId: number) => Promise<{ invoiceNumber: string; sessionCount: number; totalAmount: string } | null>;
   showNewForm: boolean;
   newForm: ReactNode;
@@ -508,6 +577,7 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
                 onUpdateSession={onUpdateSession}
                 onDeleteSession={onDeleteSession}
                 onSendInvoice={onSendInvoice}
+                onPreviewPackageInvoice={onPreviewPackageInvoice}
                 onSendPackageInvoice={onSendPackageInvoice}
               />
             ))
@@ -536,6 +606,7 @@ export default function TherapyList({ therapies, archivedTherapies, sessionsByTh
                   onUpdateSession={onUpdateSession}
                   onDeleteSession={onDeleteSession}
                   onSendInvoice={onSendInvoice}
+                  onPreviewPackageInvoice={onPreviewPackageInvoice}
                   onSendPackageInvoice={onSendPackageInvoice}
                 />
               ),

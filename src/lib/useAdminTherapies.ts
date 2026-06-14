@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { apiFetch } from './api';
-import type { Therapy, TherapySession, TherapyScheduleRule } from './data';
+import type { Therapy, TherapySession, TherapyScheduleRule, PackageInvoicePreview } from './data';
 
 export function useAdminTherapies() {
   const [therapies, setTherapies] = useState<Therapy[]>([]);
@@ -189,6 +189,16 @@ export function useAdminTherapies() {
     }
   }, []);
 
+  const previewPackageInvoice = useCallback(async (therapyId: number) => {
+    setError(null);
+    try {
+      return await apiFetch<PackageInvoicePreview>(`/admin/therapies/${therapyId}/invoice/preview`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler bei der Vorschau');
+      return null;
+    }
+  }, []);
+
   const sendPackageInvoice = useCallback(async (therapyId: number) => {
     setError(null);
     try {
@@ -221,6 +231,7 @@ export function useAdminTherapies() {
     updateSession,
     removeSession,
     sendInvoice,
+    previewPackageInvoice,
     sendPackageInvoice,
   };
 }

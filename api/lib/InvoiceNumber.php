@@ -33,6 +33,20 @@ function generateInvoiceNumber(PDO $db): string {
 }
 
 /**
+ * Peek the next invoice number without reserving it (read-only).
+ * For previews only — the number actually issued on send may differ if another
+ * invoice is generated in between.
+ */
+function peekNextInvoiceNumber(PDO $db): string {
+    $yearPrefix = date('y');
+    $stmt = $db->prepare('SELECT MAX(sequence_number) as max_seq FROM invoice_numbers WHERE year_prefix = ?');
+    $stmt->execute([$yearPrefix]);
+    $row = $stmt->fetch();
+    $nextSeq = ($row['max_seq'] ?? 0) + 1;
+    return $yearPrefix . '-' . str_pad((string)$nextSeq, 4, '0', STR_PAD_LEFT);
+}
+
+/**
  * Resolve the effective cost (in cents) for a session.
  * Returns the override when set (including the legitimate value 0),
  * otherwise falls back to the therapy/group default.
