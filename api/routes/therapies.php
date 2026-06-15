@@ -599,20 +599,8 @@ function handleUpdateSession(int $id): void {
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
 
-    // Auto-send invoice when session is completed or no-show
-    $newStatus = $input['status'] ?? null;
-    if (in_array($newStatus, ['completed', 'no_show'], true)) {
-        $check = $db->prepare('SELECT invoice_sent FROM therapy_sessions WHERE id = ?');
-        $check->execute([$id]);
-        $row = $check->fetch();
-        if ($row && !$row['invoice_sent']) {
-            try {
-                sendTherapySessionInvoice($db, $id);
-            } catch (\Exception $e) {
-                // Don't fail the status update if invoice fails
-            }
-        }
-    }
+    // Invoices are only ever sent explicitly — via the per-session invoice button
+    // (handleSendInvoice) or the package invoice. Status changes never send one.
 
     // Return the updated session so the client reflects backend-decided fields
     // (e.g. paid_from_credit) without a refetch.
@@ -823,7 +811,7 @@ function renderTherapyPackageEmailBody(array $config, string $clientName, string
 }
 
 /** The fixed payment note used on package invoices. */
-const THERAPY_PACKAGE_PAYMENT_NOTE = 'Bitte überweisen Sie den Gesamtbetrag innerhalb von 14 Tagen.';
+const THERAPY_PACKAGE_PAYMENT_NOTE = 'Bitte überweisen Sie den Gesamtbetrag vor dem ersten Termin.';
 
 /**
  * GET /api/admin/therapies/:id/invoice/preview

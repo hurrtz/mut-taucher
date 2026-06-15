@@ -57,7 +57,7 @@ $pdf->writeHTML('<table cellpadding="8" border="0" width="100%">
 </table>');
 $pdf->Ln(6);
 
-$pdf->writeHTML('<p style="color: #64748b"><strong>Hinweis:</strong> Gemäß § 4 Nr. 14 UStG ist die Leistung umsatzsteuerbefreit (Heilbehandlung im Bereich der Humanmedizin).</p>');
+$pdf->writeHTML('<p style="color: #64748b"><strong>Hinweis:</strong> Gemäß § 4 Nr. 14 UStG ist die Leistung umsatzsteuerbefreit (Heilbehandlung im Bereich der Psychotherapie).</p>');
 $pdf->Ln(4);
 
 $pdf->writeHTML('<p>' . $paymentNote . '</p>');

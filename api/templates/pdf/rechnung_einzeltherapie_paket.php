@@ -9,7 +9,7 @@ $unitPriceFormatted = $extra['unitPriceFormatted'] ?? '';
 $clientStreet = htmlspecialchars($extra['clientStreet'] ?? '');
 $clientZip = htmlspecialchars($extra['clientZip'] ?? '');
 $clientCity = htmlspecialchars($extra['clientCity'] ?? '');
-$paymentNote = htmlspecialchars($extra['paymentNote'] ?? 'Bitte überweisen Sie den Gesamtbetrag innerhalb von 14 Tagen.');
+$paymentNote = htmlspecialchars($extra['paymentNote'] ?? 'Bitte überweisen Sie den Gesamtbetrag vor dem ersten Termin.');
 
 $config = require __DIR__ . '/../../config.php';
 $tName = htmlspecialchars($therapistName);
@@ -61,7 +61,7 @@ $rows = '<table cellpadding="8" border="0" width="100%">
 $pdf->writeHTML($rows);
 $pdf->Ln(6);
 
-$pdf->writeHTML('<p style="color: #64748b"><strong>Hinweis:</strong> Gemäß § 4 Nr. 14 UStG ist die Leistung umsatzsteuerbefreit (Heilbehandlung im Bereich der Humanmedizin).</p>');
+$pdf->writeHTML('<p style="color: #64748b"><strong>Hinweis:</strong> Gemäß § 4 Nr. 14 UStG ist die Leistung umsatzsteuerbefreit (Heilbehandlung im Bereich der Psychotherapie).</p>');
 $pdf->Ln(4);
 
 $pdf->writeHTML('<p>' . $paymentNote . '</p>');
