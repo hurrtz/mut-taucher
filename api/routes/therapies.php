@@ -773,39 +773,38 @@ function loadPackageInvoiceSessions(PDO $db, int $therapyId): array {
 }
 
 /**
- * Map covered session rows to display line items (date/time/duration/amount).
+ * The per-session price formatted, but only when every covered session shares the same
+ * cost; null otherwise (so the package line can drop the unit price).
  */
-function therapyPackageLineItems(array $sessions, int $defaultCost): array {
-    return array_map(function ($s) use ($defaultCost) {
+function therapyPackageUnitPrice(array $sessions, int $defaultCost): ?string {
+    $costs = array_map(function ($s) use ($defaultCost) {
         $override = $s['session_cost_cents_override'] !== null ? (int)$s['session_cost_cents_override'] : null;
-        $cost = resolveSessionCost($override, $defaultCost);
-        return [
-            'date'     => date('d.m.Y', strtotime($s['session_date'])),
-            'time'     => $s['session_time'],
-            'duration' => (int)$s['duration_minutes'],
-            'amount'   => number_format($cost / 100, 2, ',', '.') . ' €',
-        ];
+        return resolveSessionCost($override, $defaultCost);
     }, $sessions);
+    if (count(array_unique($costs)) !== 1) {
+        return null;
+    }
+    return number_format($costs[0] / 100, 2, ',', '.') . ' €';
 }
 
 /**
- * Render the package invoice PDF.
+ * Render the package invoice PDF (a single "Therapiepaket — N Sitzungen" line, no dates).
  */
-function renderTherapyPackagePdf(array $therapy, array $lineItems, string $invoiceNumber, string $amountFormatted, string $dateFormatted, string $clientName, string $paymentNote): string {
+function renderTherapyPackagePdf(array $therapy, int $sessionCount, ?string $unitPriceFormatted, string $invoiceNumber, string $amountFormatted, string $dateFormatted, string $clientName, string $paymentNote): string {
     $pdfGen = new PdfGenerator();
     $templateKey = $pdfGen->resolveTemplateKey('pdf:rechnung_einzeltherapie_paket', 'rechnung_einzeltherapie_paket');
     return $pdfGen->generate($templateKey, $clientName, $dateFormatted, [
-        'invoiceNumber'   => $invoiceNumber,
-        'amountFormatted' => $amountFormatted,
-        'totalAmount'     => $amountFormatted,
-        'therapyLabel'    => $therapy['therapy_label'] ?: 'Einzeltherapie',
-        'sessionCount'    => count($lineItems),
-        'sessions'        => $lineItems,
-        'clientStreet'    => $therapy['client_street'] ?? '',
-        'clientZip'       => $therapy['client_zip'] ?? '',
-        'clientCity'      => $therapy['client_city'] ?? '',
-        'clientCountry'   => $therapy['client_country'] ?? '',
-        'paymentNote'     => $paymentNote,
+        'invoiceNumber'      => $invoiceNumber,
+        'amountFormatted'    => $amountFormatted,
+        'totalAmount'        => $amountFormatted,
+        'therapyLabel'       => $therapy['therapy_label'] ?: 'Einzeltherapie',
+        'sessionCount'       => $sessionCount,
+        'unitPriceFormatted' => $unitPriceFormatted ?? '',
+        'clientStreet'       => $therapy['client_street'] ?? '',
+        'clientZip'          => $therapy['client_zip'] ?? '',
+        'clientCity'         => $therapy['client_city'] ?? '',
+        'clientCountry'      => $therapy['client_country'] ?? '',
+        'paymentNote'        => $paymentNote,
     ]);
 }
 
@@ -854,14 +853,15 @@ function handlePreviewTherapyPackageInvoice(int $therapyId): void {
 
     $defaultCost = (int)$therapy['session_cost_cents'];
     $totalCents = packageInvoiceTotalCents($sessions, $defaultCost);
-    $lineItems = therapyPackageLineItems($sessions, $defaultCost);
+    $unitPrice = therapyPackageUnitPrice($sessions, $defaultCost);
+    $sessionCount = count($sessions);
     $amountFormatted = number_format($totalCents / 100, 2, ',', '.') . ' €';
     $clientName = composeClientName($therapy['client_title'], $therapy['client_first_name'], $therapy['client_last_name'], $therapy['client_suffix']);
     $dateFormatted = date('d.m.Y');
     $therapistName = $config['therapist_name'] ?? 'Mut-Taucher Praxis';
     $invoiceNumber = peekNextInvoiceNumber($db); // indicative only
     $htmlBody = renderTherapyPackageEmailBody($config, $clientName, $invoiceNumber, $amountFormatted, $dateFormatted, THERAPY_PACKAGE_PAYMENT_NOTE);
-    $pdfContent = renderTherapyPackagePdf($therapy, $lineItems, $invoiceNumber, $amountFormatted, $dateFormatted, $clientName, THERAPY_PACKAGE_PAYMENT_NOTE);
+    $pdfContent = renderTherapyPackagePdf($therapy, $sessionCount, $unitPrice, $invoiceNumber, $amountFormatted, $dateFormatted, $clientName, THERAPY_PACKAGE_PAYMENT_NOTE);
 
     echo json_encode([
         'to'            => $therapy['client_email'],
@@ -870,9 +870,8 @@ function handlePreviewTherapyPackageInvoice(int $therapyId): void {
         'htmlBody'      => $htmlBody,
         'pdfBase64'     => base64_encode($pdfContent),
         'invoiceNumber' => $invoiceNumber,
-        'sessionCount'  => count($sessions),
+        'sessionCount'  => $sessionCount,
         'totalAmount'   => $amountFormatted,
-        'sessions'      => $lineItems,
     ]);
 }
 
@@ -906,7 +905,7 @@ function handleSendTherapyPackageInvoice(int $therapyId): void {
 
     $defaultCost = (int)$therapy['session_cost_cents'];
     $totalCents = packageInvoiceTotalCents($sessions, $defaultCost);
-    $lineItems = therapyPackageLineItems($sessions, $defaultCost);
+    $unitPrice = therapyPackageUnitPrice($sessions, $defaultCost);
     $amountFormatted = number_format($totalCents / 100, 2, ',', '.') . ' €';
     $clientName = composeClientName($therapy['client_title'], $therapy['client_first_name'], $therapy['client_last_name'], $therapy['client_suffix']);
     $dateFormatted = date('d.m.Y');
@@ -914,7 +913,7 @@ function handleSendTherapyPackageInvoice(int $therapyId): void {
     $sessionCount = count($sessions);
     $invoiceNumber = generateInvoiceNumber($db);
 
-    $pdfContent = renderTherapyPackagePdf($therapy, $lineItems, $invoiceNumber, $amountFormatted, $dateFormatted, $clientName, THERAPY_PACKAGE_PAYMENT_NOTE);
+    $pdfContent = renderTherapyPackagePdf($therapy, $sessionCount, $unitPrice, $invoiceNumber, $amountFormatted, $dateFormatted, $clientName, THERAPY_PACKAGE_PAYMENT_NOTE);
     $htmlBody = renderTherapyPackageEmailBody($config, $clientName, $invoiceNumber, $amountFormatted, $dateFormatted, THERAPY_PACKAGE_PAYMENT_NOTE);
 
     try {

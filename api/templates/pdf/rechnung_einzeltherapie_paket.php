@@ -4,7 +4,8 @@
 $invoiceNumber = $extra['invoiceNumber'] ?? '';
 $totalFormatted = $extra['totalAmount'] ?? ($extra['amountFormatted'] ?? '0,00 €');
 $therapyLabel = $extra['therapyLabel'] ?? 'Einzeltherapie';
-$sessions = $extra['sessions'] ?? [];
+$sessionCount = (int)($extra['sessionCount'] ?? 0);
+$unitPriceFormatted = $extra['unitPriceFormatted'] ?? '';
 $clientStreet = htmlspecialchars($extra['clientStreet'] ?? '');
 $clientZip = htmlspecialchars($extra['clientZip'] ?? '');
 $clientCity = htmlspecialchars($extra['clientCity'] ?? '');
@@ -34,30 +35,25 @@ $pdf->Ln(4);
 // Heading
 $pdf->writeHTML('<h2>Rechnung</h2>');
 
-// Service table — one row per session
+// Service table — a single package line (no per-session dates)
+$sessionWord = $sessionCount === 1 ? 'Sitzung' : 'Sitzungen';
+$mengeCell = $unitPriceFormatted !== ''
+    ? $sessionCount . ' × ' . htmlspecialchars($unitPriceFormatted)
+    : $sessionCount . ' ' . $sessionWord;
+
 $rows = '<table cellpadding="8" border="0" width="100%">
 <tr>
-<th width="35%" bgcolor="#2dd4bf" style="color: #ffffff" align="left">Leistung</th>
-<th width="30%" bgcolor="#2dd4bf" style="color: #ffffff" align="left">Datum</th>
-<th width="13%" bgcolor="#2dd4bf" style="color: #ffffff" align="left">Dauer</th>
+<th width="52%" bgcolor="#2dd4bf" style="color: #ffffff" align="left">Leistung</th>
+<th width="26%" bgcolor="#2dd4bf" style="color: #ffffff" align="left">Menge</th>
 <th width="22%" bgcolor="#2dd4bf" style="color: #ffffff" align="right">Betrag</th>
-</tr>';
-
-foreach ($sessions as $s) {
-    $dateCell = htmlspecialchars($s['date'] ?? '');
-    if (!empty($s['time'])) {
-        $dateCell .= ' ' . htmlspecialchars($s['time']);
-    }
-    $rows .= '<tr>
-<td style="border-bottom: 1px solid #e2e8f0">' . htmlspecialchars($therapyLabel) . '</td>
-<td style="border-bottom: 1px solid #e2e8f0">' . $dateCell . '</td>
-<td style="border-bottom: 1px solid #e2e8f0">' . (int)($s['duration'] ?? 0) . ' Min.</td>
-<td align="right" style="border-bottom: 1px solid #e2e8f0">' . htmlspecialchars($s['amount'] ?? '') . '</td>
-</tr>';
-}
-
-$rows .= '<tr>
-<td colspan="3" align="right"><strong>Gesamtbetrag:</strong></td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #e2e8f0"><strong>' . htmlspecialchars($therapyLabel) . '</strong><br><span style="color: #64748b; font-size: 9pt">Therapiepaket (' . $sessionCount . ' ' . $sessionWord . ')</span></td>
+<td style="border-bottom: 1px solid #e2e8f0">' . $mengeCell . '</td>
+<td align="right" style="border-bottom: 1px solid #e2e8f0">' . htmlspecialchars($totalFormatted) . '</td>
+</tr>
+<tr>
+<td colspan="2" align="right"><strong>Gesamtbetrag:</strong></td>
 <td align="right" style="border-top: 2px solid #2dd4bf"><strong>' . htmlspecialchars($totalFormatted) . '</strong></td>
 </tr>
 </table>';

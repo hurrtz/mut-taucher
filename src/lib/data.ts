@@ -199,7 +199,6 @@ export interface PackageInvoicePreview {
   invoiceNumber: string;
   sessionCount: number;
   totalAmount: string;
-  sessions: { date: string; time: string; duration: number; amount: string }[];
 }
 
 export type DocumentStatus = 'complete' | 'signed-pending' | 'sends-pending' | null;
